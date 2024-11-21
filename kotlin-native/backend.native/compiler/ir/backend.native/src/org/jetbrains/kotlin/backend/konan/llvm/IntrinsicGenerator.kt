@@ -15,6 +15,7 @@ import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.symbols.IrConstructorSymbol
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.findAnnotation
+import java.lang.IllegalArgumentException
 
 internal enum class IntrinsicType {
     PLUS,
@@ -90,7 +91,10 @@ internal enum class IntrinsicType {
     INTEROP_NARROW,
     INTEROP_STATIC_C_FUNCTION,
     INTEROP_FUNPTR_INVOKE,
+    // Kleaver interop
     INTEROP_MEMORY_COPY,
+    INTEROP_MEMORY_SET,
+    INTEROP_ALLOCA,
     // Worker
     WORKER_EXECUTE,
     // Atomics
@@ -262,7 +266,11 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
                 IntrinsicType.INTEROP_NATIVE_PTR_PLUS_LONG -> emitNativePtrPlusLong(args)
                 IntrinsicType.INTEROP_GET_NATIVE_NULL_PTR -> emitGetNativeNullPtr()
                 IntrinsicType.IDENTITY -> emitIdentity(args)
+                // Kleaver implementation begin
                 IntrinsicType.INTEROP_MEMORY_COPY -> emitMemoryCopy(callSite, args)
+                IntrinsicType.INTEROP_MEMORY_SET -> emitMemorySet(callSite, args)
+                IntrinsicType.INTEROP_ALLOCA -> emitAlloca(callSite, args)
+                // Kleaver implementation end
                 IntrinsicType.IS_EXPERIMENTAL_MM -> emitIsExperimentalMM()
                 IntrinsicType.THE_UNIT_INSTANCE -> theUnitInstanceRef.llvm
                 IntrinsicType.ATOMIC_GET_FIELD -> reportNonLoweredIntrinsic(intrinsicType)
@@ -570,11 +578,35 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
         return codegen.theUnitInstanceRef.llvm
     }
 
+    // Kleaver implementation begin
+
     private fun FunctionGenerationContext.emitMemoryCopy(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
-        println("memcpy at ${callSite}")
-        args.map { println(llvm2string(it)) }
-        TODO("Implement me")
+        require(args.size == 3) { "Wrong number of arguments for memcpy intrinsic" }
+        val (dst, src, size) = args
+        return when(size.type.sizeInBits()) {
+            32 -> llvm.memcpy(dst, src, size)
+            64 -> llvm.memcpy64(dst, src, size)
+            else -> throw IllegalArgumentException("Unsupported size type for memcpy intrinsic")
+        }
     }
+
+    private fun FunctionGenerationContext.emitMemorySet(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
+        require(args.size == 3) { "Wrong number of arguments for memset intrinsic" }
+        val (address, value, size) = args
+        return when(size.type.sizeInBits()) {
+            32 -> llvm.memset(address, value, size)
+            64 -> llvm.memset64(address, value, size)
+            else -> throw IllegalArgumentException("Unsupported size type for memset intrinsic")
+        }
+    }
+
+    private fun FunctionGenerationnContext.emitAlloca(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
+        require(args.size == 1) { "Wrong number of arguments for alloca intrinsic" }
+        val (size) = args
+        return alloca(llvm.arrayType(llvm.int8Type, size))
+    }
+
+    // Kleaver implementation end
 
     private fun FunctionGenerationContext.emitObjCCreateSuperStruct(args: List<LLVMValueRef>): LLVMValueRef {
         assert(args.size == 2)

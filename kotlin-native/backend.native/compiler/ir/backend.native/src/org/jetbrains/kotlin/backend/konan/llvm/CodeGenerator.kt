@@ -708,7 +708,6 @@ internal abstract class FunctionGenerationContext(
         }
     }
 
-
     abstract fun ret(value: LLVMValueRef?): LLVMValueRef
 
     fun param(index: Int): LLVMValueRef = function.param(index)
@@ -817,12 +816,54 @@ internal abstract class FunctionGenerationContext(
         }
     }
 
-    fun memset(pointer: LLVMValueRef, value: Byte, size: Int, isVolatile: Boolean = false) =
+    // Kleaver implementation begin
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun memset(pointer: LLVMValueRef, value: Byte, size: Int, isVolatile: Boolean = false) =
             call(llvm.memsetFunction,
-                    listOf(pointer,
-                            llvm.int8(value),
-                            llvm.int32(size),
-                            llvm.int1(isVolatile)))
+                    listOf(pointer, llvm.int8(value), llvm.int32(size), llvm.int1(isVolatile)))
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun memset(pointer: LLVMValueRef, value: LLVMValueRef, size: LLVMValueRef, isVolatile: Boolean = false) =
+            call(llvm.memsetFunction,
+                    listOf(pointer, value, size, llvm.int1(isVolatile)))
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun memset64(pointer: LLVMValueRef, value: Byte, size: Long, isVolatile: Boolean = false) =
+            call(llvm.memset64Function,
+                    listOf(pointer, llvm.int8(value), llvm.int64(size), llvm.int1(isVolatile)))
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun memset64(pointer: LLVMValueRef, value: LLVMValueRef, size: LLVMValueRef, isVolatile: Boolean = false) =
+            call(llvm.memset64Function,
+                    listOf(pointer, value, size, llvm.int1(isVolatile)))
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun memcpy(dst: LLVMValueRef, src: LLVMValueRef, size: Int, isVolatile: Boolean = false) =
+            call(llvm.memcpyFunction,
+                    listOf(dst, src, llvm.int32(size), llvm.int1(isVolatile)))
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun memcpy(dst: LLVMValueRef, src: LLVMValueRef, LLVMValueRef: Int, isVolatile: Boolean = false) =
+            call(llvm.memcpyFunction,
+                    listOf(dst, src, size, llvm.int1(isVolatile)))
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun memcpy64(dst: LLVMValueRef, src: LLVMValueRef, size: Long, isVolatile: Boolean = false) =
+            call(llvm.memcpy64Function,
+                    listOf(dst, src, llvm.int64(size), llvm.int1(isVolatile)))
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun memcpy64(dst: LLVMValueRef, src: LLVMValueRef, size: LLVMValueRef, isVolatile: Boolean = false) =
+            call(llvm.memcpy64Function,
+                    listOf(dst, src, size, llvm.int1(isVolatile)))
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun alloca(size: LLVMTypeRef, name: String = ""): LLVMValueRef {
+        return LLVMBuildArrayAlloca(builder, llvm.int8Type, size, name)
+    }
+
+    // Kleaver implementnation end
 
     fun call(llvmCallable: LlvmCallable, args: List<LLVMValueRef>,
              resultLifetime: Lifetime = Lifetime.IRRELEVANT,

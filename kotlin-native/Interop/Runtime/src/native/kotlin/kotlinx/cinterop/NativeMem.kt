@@ -46,75 +46,60 @@ internal object nativeMemUtils {
     @TypedIntrinsic(IntrinsicType.INTEROP_READ_PRIMITIVE) external fun getVector(mem: NativePointed): Vector128
     @TypedIntrinsic(IntrinsicType.INTEROP_WRITE_PRIMITIVE) external fun putVector(mem: NativePointed, value: Vector128)
 
-    // TODO: optimize
-    fun getByteArray(source: NativePointed, dest: ByteArray, length: Int) {
-        val sourceArray = source.reinterpret<ByteVar>().ptr
-        var index = 0
-        while (index < length) {
-            dest[index] = sourceArray[index]
-            ++index
-        }
+    // Kleaver implementation begin
+
+    @TypedIntrinsic(IntrinsicType.INTEROP_MEMORY_SET) external fun setMemory(dest: NativePointed, value: Byte, size: Int): Unit
+    @TypedIntrinsic(IntrinsicType.INTEROP_MEMORY_SET) external fun setMemory(dest: NativePointed, value: Byte, size: Long): Unit
+
+    @TypedIntrinsic(IntrinsicType.INTEROP_MEMORY_COPY) external fun copyMemory(dest: NativePointed, size: Int, src: NativePointed): Unit
+    @TypedIntrinsic(IntrinsicType.INTEROP_MEMORY_COPY) external fun copyMemory(dest: NativePointed, size: Long, src: NativePointed): Unit
+
+    @GCUnsafeCall("Kotlin_interop_alloca")
+    @TypedIntrinsic(IntrinsicType.INTEROP_ALLOCA) external fun alloca(size: Int): NativePointed
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun getByteArray(source: NativePointed, dest: ByteArray, length: Int): Unit = dest.apply {
+        pin()
+        copyMemory(addressOfElement(0).rawValue, length, source.reinterpret<ByteVar>().ptr.rawValue)
+        unpin()
     }
 
-    // TODO: optimize
-    fun putByteArray(source: ByteArray, dest: NativePointed, length: Int) {
-        val destArray = dest.reinterpret<ByteVar>().ptr
-        var index = 0
-        while (index < length) {
-            destArray[index] = source[index]
-            ++index
-        }
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun putByteArray(source: ByteArray, dest: NativePointed, length: Int): Unit = source.apply {
+        pin()
+        copyMemory(source.reinterpret<ByteVar>().ptr.rawValue, length, addressOfElement(0).rawValue)
+        unpin()
     }
 
-    // TODO: optimize
-    fun getCharArray(source: NativePointed, dest: CharArray, length: Int) {
-        val sourceArray = source.reinterpret<ShortVar>().ptr
-        var index = 0
-        while (index < length) {
-            dest[index] = sourceArray[index].toInt().toChar()
-            ++index
-        }
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun getCharArray(source: NativePointed, dest: CharArray, length: Int): Unit = dest.apply {
+        pin()
+        copyMemory(addressOfElement(0).rawValue, length, source.reinterpret<ShortVar>().ptr.rawValue)
+        unpin()
     }
 
-    // TODO: optimize
-    fun putCharArray(source: CharArray, dest: NativePointed, length: Int) {
-        val destArray = dest.reinterpret<ShortVar>().ptr
-        var index = 0
-        while (index < length) {
-            destArray[index] = source[index].code.toShort()
-            ++index
-        }
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun putCharArray(source: CharArray, dest: NativePointed, length: Int): Unit = source.apply {
+        pin()
+        copyMemory(source.reinterpret<ShortVar>().ptr.rawValue, length, addressOfElement(0).rawValue)
+        unpin()
     }
 
-    // TODO: optimize
-    fun zeroMemory(dest: NativePointed, length: Int): Unit {
-        val destArray = dest.reinterpret<ByteVar>().ptr
-        var index = 0
-        while (index < length) {
-            destArray[index] = 0
-            ++index
-        }
-    }
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun zeroMemory(dest: NativePointed, length: Int): Unit = setMemory(dest, 0, length)
 
-    // TODO: optimize
-    fun copyMemory(dest: NativePointed, length: Int, src: NativePointed): Unit {
-        val destArray = dest.reinterpret<ByteVar>().ptr
-        val srcArray = src.reinterpret<ByteVar>().ptr
-        var index = 0
-        while (index < length) {
-            destArray[index] = srcArray[index]
-            ++index
-        }
-    }
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun zeroMemory(dest: NativePointed, length: Long): Unit = setMemory(dest, 0, length)
 
-    fun alloc(size: Long, align: Int): NativePointed {
-        return interpretOpaquePointed(allocRaw(size, align))
-    }
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun alloc(size: Long, align: Int): NativePointed = interpretOpaquePointed(allocRaw(size, align))
 
-    fun free(mem: NativePtr) {
-        freeRaw(mem)
-    }
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun free(mem: NativePtr) = freeRaw(mem)
 
+    // Kleaver implementation end
+
+    // TODO: bad naming, rename to mallocChecked
     internal fun allocRaw(size: Long, align: Int): NativePtr {
         val ptr = malloc(size, align)
         if (ptr == nativeNullPtr) {
@@ -123,11 +108,13 @@ internal object nativeMemUtils {
         return ptr
     }
 
+    // TODO: remove this, frees are not checked anyways
     internal fun freeRaw(mem: NativePtr) {
         cfree(mem)
     }
 }
 
+// TODO: optimize this
 @ExperimentalForeignApi
 public fun CPointer<UShortVar>.toKStringFromUtf16(): String {
     val nativeBytes = this

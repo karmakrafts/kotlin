@@ -33,6 +33,29 @@ public object nativeHeap : NativeFreeablePlacement {
     override fun free(mem: NativePtr): Unit = nativeMemUtils.free(mem)
 }
 
+// Kleaver implementation begin
+
+@ExperimentalForeignApi
+public object StackScope : NativePlacement {
+    override fun alloc(size: Long, align: Int): NativePointed {
+        require(size <= Int.MAX_VALUE) { "Stack allocation exceeds maximum size" }
+        val alignMask = align - 1
+        val alignedSize = (size.toInt() + alignMask) and alignMask.inv()
+        return nativeMemUtils.alloca(alignedSize)
+    }
+}
+
+@ExperimentalForeignApi
+@OptIn(kotlin.contracts.ExperimentalContracts::class)
+public inline fun <reified R> stackScoped(block: StackScope.() -> R): R {
+    contract {
+        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
+    }
+    return block(StackScope)
+}
+
+// Kleaver implementation end
+
 @ExperimentalForeignApi
 private typealias Deferred = () -> Unit
 
