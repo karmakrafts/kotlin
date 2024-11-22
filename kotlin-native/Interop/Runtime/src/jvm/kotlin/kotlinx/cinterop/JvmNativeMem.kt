@@ -143,9 +143,6 @@ internal object nativeMemUtils {
     fun zeroMemory(dest: NativePointed, length: Int): Unit =
             unsafe.setMemory(dest.address, length.toLong(), 0)
 
-    fun copyMemory(dest: NativePointed, length: Int, src: NativePointed) =
-            unsafe.copyMemory(src.address, dest.address, length.toLong())
-
     @Suppress("NON_PUBLIC_CALL_FROM_PUBLIC_INLINE")
     inline fun <reified T> allocateInstance(): T {
         return unsafe.allocateInstance(T::class.java) as T
@@ -174,6 +171,30 @@ internal object nativeMemUtils {
     fun allocaLeaveFrame() {
         VirtualStack.get().pop()
     }
+
+    fun copyMemory(dest: NativePointed, length: Int, src: NativePointed): Unit =
+            unsafe.copyMemory(src.address, dest.address, length.toLong())
+
+    fun copyMemory(dest: NativePointed, length: Long, src: NativePointed): Unit =
+            unsafe.copyMemory(src.address, dest.address, length)
+
+    fun copyMemory(dest: NativePtr, length: Int, src: NativePtr): Unit =
+            unsafe.copyMemory(src, dest, length.toLong())
+
+    fun copyMemory(dest: NativePtr, length: Long, src: NativePtr): Unit =
+            unsafe.copyMemory(src, dest, length)
+
+    fun setMemory(dest: NativePointed, value: Byte, size: Int): Unit =
+            unsafe.setMemory(dest.address, size.toLong(), value)
+
+    fun setMemory(dest: NativePointed, value: Byte, size: Long): Unit =
+            unsafe.setMemory(dest.address, size, value)
+
+    fun setMemory(dest: NativePtr, value: Byte, size: Int): Unit =
+            unsafe.setMemory(dest, size.toLong(), value)
+
+    fun setMemory(dest: NativePtr, value: Byte, size: Long): Unit =
+            unsafe.setMemory(dest, size, value)
 
     // Kleaver implementation end
 

@@ -87,6 +87,38 @@ public inline fun <reified R> stackScoped(block: StackScope.() -> R): R {
     }
 }
 
+@InlineOnly
+@ExperimentalForeignApi
+public inline fun copyMemory(dst: NativePtr, src: NativePtr, size: Int): Unit = nativeMemUtils.copyMemory(dst, size, src)
+
+@InlineOnly
+@ExperimentalForeignApi
+public inline fun copyMemory(dst: NativePtr, src: NativePtr, size: Long): Unit = nativeMemUtils.copyMemory(dst, size, src)
+
+@InlineOnly
+@ExperimentalForeignApi
+public inline fun copyMemory(dst: NativePointed, src: NativePointed, size: Int): Unit = nativeMemUtils.copyMemory(dst, size, src)
+
+@InlineOnly
+@ExperimentalForeignApi
+public inline fun copyMemory(dst: NativePointed, src: NativePointed, size: Long): Unit = nativeMemUtils.copyMemory(dst, size, src)
+
+@InlineOnly
+@ExperimentalForeignApi
+public inline fun setMemory(dst: NativePtr, size: Int, value: Byte): Unit = nativeMemUtils.setMemory(dst, value, size)
+
+@InlineOnly
+@ExperimentalForeignApi
+public inline fun setMemory(dst: NativePtr, size: Long, value: Byte): Unit = nativeMemUtils.setMemory(dst, value, size)
+
+@InlineOnly
+@ExperimentalForeignApi
+public inline fun setMemory(dst: NativePointed, size: Int, value: Byte): Unit = nativeMemUtils.setMemory(dst, value, size)
+
+@InlineOnly
+@ExperimentalForeignApi
+public inline fun setMemory(dst: NativePointed, size: Long, value: Byte): Unit = nativeMemUtils.setMemory(dst, value, size)
+
 // Kleaver implementation end
 
 @ExperimentalForeignApi
