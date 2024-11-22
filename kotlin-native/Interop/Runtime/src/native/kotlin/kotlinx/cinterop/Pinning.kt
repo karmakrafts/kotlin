@@ -111,42 +111,38 @@ private inline fun <T : Any, P : CPointed> T.usingPinned(
     }
 }
 
-// Kleaver implementation begin
-
 @GCUnsafeCall("Kotlin_Arrays_getByteArrayAddressOfElement")
-internal external fun ByteArray.addressOfElement(index: Int): CPointer<ByteVar>
+private external fun ByteArray.addressOfElement(index: Int): CPointer<ByteVar>
 
 @GCUnsafeCall("Kotlin_Arrays_getStringAddressOfElement")
-internal external fun String.addressOfElement(index: Int): CPointer<COpaque>
+private external fun String.addressOfElement(index: Int): CPointer<COpaque>
 
 @GCUnsafeCall("Kotlin_Arrays_getCharArrayAddressOfElement")
-internal external fun CharArray.addressOfElement(index: Int): CPointer<COpaque>
+private external fun CharArray.addressOfElement(index: Int): CPointer<COpaque>
 
 @GCUnsafeCall("Kotlin_Arrays_getShortArrayAddressOfElement")
-internal external fun ShortArray.addressOfElement(index: Int): CPointer<ShortVar>
+private external fun ShortArray.addressOfElement(index: Int): CPointer<ShortVar>
 
 @GCUnsafeCall("Kotlin_Arrays_getIntArrayAddressOfElement")
-internal external fun IntArray.addressOfElement(index: Int): CPointer<IntVar>
+private external fun IntArray.addressOfElement(index: Int): CPointer<IntVar>
 
 @GCUnsafeCall("Kotlin_Arrays_getLongArrayAddressOfElement")
-internal external fun LongArray.addressOfElement(index: Int): CPointer<LongVar>
+private external fun LongArray.addressOfElement(index: Int): CPointer<LongVar>
 
 @GCUnsafeCall("Kotlin_Arrays_getByteArrayAddressOfElement")
-internal external fun UByteArray.addressOfElement(index: Int): CPointer<UByteVar>
+private external fun UByteArray.addressOfElement(index: Int): CPointer<UByteVar>
 
 @GCUnsafeCall("Kotlin_Arrays_getShortArrayAddressOfElement")
-internal external fun UShortArray.addressOfElement(index: Int): CPointer<UShortVar>
+private external fun UShortArray.addressOfElement(index: Int): CPointer<UShortVar>
 
 @GCUnsafeCall("Kotlin_Arrays_getIntArrayAddressOfElement")
-internal external fun UIntArray.addressOfElement(index: Int): CPointer<UIntVar>
+private external fun UIntArray.addressOfElement(index: Int): CPointer<UIntVar>
 
 @GCUnsafeCall("Kotlin_Arrays_getLongArrayAddressOfElement")
-internal external fun ULongArray.addressOfElement(index: Int): CPointer<ULongVar>
+private external fun ULongArray.addressOfElement(index: Int): CPointer<ULongVar>
 
 @GCUnsafeCall("Kotlin_Arrays_getFloatArrayAddressOfElement")
-internal external fun FloatArray.addressOfElement(index: Int): CPointer<FloatVar>
+private external fun FloatArray.addressOfElement(index: Int): CPointer<FloatVar>
 
 @GCUnsafeCall("Kotlin_Arrays_getDoubleArrayAddressOfElement")
-internal external fun DoubleArray.addressOfElement(index: Int): CPointer<DoubleVar>
-
-// Kleaver implementation end
+private external fun DoubleArray.addressOfElement(index: Int): CPointer<DoubleVar>

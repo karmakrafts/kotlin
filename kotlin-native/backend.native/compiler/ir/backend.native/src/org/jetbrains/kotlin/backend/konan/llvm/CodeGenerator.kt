@@ -844,7 +844,7 @@ internal abstract class FunctionGenerationContext(
                     listOf(dst, src, llvm.int32(size), llvm.int1(isVolatile)))
 
     @Suppress("NOTHING_TO_INLINE")
-    inline fun memcpy(dst: LLVMValueRef, src: LLVMValueRef, LLVMValueRef: Int, isVolatile: Boolean = false) =
+    inline fun memcpy(dst: LLVMValueRef, src: LLVMValueRef, size: LLVMValueRef, isVolatile: Boolean = false) =
             call(llvm.memcpyFunction,
                     listOf(dst, src, size, llvm.int1(isVolatile)))
 
@@ -859,8 +859,8 @@ internal abstract class FunctionGenerationContext(
                     listOf(dst, src, size, llvm.int1(isVolatile)))
 
     @Suppress("NOTHING_TO_INLINE")
-    inline fun alloca(size: LLVMTypeRef, name: String = ""): LLVMValueRef {
-        return LLVMBuildArrayAlloca(builder, llvm.int8Type, size, name)
+    inline fun alloca(size: LLVMValueRef, name: String = "", variableLocation: VariableDebugLocation? = null): LLVMValueRef {
+        return requireNotNull(LLVMBuildArrayAlloca(builder, llvm.int8Type, size, name)) { "Could not allocate dynamic stack memory" }
     }
 
     // Kleaver implementnation end

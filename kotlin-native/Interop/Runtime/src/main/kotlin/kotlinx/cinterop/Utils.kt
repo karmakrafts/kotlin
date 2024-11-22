@@ -7,6 +7,8 @@ package kotlinx.cinterop
 
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
+import kotlin.contracts.ExperimentalContracts
+import kotlin.internal.InlineOnly
 
 @ExperimentalForeignApi
 public interface NativePlacement {
@@ -35,23 +37,54 @@ public object nativeHeap : NativeFreeablePlacement {
 
 // Kleaver implementation begin
 
+@RequiresOptIn("The API you're trying to use should not be invoked directly as it can invoke undefined behaviour")
+@Retention(AnnotationRetention.BINARY)
+public annotation class DelicateMemoryApi
+
 @ExperimentalForeignApi
-public object StackScope : NativePlacement {
-    override fun alloc(size: Long, align: Int): NativePointed {
-        require(size <= Int.MAX_VALUE) { "Stack allocation exceeds maximum size" }
-        val alignMask = align - 1
-        val alignedSize = (size.toInt() + alignMask) and alignMask.inv()
-        return nativeMemUtils.alloca(alignedSize)
+public object StackScope {
+    @DelicateMemoryApi
+    @InlineOnly
+    public inline fun enter(): Unit = nativeMemUtils.allocaEnterFrame()
+
+    @DelicateMemoryApi
+    @InlineOnly
+    public inline fun leave(): Unit = nativeMemUtils.allocaLeaveFrame()
+
+    @InlineOnly
+    public inline fun alloc(size: Int): NativePtr = nativeMemUtils.alloca(size)
+
+    @InlineOnly
+    public inline fun <reified T : CVariable> alloc(): T {
+        val size = sizeOf<T>()
+        require(size <= Int.MAX_VALUE) { "Type too large for stack allocation" }
+        val alignMask = alignOf<T>() - 1
+        return interpretOpaquePointed(nativeMemUtils.alloca((size.toInt() + alignMask) and alignMask.inv())).reinterpret<T>()
+    }
+
+    @InlineOnly
+    public inline fun <reified T : CVariable> alloc(initialize: T.() -> Unit): T {
+        val size = sizeOf<T>()
+        require(size <= Int.MAX_VALUE) { "Type too large for stack allocation" }
+        val alignMask = alignOf<T>() - 1
+        return interpretOpaquePointed(nativeMemUtils.alloca((size.toInt() + alignMask) and alignMask.inv())).reinterpret<T>()
+                .also { it.initialize() }
     }
 }
 
+@OptIn(ExperimentalContracts::class, DelicateMemoryApi::class)
+@InlineOnly
 @ExperimentalForeignApi
-@OptIn(kotlin.contracts.ExperimentalContracts::class)
 public inline fun <reified R> stackScoped(block: StackScope.() -> R): R {
     contract {
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }
-    return block(StackScope)
+    return try {
+        StackScope.enter()
+        block(StackScope)
+    } finally {
+        StackScope.leave()
+    }
 }
 
 // Kleaver implementation end

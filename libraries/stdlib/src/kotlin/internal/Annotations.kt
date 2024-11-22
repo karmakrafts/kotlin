@@ -41,12 +41,17 @@ internal annotation class HidesMembers
 @Retention(AnnotationRetention.BINARY)
 internal annotation class OnlyInputTypes
 
+// Kleaver implementation begin
+
 /**
- * Specifies that this function should not be called directly without inlining
+ * Specifies that this function should not be called directly without inlining.
+ * Kleaver: Make this completely accessible to any outside package without opt-in as we would break source compability.
  */
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER)
 @Retention(AnnotationRetention.BINARY)
-internal annotation class InlineOnly
+public annotation class InlineOnly
+
+// Kleaver implementation end
 
 /**
  * Specifies that this declaration can have dynamic receiver type.

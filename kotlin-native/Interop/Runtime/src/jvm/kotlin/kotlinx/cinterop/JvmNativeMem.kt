@@ -18,6 +18,9 @@ package kotlinx.cinterop
 
 import org.jetbrains.kotlin.utils.nativeMemoryAllocator
 import sun.misc.Unsafe
+import java.lang.AutoCloseable
+import java.lang.ThreadLocal
+import java.util.Stack
 
 private val NativePointed.address: Long
     get() = this.rawPtr
@@ -33,6 +36,59 @@ private val dataModel: DataModel = when (System.getProperty("sun.arch.data.model
     "64" -> DataModel._64BIT
     else -> throw IllegalStateException()
 }
+
+// Kleaver implementation begin
+
+/*
+ * This simply emulates the actual stack by using temporary
+ * fixed-size heap frames. Not super efficient, doesn't have to be.
+ */
+
+private class VirtualStackFrame internal constructor(
+    private val stack: VirtualStack
+) : AutoCloseable {
+    companion object {
+        private const val SIZE: Long = 1024 * 1024 * 1024 // 1MB
+    }
+
+    private val baseAddress: NativePtr = nativeMemUtils.unsafe.allocateMemory(SIZE)
+    private var offset: Long = 0
+
+    override fun close() {
+        nativeMemUtils.unsafe.freeMemory(baseAddress)
+        stack.pop(this)
+    }
+
+    fun alloc(size: Int): NativePtr {
+        val address = baseAddress + offset
+        offset += size
+        return address
+    }
+}
+
+private class VirtualStack private constructor() {
+    companion object {
+        private val instance: ThreadLocal<VirtualStack> = ThreadLocal.withInitial(::VirtualStack)
+
+        fun get(): VirtualStack = instance.get()
+    }
+
+    private val frames: Stack<VirtualStackFrame> = Stack()
+
+    fun peek(): VirtualStackFrame = frames.peek()
+
+    fun pop(): VirtualStackFrame = frames.pop()
+
+    fun push(): VirtualStackFrame = VirtualStackFrame(this).apply {
+        frames.push(this)
+    }
+
+    internal fun pop(frame: VirtualStackFrame) {
+        frames.remove(frame)
+    }
+}
+
+// Kleaver implementationn end
 
 // Must be only used in interop, contains host pointer size, not target!
 @PublishedApi
@@ -90,17 +146,36 @@ internal object nativeMemUtils {
     fun copyMemory(dest: NativePointed, length: Int, src: NativePointed) =
             unsafe.copyMemory(src.address, dest.address, length.toLong())
 
-
     @Suppress("NON_PUBLIC_CALL_FROM_PUBLIC_INLINE")
     inline fun <reified T> allocateInstance(): T {
         return unsafe.allocateInstance(T::class.java) as T
     }
 
+    // Kleaver implementation begin
+
     internal fun allocRaw(size: Long, align: Int): NativePtr {
-        val address = unsafe.allocateMemory(size)
-        if (address % align != 0L) TODO(align.toString())
-        return address
+        val alignMask = align.toLong() - 1
+        return unsafe.allocateMemory((size + alignMask) and alignMask.inv())
     }
+
+    internal val unsafe = with(Unsafe::class.java.getDeclaredField("theUnsafe")) {
+        isAccessible = true
+        return@with this.get(null) as Unsafe
+    }
+
+    fun alloca(size: Int): NativePtr {
+        return VirtualStack.get().peek().alloc(size)
+    }
+
+    fun allocaEnterFrame() {
+        VirtualStack.get().push()
+    }
+
+    fun allocaLeaveFrame() {
+        VirtualStack.get().pop()
+    }
+
+    // Kleaver implementation end
 
     internal fun freeRaw(mem: NativePtr) {
         unsafe.freeMemory(mem)
@@ -109,11 +184,6 @@ internal object nativeMemUtils {
     fun alloc(size: Long, align: Int) = interpretOpaquePointed(nativeMemoryAllocator.alloc(size, align))
 
     fun free(mem: NativePtr) = nativeMemoryAllocator.free(mem)
-
-    private val unsafe = with(Unsafe::class.java.getDeclaredField("theUnsafe")) {
-        isAccessible = true
-        return@with this.get(null) as Unsafe
-    }
 
     private val byteArrayBaseOffset = unsafe.arrayBaseOffset(ByteArray::class.java).toLong()
     private val charArrayBaseOffset = unsafe.arrayBaseOffset(CharArray::class.java).toLong()

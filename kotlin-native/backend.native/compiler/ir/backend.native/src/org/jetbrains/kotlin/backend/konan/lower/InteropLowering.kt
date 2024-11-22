@@ -1206,9 +1206,9 @@ private class InteropTransformer(
                         builder.irConvertInteger(source, target, valueToConvert)
                     }
                 }
-                IntrinsicType.INTEROP_MEMORY_COPY -> {
-                    TODO("So far unsupported")
-                }
+                // Kleaver implementation begin
+                // STUB: nothing to do here yet..
+                // Kleaver implementation end
                 IntrinsicType.WORKER_EXECUTE -> {
                     val irCallableReference = unwrapStaticFunctionArgument(expression.getValueArgument(2)!!)
 

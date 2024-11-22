@@ -51,55 +51,63 @@ internal object nativeMemUtils {
     @TypedIntrinsic(IntrinsicType.INTEROP_MEMORY_SET) external fun setMemory(dest: NativePointed, value: Byte, size: Int): Unit
     @TypedIntrinsic(IntrinsicType.INTEROP_MEMORY_SET) external fun setMemory(dest: NativePointed, value: Byte, size: Long): Unit
 
+    fun setMemory(dest: NativePtr, value: Byte, size: Int): Unit =
+            setMemory(interpretOpaquePointed(dest), value, size)
+
+    fun setMemory(dest: NativePtr, value: Byte, size: Long): Unit =
+            setMemory(interpretOpaquePointed(dest), value, size)
+
     @TypedIntrinsic(IntrinsicType.INTEROP_MEMORY_COPY) external fun copyMemory(dest: NativePointed, size: Int, src: NativePointed): Unit
     @TypedIntrinsic(IntrinsicType.INTEROP_MEMORY_COPY) external fun copyMemory(dest: NativePointed, size: Long, src: NativePointed): Unit
 
-    @GCUnsafeCall("Kotlin_interop_alloca")
-    @TypedIntrinsic(IntrinsicType.INTEROP_ALLOCA) external fun alloca(size: Int): NativePointed
+    fun copyMemory(dest: NativePtr, size: Int, src: NativePtr): Unit =
+            copyMemory(interpretOpaquePointed(dest), size, interpretOpaquePointed(src))
 
-    @Suppress("NOTHING_TO_INLINE")
-    inline fun getByteArray(source: NativePointed, dest: ByteArray, length: Int): Unit = dest.apply {
-        pin()
-        copyMemory(addressOfElement(0).rawValue, length, source.reinterpret<ByteVar>().ptr.rawValue)
-        unpin()
+    fun copyMemory(dest: NativePtr, size: Long, src: NativePtr): Unit =
+            copyMemory(interpretOpaquePointed(dest), size, interpretOpaquePointed(src))
+
+    @TypedIntrinsic(IntrinsicType.INTEROP_ALLOCA) external fun alloca(size: Int): NativePtr
+    fun allocaEnterFrame() {} // stubs on the native implementation
+    fun allocaLeaveFrame() {} // stubs on the native implementation
+
+    fun getByteArray(source: NativePointed, dest: ByteArray, length: Int): Unit {
+        dest.usePinned { pinnedDest ->
+            copyMemory(pinnedDest.addressOf(0).rawValue, length, source.reinterpret<ByteVar>().ptr.rawValue)
+        }
     }
 
-    @Suppress("NOTHING_TO_INLINE")
-    inline fun putByteArray(source: ByteArray, dest: NativePointed, length: Int): Unit = source.apply {
-        pin()
-        copyMemory(source.reinterpret<ByteVar>().ptr.rawValue, length, addressOfElement(0).rawValue)
-        unpin()
+    fun putByteArray(source: ByteArray, dest: NativePointed, length: Int): Unit {
+        source.usePinned { pinnedSource ->
+            copyMemory(dest.reinterpret<ByteVar>().ptr.rawValue, length, pinnedSource.addressOf(0).rawValue)
+        }
     }
 
-    @Suppress("NOTHING_TO_INLINE")
-    inline fun getCharArray(source: NativePointed, dest: CharArray, length: Int): Unit = dest.apply {
-        pin()
-        copyMemory(addressOfElement(0).rawValue, length, source.reinterpret<ShortVar>().ptr.rawValue)
-        unpin()
+    fun getCharArray(source: NativePointed, dest: CharArray, length: Int): Unit {
+        dest.usePinned { pinnedDest ->
+            copyMemory(pinnedDest.addressOf(0).rawValue, length, source.reinterpret<ShortVar>().ptr.rawValue)
+        }
     }
 
-    @Suppress("NOTHING_TO_INLINE")
-    inline fun putCharArray(source: CharArray, dest: NativePointed, length: Int): Unit = source.apply {
-        pin()
-        copyMemory(source.reinterpret<ShortVar>().ptr.rawValue, length, addressOfElement(0).rawValue)
-        unpin()
+    fun putCharArray(source: CharArray, dest: NativePointed, length: Int): Unit {
+        source.usePinned { pinnedSource ->
+            copyMemory(dest.reinterpret<ShortVar>().ptr.rawValue, length, pinnedSource.addressOf(0).rawValue)
+        }
     }
 
-    @Suppress("NOTHING_TO_INLINE")
-    inline fun zeroMemory(dest: NativePointed, length: Int): Unit = setMemory(dest, 0, length)
+    fun zeroMemory(dest: NativePointed, length: Int): Unit = setMemory(dest, 0, length)
 
-    @Suppress("NOTHING_TO_INLINE")
-    inline fun zeroMemory(dest: NativePointed, length: Long): Unit = setMemory(dest, 0, length)
+    fun zeroMemory(dest: NativePointed, length: Long): Unit = setMemory(dest, 0, length)
 
-    @Suppress("NOTHING_TO_INLINE")
-    inline fun alloc(size: Long, align: Int): NativePointed = interpretOpaquePointed(allocRaw(size, align))
+    fun zeroMemory(dest: NativePtr, length: Int): Unit = setMemory(interpretOpaquePointed(dest), 0, length)
 
-    @Suppress("NOTHING_TO_INLINE")
-    inline fun free(mem: NativePtr) = freeRaw(mem)
+    fun zeroMemory(dest: NativePtr, length: Long): Unit = setMemory(interpretOpaquePointed(dest), 0, length)
+
+    fun alloc(size: Long, align: Int): NativePointed = interpretOpaquePointed(allocRaw(size, align))
+
+    fun free(mem: NativePtr) = freeRaw(mem)
 
     // Kleaver implementation end
 
-    // TODO: bad naming, rename to mallocChecked
     internal fun allocRaw(size: Long, align: Int): NativePtr {
         val ptr = malloc(size, align)
         if (ptr == nativeNullPtr) {
@@ -108,7 +116,6 @@ internal object nativeMemUtils {
         return ptr
     }
 
-    // TODO: remove this, frees are not checked anyways
     internal fun freeRaw(mem: NativePtr) {
         cfree(mem)
     }

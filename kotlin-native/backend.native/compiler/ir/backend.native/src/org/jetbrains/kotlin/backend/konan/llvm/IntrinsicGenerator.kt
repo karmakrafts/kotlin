@@ -581,29 +581,28 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
     // Kleaver implementation begin
 
     private fun FunctionGenerationContext.emitMemoryCopy(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
-        require(args.size == 3) { "Wrong number of arguments for memcpy intrinsic" }
-        val (dst, src, size) = args
+        assert(args.size == 4) { "Wrong number of arguments for memcpy intrinsic" }
+        val (obj, dst, size, src) = args
         return when(size.type.sizeInBits()) {
-            32 -> llvm.memcpy(dst, src, size)
-            64 -> llvm.memcpy64(dst, src, size)
+            32 -> memcpy(dst, src, size)
+            64 -> memcpy64(dst, src, size)
             else -> throw IllegalArgumentException("Unsupported size type for memcpy intrinsic")
         }
     }
 
     private fun FunctionGenerationContext.emitMemorySet(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
-        require(args.size == 3) { "Wrong number of arguments for memset intrinsic" }
-        val (address, value, size) = args
+        assert(args.size == 4) { "Wrong number of arguments for memset intrinsic" }
+        val (obj, address, value, size) = args
         return when(size.type.sizeInBits()) {
-            32 -> llvm.memset(address, value, size)
-            64 -> llvm.memset64(address, value, size)
+            32 -> memset(address, value, size)
+            64 -> memset64(address, value, size)
             else -> throw IllegalArgumentException("Unsupported size type for memset intrinsic")
         }
     }
 
-    private fun FunctionGenerationnContext.emitAlloca(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
-        require(args.size == 1) { "Wrong number of arguments for alloca intrinsic" }
-        val (size) = args
-        return alloca(llvm.arrayType(llvm.int8Type, size))
+    private fun FunctionGenerationContext.emitAlloca(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
+        assert(args.size == 2) { "Wrong number of arguments for alloca intrinsic" }
+        return alloca(args.last())
     }
 
     // Kleaver implementation end

@@ -358,7 +358,8 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
     // Kleaver implementation begin
 
     private fun importMemset(bitness: Int = 32): LlvmCallable {
-        val functionType = functionType(voidType, false, int8PtrType, int8Type, int32Type, int1Type)
+        val sizeType = if(bitness == 32) int32Type else int64Type
+        val functionType = functionType(voidType, false, int8PtrType, int8Type, sizeType, int1Type)
         return llvmIntrinsic(
                 if (context.config.useLlvmOpaquePointers) "llvm.memset.p0.i$bitness"
                 else "llvm.memset.p0i8.i$bitness",
@@ -366,10 +367,11 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
     }
 
     private fun importMemcpy(bitness: Int = 32): LlvmCallable {
-        val functionType = functionType(voidType, false, int8PtrType, int8PtrType, int32Type, int1Type)
+        val sizeType = if(bitness == 32) int32Type else int64Type
+        val functionType = functionType(voidType, false, int8PtrType, int8PtrType, sizeType, int1Type)
         return llvmIntrinsic(
-                if (context.config.useLlvmOpaquePointers) "llvm.memcpy.p0.i$bitness"
-                else "llvm.memcpy.p0i8.i$bitness",
+                if (context.config.useLlvmOpaquePointers) "llvm.memcpy.p0.p0.i$bitness"
+                else "llvm.memcpy.p0i8.p0i8.i$bitness",
                 functionType)
     }
 
