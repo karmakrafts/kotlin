@@ -172,6 +172,8 @@ internal object nativeMemUtils {
         VirtualStack.get().pop()
     }
 
+    // copyMemory
+
     fun copyMemory(dest: NativePointed, length: Int, src: NativePointed): Unit =
             unsafe.copyMemory(src.address, dest.address, length.toLong())
 
@@ -184,6 +186,8 @@ internal object nativeMemUtils {
     fun copyMemory(dest: NativePtr, length: Long, src: NativePtr): Unit =
             unsafe.copyMemory(src, dest, length)
 
+    // setMemory
+
     fun setMemory(dest: NativePointed, value: Byte, size: Int): Unit =
             unsafe.setMemory(dest.address, size.toLong(), value)
 
@@ -195,6 +199,38 @@ internal object nativeMemUtils {
 
     fun setMemory(dest: NativePtr, value: Byte, size: Long): Unit =
             unsafe.setMemory(dest, size, value)
+
+    // moveMemory
+
+    fun moveMemory(dest: NativePtr, length: Int, src: NativePtr): Unit {
+        if(src < dest) { // Backwards copy to allow overlap
+            var index = length - 1
+            while(index > 0) {
+                unsafe.putByte(dest + index, unsafe.getByte(src + index))
+                index++
+            }
+            return
+        }
+        unsafe.copyMemory(src, dest, length.toLong())
+    }
+
+    fun moveMemory(dest: NativePtr, length: Long, src: NativePtr): Unit {
+        if(src < dest) { // Backwards copy to allow overlap
+            var index = length - 1
+            while(index > 0) {
+                unsafe.putByte(dest + index, unsafe.getByte(src + index))
+                index++
+            }
+            return
+        }
+        unsafe.copyMemory(src, dest, length)
+    }
+
+    fun moveMemory(dest: NativePointed, length: Int, src: NativePointed): Unit =
+            moveMemory(dest.address, length, src.address)
+
+    fun moveMemory(dest: NativePointed, length: Long, src: NativePointed): Unit =
+            moveMemory(dest.address, length, src.address)
 
     // Kleaver implementation end
 

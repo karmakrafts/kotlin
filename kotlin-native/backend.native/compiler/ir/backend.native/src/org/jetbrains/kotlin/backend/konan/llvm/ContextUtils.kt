@@ -375,6 +375,15 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
                 functionType)
     }
 
+    private fun importMemmove(bitness: Int = 32): LlvmCallable {
+        val sizeType = if(bitness == 32) int32Type else int64Type
+        val functionType = functionType(voidType, false, int8PtrType, int8PtrType, sizeType, int1Type)
+        return llvmIntrinsic(
+                if (context.config.useLlvmOpaquePointers) "llvm.memmove.p0.p0.i$bitness"
+                else "llvm.memmove.p0i8.p0i8.i$bitness",
+                functionType)
+    }
+
     // Kleaver implementation end
 
     private fun llvmIntrinsic(name: String, type: LLVMTypeRef, vararg attributes: String): LlvmCallable {
@@ -587,10 +596,14 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
     val kImmInt32One by lazy { int32(1) }
 
     // Kleaver implementation begin
+
     val memsetFunction = importMemset()
     val memset64Function = importMemset(64)
     val memcpyFunction = importMemcpy()
     val memcpy64Function = importMemcpy(64)
+    val memmoveFunction = importMemmove()
+    val memmove64Function = importMemmove(64)
+
     // Kleaver implementation end
 
     val llvmTrap = llvmIntrinsic(

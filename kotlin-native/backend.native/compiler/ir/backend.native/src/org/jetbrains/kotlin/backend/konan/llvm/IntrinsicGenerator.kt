@@ -94,6 +94,7 @@ internal enum class IntrinsicType {
     // Kleaver interop
     INTEROP_MEMORY_COPY,
     INTEROP_MEMORY_SET,
+    INTEROP_MEMORY_MOVE,
     INTEROP_ALLOCA,
     // Worker
     WORKER_EXECUTE,
@@ -269,6 +270,7 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
                 // Kleaver implementation begin
                 IntrinsicType.INTEROP_MEMORY_COPY -> emitMemoryCopy(callSite, args)
                 IntrinsicType.INTEROP_MEMORY_SET -> emitMemorySet(callSite, args)
+                IntrinsicType.INTEROP_MEMORY_MOVE -> emitMemoryMove(callSite, args)
                 IntrinsicType.INTEROP_ALLOCA -> emitAlloca(callSite, args)
                 // Kleaver implementation end
                 IntrinsicType.IS_EXPERIMENTAL_MM -> emitIsExperimentalMM()
@@ -587,6 +589,16 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
             32 -> memcpy(dst, src, size)
             64 -> memcpy64(dst, src, size)
             else -> throw IllegalArgumentException("Unsupported size type for memcpy intrinsic")
+        }
+    }
+
+    private fun FunctionGenerationContext.emitMemoryMove(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
+        assert(args.size == 4) { "Wrong number of arguments for memmove intrinsic" }
+        val (obj, dst, size, src) = args
+        return when(size.type.sizeInBits()) {
+            32 -> memmove(dst, src, size)
+            64 -> memmove64(dst, src, size)
+            else -> throw IllegalArgumentException("Unsupported size type for memmove intrinsic")
         }
     }
 

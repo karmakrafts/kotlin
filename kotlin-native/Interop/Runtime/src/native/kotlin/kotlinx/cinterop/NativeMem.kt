@@ -66,6 +66,15 @@ internal object nativeMemUtils {
     fun copyMemory(dest: NativePtr, size: Long, src: NativePtr): Unit =
             copyMemory(interpretOpaquePointed(dest), size, interpretOpaquePointed(src))
 
+    @TypedIntrinsic(IntrinsicType.INTEROP_MEMORY_MOVE) external fun moveMemory(dest: NativePointed, size: Int, src: NativePointed): Unit
+    @TypedIntrinsic(IntrinsicType.INTEROP_MEMORY_MOVE) external fun moveMemory(dest: NativePointed, size: Long, src: NativePointed): Unit
+
+    fun moveMemory(dest: NativePtr, size: Int, src: NativePtr): Unit =
+            moveMemory(interpretOpaquePointed(dest), size, interpretOpaquePointed(src))
+
+    fun moveMemory(dest: NativePtr, size: Long, src: NativePtr): Unit =
+            moveMemory(interpretOpaquePointed(dest), size, interpretOpaquePointed(src))
+
     @TypedIntrinsic(IntrinsicType.INTEROP_ALLOCA) external fun alloca(size: Int): NativePtr
     fun allocaEnterFrame() {} // stubs on the native implementation
     fun allocaLeaveFrame() {} // stubs on the native implementation
@@ -94,13 +103,17 @@ internal object nativeMemUtils {
         }
     }
 
-    fun zeroMemory(dest: NativePointed, length: Int): Unit = setMemory(dest, 0, length)
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun zeroMemory(dest: NativePointed, length: Int): Unit = setMemory(dest, 0, length)
 
-    fun zeroMemory(dest: NativePointed, length: Long): Unit = setMemory(dest, 0, length)
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun zeroMemory(dest: NativePointed, length: Long): Unit = setMemory(dest, 0, length)
 
-    fun zeroMemory(dest: NativePtr, length: Int): Unit = setMemory(interpretOpaquePointed(dest), 0, length)
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun zeroMemory(dest: NativePtr, length: Int): Unit = setMemory(interpretOpaquePointed(dest), 0, length)
 
-    fun zeroMemory(dest: NativePtr, length: Long): Unit = setMemory(interpretOpaquePointed(dest), 0, length)
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun zeroMemory(dest: NativePtr, length: Long): Unit = setMemory(interpretOpaquePointed(dest), 0, length)
 
     fun alloc(size: Long, align: Int): NativePointed = interpretOpaquePointed(allocRaw(size, align))
 

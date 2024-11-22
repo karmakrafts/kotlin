@@ -84,6 +84,7 @@ internal class IntrinsicType {
         // Kleaver implementation begin
         const val INTEROP_MEMORY_COPY           = "INTEROP_MEMORY_COPY"
         const val INTEROP_MEMORY_SET            = "INTEROP_MEMORY_SET"
+        const val INTEROP_MEMORY_MOVE           = "INTEROP_MEMORY_MOVE"
         const val INTEROP_ALLOCA                = "INTEROP_ALLOCA"
         // Kleaver implementation end
 

@@ -87,6 +87,8 @@ public inline fun <reified R> stackScoped(block: StackScope.() -> R): R {
     }
 }
 
+// copyMemory
+
 @InlineOnly
 @ExperimentalForeignApi
 public inline fun copyMemory(dst: NativePtr, src: NativePtr, size: Int): Unit = nativeMemUtils.copyMemory(dst, size, src)
@@ -102,6 +104,26 @@ public inline fun copyMemory(dst: NativePointed, src: NativePointed, size: Int):
 @InlineOnly
 @ExperimentalForeignApi
 public inline fun copyMemory(dst: NativePointed, src: NativePointed, size: Long): Unit = nativeMemUtils.copyMemory(dst, size, src)
+
+// moveMemory
+
+@InlineOnly
+@ExperimentalForeignApi
+public inline fun moveMemory(dst: NativePtr, src: NativePtr, size: Int): Unit = nativeMemUtils.moveMemory(dst, size, src)
+
+@InlineOnly
+@ExperimentalForeignApi
+public inline fun moveMemory(dst: NativePtr, src: NativePtr, size: Long): Unit = nativeMemUtils.moveMemory(dst, size, src)
+
+@InlineOnly
+@ExperimentalForeignApi
+public inline fun moveMemory(dst: NativePointed, src: NativePointed, size: Int): Unit = nativeMemUtils.moveMemory(dst, size, src)
+
+@InlineOnly
+@ExperimentalForeignApi
+public inline fun moveMemory(dst: NativePointed, src: NativePointed, size: Long): Unit = nativeMemUtils.moveMemory(dst, size, src)
+
+// setMemory
 
 @InlineOnly
 @ExperimentalForeignApi

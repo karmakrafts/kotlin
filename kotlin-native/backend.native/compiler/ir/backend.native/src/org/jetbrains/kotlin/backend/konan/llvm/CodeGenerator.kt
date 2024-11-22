@@ -818,6 +818,8 @@ internal abstract class FunctionGenerationContext(
 
     // Kleaver implementation begin
 
+    // memset
+
     @Suppress("NOTHING_TO_INLINE")
     inline fun memset(pointer: LLVMValueRef, value: Byte, size: Int, isVolatile: Boolean = false) =
             call(llvm.memsetFunction,
@@ -838,6 +840,8 @@ internal abstract class FunctionGenerationContext(
             call(llvm.memset64Function,
                     listOf(pointer, value, size, llvm.int1(isVolatile)))
 
+    // memcpy
+
     @Suppress("NOTHING_TO_INLINE")
     inline fun memcpy(dst: LLVMValueRef, src: LLVMValueRef, size: Int, isVolatile: Boolean = false) =
             call(llvm.memcpyFunction,
@@ -856,6 +860,28 @@ internal abstract class FunctionGenerationContext(
     @Suppress("NOTHING_TO_INLINE")
     inline fun memcpy64(dst: LLVMValueRef, src: LLVMValueRef, size: LLVMValueRef, isVolatile: Boolean = false) =
             call(llvm.memcpy64Function,
+                    listOf(dst, src, size, llvm.int1(isVolatile)))
+
+    // memmove
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun memmove(dst: LLVMValueRef, src: LLVMValueRef, size: Int, isVolatile: Boolean = false) =
+            call(llvm.memmoveFunction,
+                    listOf(dst, src, llvm.int32(size), llvm.int1(isVolatile)))
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun memmove(dst: LLVMValueRef, src: LLVMValueRef, size: LLVMValueRef, isVolatile: Boolean = false) =
+            call(llvm.memmoveFunction,
+                    listOf(dst, src, size, llvm.int1(isVolatile)))
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun memmove64(dst: LLVMValueRef, src: LLVMValueRef, size: Long, isVolatile: Boolean = false) =
+            call(llvm.memmove64Function,
+                    listOf(dst, src, llvm.int64(size), llvm.int1(isVolatile)))
+
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun memmove64(dst: LLVMValueRef, src: LLVMValueRef, size: LLVMValueRef, isVolatile: Boolean = false) =
+            call(llvm.memmove64Function,
                     listOf(dst, src, size, llvm.int1(isVolatile)))
 
     @Suppress("NOTHING_TO_INLINE")
