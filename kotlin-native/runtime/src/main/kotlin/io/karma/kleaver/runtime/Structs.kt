@@ -30,9 +30,22 @@ public annotation class FieldOffset(val offset: Int)
 @Target(AnnotationTarget.FIELD, AnnotationTarget.VALUE_PARAMETER)
 public annotation class BitField(val bits: Int)
 
+/**
+ * Declares the class which implements this interface as a value type.
+ * Value types are not affected by the overhead of the runtime like
+ * regular Kotlin objects, since they are flattened at compile time
+ * and may be allocated on the native stack.
+ *
+ * **Draft for KT-73241** Add better support for value types / structures in Kotlin Native
+ */
 @ExperimentalKleaverApi
 public interface Struct
 
+/**
+ * A type of structure where the offset of all its member fields
+ * into the backing memory of the structure is zero, effectively
+ * overlaying its fields in memory.
+ */
 @ExperimentalKleaverApi
 public interface Union : Struct
 

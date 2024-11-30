@@ -9,9 +9,6 @@ package io.karma.kleaver.runtime
 @Retention(AnnotationRetention.BINARY)
 public annotation class ExperimentalKleaverApi
 
-/**
- *
- */
 @ExperimentalKleaverApi
 @RequiresOptIn("The API you're trying to use should be used carefully as it can easily cause undefined behaviour")
 @Retention(AnnotationRetention.BINARY)
@@ -35,3 +32,15 @@ public annotation class ForceInline
 @Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.CONSTRUCTOR)
 public annotation class NeverThrows
+
+/**
+ * Prevents lambdas passed to the annotated parameters from being able to capture
+ * surrounding variables. This can be used to pass closure which may be converted
+ * to C-function pointers by the interop runtime.
+ *
+ * **Draft for KT-71839** Make @VolatileLambda public for parameters intended for native function calls
+ */
+@ExperimentalKleaverApi
+@Retention(AnnotationRetention.BINARY)
+@Target(AnnotationTarget.VALUE_PARAMETER)
+public annotation class NoCapture

@@ -151,9 +151,12 @@ internal class FunctionReferenceLowering(val generationState: NativeGenerationSt
                     val parameter = cur.symbol.owner.valueParameters.singleOrNull {
                         cur.getValueArgument(it.index) == argument
                     }
-                    if (parameter?.annotations?.findAnnotation(VOLATILE_LAMBDA_FQ_NAME) != null) {
+                    // Kleaver implementation begin
+                    if (parameter?.annotations?.findAnnotation(VOLATILE_LAMBDA_FQ_NAME) != null
+                            || parameter?.annotations?.findAnnotation(NO_CAPTURE_FQ_NAME) != null) {
                         return expression
                     }
+                    // Kleaver implementation end
                     break
                 }
 
@@ -179,7 +182,8 @@ internal class FunctionReferenceLowering(val generationState: NativeGenerationSt
         irFile.declarations += generatedClasses
     }
 
-    private val VOLATILE_LAMBDA_FQ_NAME = FqName.fromSegments(listOf("kotlin", "native", "internal", "VolatileLambda"))
+    private val VOLATILE_LAMBDA_FQ_NAME = FqName("kotlin.native.internal.VolatileLambda")
+    private val NO_CAPTURE_FQ_NAME = FqName("io.karma.kleaver.runtime.NoCapture")
 
     class FunctionReferenceBuilder(
             val irFile: IrFile,

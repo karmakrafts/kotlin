@@ -228,6 +228,11 @@ public object StackScope : DeferScope() {
     }
 }
 
+/**
+ * Allows allocating CInterop variables on the native stack.
+ *
+ * **Draft for KT-73312** Kotlin/Native: Allow proper stack memory allocation
+ */
 @OptIn(DelicateMemoryApi::class)
 @ForceInline
 @ExperimentalKleaverApi
