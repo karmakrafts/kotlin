@@ -48,6 +48,13 @@ internal class DefaultCallInterceptor(override val interpreter: IrInterpreter) :
     override val irBuiltIns: IrBuiltIns = environment.irBuiltIns
     private val bodyMap: Map<IdSignature, IrBody> = interpreter.bodyMap
 
+    // Kleaver implementation begin
+    companion object {
+        private val INLINE_ONLY_ANNOTATION_FQN = FqName("kotlin.internal.InlineOnly")
+        private val FORCE_INLINE_ANNOTATION_FQN = FqName("io.karma.kleaver.runtime.ForceInline")
+    }
+    // Kleaver implementation end
+
     override fun interceptProxy(irFunction: IrFunction, valueArguments: List<State>, expectedResultClass: Class<*>): Any? {
         val irCall = irFunction.createCall()
         return interpreter.withNewCallStack(irCall) {
@@ -57,7 +64,10 @@ internal class DefaultCallInterceptor(override val interpreter: IrInterpreter) :
     }
 
     override fun interceptCall(call: IrCall, irFunction: IrFunction, args: List<State>, defaultAction: () -> Unit) {
-        val isInlineOnly = irFunction.hasAnnotation(FqName("kotlin.internal.InlineOnly"))
+        // Kleaver implementation begin
+        val isInlineOnly = irFunction.hasAnnotation(INLINE_ONLY_ANNOTATION_FQN)
+            || irFunction.hasAnnotation(FORCE_INLINE_ANNOTATION_FQN)
+        // Kleaver implementation end
         val isSyntheticDefault = irFunction.origin == IrDeclarationOrigin.FUNCTION_FOR_DEFAULT_PARAMETER
         val receiver = if (irFunction.dispatchReceiverParameter != null) args[0] else null
         when {

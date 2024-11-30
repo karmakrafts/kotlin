@@ -132,4 +132,3 @@ public expect annotation class RefinesInSwift()
 @ExperimentalObjCRefinement
 @SinceKotlin("1.8")
 public expect annotation class ShouldRefineInSwift()
-

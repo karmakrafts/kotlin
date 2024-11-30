@@ -11,7 +11,6 @@ import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrFile
-import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.interpreter.IrInterpreter
 import org.jetbrains.kotlin.ir.interpreter.checker.EvaluationMode
@@ -36,7 +35,8 @@ internal class IrConstOnlyNecessaryTransformer(
     onError: (IrFile, IrElement, IrErrorExpression) -> Unit,
     suppressExceptions: Boolean,
 ) : IrConstExpressionTransformer(
-    interpreter, irFile, mode, checker, evaluatedConstTracker, inlineConstTracker, onWarning, onError, suppressExceptions
+    interpreter, irFile, mode, checker, evaluatedConstTracker, inlineConstTracker, onWarning, onError,
+    suppressExceptions
 ) {
     private val jsCodeFqName = JsStandardClassIds.Callables.JsCode.asSingleFqName()
 

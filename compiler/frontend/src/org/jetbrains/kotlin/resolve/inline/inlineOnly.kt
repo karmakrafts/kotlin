@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 
 val INLINE_ONLY_ANNOTATION_FQ_NAME = FqName("kotlin.internal.InlineOnly")
+val FORCE_INLINE_ANNOTATION_FQ_NAME = FqName("io.karma.kleaver.runtime.ForceInline") // Kleaver implementation
 
 /**
  * @return true if it's impossible to observe a call instruction referencing this member in the bytecode.
@@ -41,3 +42,4 @@ private fun CallableMemberDescriptor.hasReifiedParameters(): Boolean =
 
 private fun CallableMemberDescriptor.hasInlineOnlyAnnotation(): Boolean =
     annotations.hasAnnotation(INLINE_ONLY_ANNOTATION_FQ_NAME)
+        || annotations.hasAnnotation(FORCE_INLINE_ANNOTATION_FQ_NAME)

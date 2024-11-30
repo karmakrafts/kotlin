@@ -35,114 +35,6 @@ public object nativeHeap : NativeFreeablePlacement {
     override fun free(mem: NativePtr): Unit = nativeMemUtils.free(mem)
 }
 
-// Kleaver implementation begin
-
-@RequiresOptIn("The API you're trying to use should not be invoked directly as it can invoke undefined behaviour")
-@Retention(AnnotationRetention.BINARY)
-public annotation class DelicateMemoryApi
-
-@ExperimentalForeignApi
-public object StackScope {
-    @DelicateMemoryApi
-    @InlineOnly
-    public inline fun enter(): Unit = nativeMemUtils.allocaEnterFrame()
-
-    @DelicateMemoryApi
-    @InlineOnly
-    public inline fun leave(): Unit = nativeMemUtils.allocaLeaveFrame()
-
-    @InlineOnly
-    public inline fun alloc(size: Int): NativePtr = nativeMemUtils.alloca(size)
-
-    @InlineOnly
-    public inline fun <reified T : CVariable> alloc(): T {
-        val size = sizeOf<T>()
-        require(size <= Int.MAX_VALUE) { "Type too large for stack allocation" }
-        val alignMask = alignOf<T>() - 1
-        return interpretOpaquePointed(nativeMemUtils.alloca((size.toInt() + alignMask) and alignMask.inv())).reinterpret<T>()
-    }
-
-    @InlineOnly
-    public inline fun <reified T : CVariable> alloc(initialize: T.() -> Unit): T {
-        val size = sizeOf<T>()
-        require(size <= Int.MAX_VALUE) { "Type too large for stack allocation" }
-        val alignMask = alignOf<T>() - 1
-        return interpretOpaquePointed(nativeMemUtils.alloca((size.toInt() + alignMask) and alignMask.inv())).reinterpret<T>()
-                .also { it.initialize() }
-    }
-}
-
-@OptIn(ExperimentalContracts::class, DelicateMemoryApi::class)
-@InlineOnly
-@ExperimentalForeignApi
-public inline fun <reified R> stackScoped(block: StackScope.() -> R): R {
-    contract {
-        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
-    }
-    return try {
-        StackScope.enter()
-        block(StackScope)
-    } finally {
-        StackScope.leave()
-    }
-}
-
-// copyMemory
-
-@InlineOnly
-@ExperimentalForeignApi
-public inline fun copyMemory(dst: NativePtr, src: NativePtr, size: Int): Unit = nativeMemUtils.copyMemory(dst, size, src)
-
-@InlineOnly
-@ExperimentalForeignApi
-public inline fun copyMemory(dst: NativePtr, src: NativePtr, size: Long): Unit = nativeMemUtils.copyMemory(dst, size, src)
-
-@InlineOnly
-@ExperimentalForeignApi
-public inline fun copyMemory(dst: NativePointed, src: NativePointed, size: Int): Unit = nativeMemUtils.copyMemory(dst, size, src)
-
-@InlineOnly
-@ExperimentalForeignApi
-public inline fun copyMemory(dst: NativePointed, src: NativePointed, size: Long): Unit = nativeMemUtils.copyMemory(dst, size, src)
-
-// moveMemory
-
-@InlineOnly
-@ExperimentalForeignApi
-public inline fun moveMemory(dst: NativePtr, src: NativePtr, size: Int): Unit = nativeMemUtils.moveMemory(dst, size, src)
-
-@InlineOnly
-@ExperimentalForeignApi
-public inline fun moveMemory(dst: NativePtr, src: NativePtr, size: Long): Unit = nativeMemUtils.moveMemory(dst, size, src)
-
-@InlineOnly
-@ExperimentalForeignApi
-public inline fun moveMemory(dst: NativePointed, src: NativePointed, size: Int): Unit = nativeMemUtils.moveMemory(dst, size, src)
-
-@InlineOnly
-@ExperimentalForeignApi
-public inline fun moveMemory(dst: NativePointed, src: NativePointed, size: Long): Unit = nativeMemUtils.moveMemory(dst, size, src)
-
-// setMemory
-
-@InlineOnly
-@ExperimentalForeignApi
-public inline fun setMemory(dst: NativePtr, size: Int, value: Byte): Unit = nativeMemUtils.setMemory(dst, value, size)
-
-@InlineOnly
-@ExperimentalForeignApi
-public inline fun setMemory(dst: NativePtr, size: Long, value: Byte): Unit = nativeMemUtils.setMemory(dst, value, size)
-
-@InlineOnly
-@ExperimentalForeignApi
-public inline fun setMemory(dst: NativePointed, size: Int, value: Byte): Unit = nativeMemUtils.setMemory(dst, value, size)
-
-@InlineOnly
-@ExperimentalForeignApi
-public inline fun setMemory(dst: NativePointed, size: Long, value: Byte): Unit = nativeMemUtils.setMemory(dst, value, size)
-
-// Kleaver implementation end
-
 @ExperimentalForeignApi
 private typealias Deferred = () -> Unit
 
@@ -152,6 +44,7 @@ public open class DeferScope {
     @PublishedApi
     internal var topDeferred: Deferred? = null
 
+    @PublishedApi // Kleaver: expose as published API so we can use it in the Kleaver runtime
     internal fun executeAllDeferred() {
         topDeferred?.let {
             it.invoke()
@@ -265,9 +158,11 @@ public inline fun <reified T : CVariable> NativePlacement.allocArray(length: Int
 public inline fun <reified T : CVariable> NativePlacement.allocArray(length: Long,
                                                               initializer: T.(index: Long)->Unit): CArrayPointer<T> {
     val res = allocArray<T>(length)
-
-    (0 .. length - 1).forEach { index ->
+    // Kleaver: don't construct a range here..
+    var index = 0L
+    while(index < length) {
         res[index].initializer(index)
+        ++index
     }
 
     return res
@@ -336,15 +231,12 @@ public fun NativePlacement.allocArrayOf(elements: ByteArray): CArrayPointer<Byte
     return result
 }
 
+// Kleaver: also use a memcpy based approach here
 @ExperimentalForeignApi
 public fun NativePlacement.allocArrayOf(vararg elements: Float): CArrayPointer<FloatVar> {
-    val res = allocArray<FloatVar>(elements.size)
-    var index = 0
-    while (index < elements.size) {
-        res[index] = elements[index]
-        ++index
-    }
-    return res
+    val result = allocArray<FloatVar>(elements.size)
+    nativeMemUtils.putFloatArray(elements, result.pointed, elements.size)
+    return result
 }
 
 @ExperimentalForeignApi
@@ -359,7 +251,7 @@ internal class ZeroValue<T : CVariable>(private val sizeBytes: Int, private val 
     }
 
     override fun place(placement: CPointer<T>): CPointer<T> {
-        nativeMemUtils.zeroMemory(interpretPointed(placement.rawValue), sizeBytes)
+        nativeMemUtils.zeroMemory(placement.rawValue, sizeBytes)
         return placement
     }
     override val size get() = sizeBytes
@@ -458,7 +350,7 @@ public inline fun <reified T : CStructVar, R> CValue<T>.useContents(block: T.() 
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }
 
-    return memScoped {
+    return memScoped { // TODO: Kleaver - optimize this
         this@useContents.placeTo(memScope).pointed.block()
     }
 }
@@ -473,6 +365,7 @@ public inline fun <reified T : CStructVar> CValue<T>.copy(modify: T.() -> Unit):
 public inline fun <reified T : CStructVar> cValue(initialize: T.() -> Unit): CValue<T> =
     zeroValue<T>().copy(modify = initialize)
 
+// TODO: Kleaver - optimize this
 @ExperimentalForeignApi
 public inline fun <reified T : CVariable> createValues(count: Int, initializer: T.(index: Int) -> Unit): CValues<T> = memScoped {
     val array = allocArray<T>(count, initializer)
@@ -703,13 +596,10 @@ public fun CPointer<ShortVar>.toKStringFromUtf16(): String {
     while (nativeBytes[length] != 0.toShort()) {
         ++length
     }
-    val chars = CharArray(length)
-    var index = 0
-    while (index < length) {
-        chars[index] = nativeBytes[index].toInt().toChar()
-        ++index
-    }
-    return chars.concatToString()
+    // Kleaver: use a copyMemory based approach for the copy pass
+    return CharArray(length).apply {
+        nativeMemUtils.getCharArray(this@toKStringFromUtf16.pointed, this, length)
+    }.concatToString()
 }
 
 /**

@@ -60,6 +60,7 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
 private val INLINE_ONLY_ANNOTATION_CLASS_ID: ClassId = ClassId.topLevel(FqName("kotlin.internal.InlineOnly"))
+private val FORCE_INLINE_ANNOTATION_CLASS_ID: ClassId = ClassId.topLevel(FqName("io.karma.kleaver.runtime.ForceInline")) // Kleaver implementation
 
 fun FirClass.unsubstitutedScope(context: CheckerContext): FirTypeScope =
     this.unsubstitutedScope(

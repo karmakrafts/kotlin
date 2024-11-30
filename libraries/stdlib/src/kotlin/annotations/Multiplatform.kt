@@ -6,8 +6,6 @@
 package kotlin
 
 import kotlin.annotation.AnnotationTarget.*
-import kotlin.internal.RequireKotlin
-import kotlin.internal.RequireKotlinVersionKind
 
 /**
  * The experimental multiplatform support API marker.

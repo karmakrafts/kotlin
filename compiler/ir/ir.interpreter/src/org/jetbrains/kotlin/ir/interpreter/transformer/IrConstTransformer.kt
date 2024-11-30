@@ -42,15 +42,18 @@ fun IrElement.transformConst(
 ): IrElement {
     val checker = IrInterpreterCommonChecker()
     val irConstExpressionTransformer = IrConstOnlyNecessaryTransformer(
-        interpreter, irFile, mode, checker, evaluatedConstTracker, inlineConstTracker, onWarning, onError, suppressExceptions
+        interpreter, irFile, mode, checker, evaluatedConstTracker, inlineConstTracker, onWarning, onError,
+        suppressExceptions
     )
 
     val irConstDeclarationAnnotationTransformer = IrConstDeclarationAnnotationTransformer(
-        interpreter, irFile, mode, checker, evaluatedConstTracker, inlineConstTracker, onWarning, onError, suppressExceptions
+        interpreter, irFile, mode, checker, evaluatedConstTracker, inlineConstTracker, onWarning, onError,
+        suppressExceptions
     )
 
     val irConstTypeAnnotationTransformer = IrConstTypeAnnotationTransformer(
-        interpreter, irFile, mode, checker, evaluatedConstTracker, inlineConstTracker, onWarning, onError, suppressExceptions
+        interpreter, irFile, mode, checker, evaluatedConstTracker, inlineConstTracker, onWarning, onError,
+        suppressExceptions
     )
 
     return this.transform(irConstExpressionTransformer, IrConstTransformer.Data()).apply {
@@ -69,10 +72,8 @@ fun IrFile.runConstOptimizations(
     val preprocessedFile = this.preprocessForConstTransformer(interpreter, mode)
 
     val checker = IrInterpreterCommonChecker()
-    val irConstExpressionTransformer = IrConstAllTransformer(
-        interpreter, preprocessedFile, mode, checker, evaluatedConstTracker, inlineConstTracker,
-        { _, _, _ -> }, { _, _, _ -> },
-        suppressExceptions
+    val irConstExpressionTransformer = IrConstAllTransformer(interpreter, preprocessedFile, mode, checker,
+        evaluatedConstTracker, inlineConstTracker, { _, _, _ -> }, { _, _, _ -> }, suppressExceptions
     )
     preprocessedFile.transform(irConstExpressionTransformer, IrConstTransformer.Data())
 }
@@ -124,7 +125,8 @@ internal abstract class IrConstTransformer(
     protected fun IrExpression.canBeInterpreted(): Boolean {
         return try {
             this.accept(checker, IrInterpreterCheckerData(irFile, mode, interpreter.irBuiltIns))
-        } catch (e: Throwable) {
+        }
+        catch (e: Throwable) {
             rethrowIntellijPlatformExceptionIfNeeded(e)
             if (suppressExceptions) {
                 return false
@@ -136,7 +138,8 @@ internal abstract class IrConstTransformer(
     protected fun IrExpression.interpret(failAsError: Boolean): IrExpression {
         val result = try {
             interpreter.interpret(this, irFile)
-        } catch (e: Throwable) {
+        }
+        catch (e: Throwable) {
             rethrowIntellijPlatformExceptionIfNeeded(e)
             if (suppressExceptions) {
                 return this

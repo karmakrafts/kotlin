@@ -38,8 +38,11 @@ public final class ByteArray {
      */
     @Suppress("WRONG_MODIFIER_TARGET")
     public inline constructor(size: Int, init: (Int) -> Byte): this(size) {
-        for (i in 0..size - 1) {
-            this[i] = init(i)
+        // Kleaver: do not allocate an IntRange here..
+        var index = 0
+        while (index < size) {
+            this[index] = init(index)
+            ++index
         }
     }
 
@@ -109,8 +112,11 @@ public final class CharArray {
      */
     @Suppress("WRONG_MODIFIER_TARGET")
     public inline constructor(size: Int, init: (Int) -> Char): this(size) {
-        for (i in 0..size - 1) {
-            this[i] = init(i)
+        // Kleaver: do not allocate an IntRange here..
+        var index = 0
+        while (index < size) {
+            this[index] = init(index)
+            ++index
         }
     }
 
@@ -180,8 +186,11 @@ public final class ShortArray {
      */
     @Suppress("WRONG_MODIFIER_TARGET")
     public inline constructor(size: Int, init: (Int) -> Short): this(size) {
-        for (i in 0..size - 1) {
-            this[i] = init(i)
+        // Kleaver: do not allocate an IntRange here..
+        var index = 0
+        while (index < size) {
+            this[index] = init(index)
+            ++index
         }
     }
 
@@ -251,8 +260,11 @@ public final class IntArray {
      */
     @Suppress("WRONG_MODIFIER_TARGET")
     public inline constructor(size: Int, init: (Int) -> Int): this(size) {
-        for (i in 0..size - 1) {
-            this[i] = init(i)
+        // Kleaver: do not allocate an IntRange here..
+        var index = 0
+        while (index < size) {
+            this[index] = init(index)
+            ++index
         }
     }
 
@@ -322,8 +334,11 @@ public final class LongArray {
      */
     @Suppress("WRONG_MODIFIER_TARGET")
     public inline constructor(size: Int, init: (Int) -> Long): this(size) {
-        for (i in 0..size - 1) {
-            this[i] = init(i)
+        // Kleaver: do not allocate an IntRange here..
+        var index = 0
+        while (index < size) {
+            this[index] = init(index)
+            ++index
         }
     }
 
@@ -393,8 +408,11 @@ public final class FloatArray {
      */
     @Suppress("WRONG_MODIFIER_TARGET")
     public inline constructor(size: Int, init: (Int) -> Float): this(size) {
-        for (i in 0..size - 1) {
-            this[i] = init(i)
+        // Kleaver: do not allocate an IntRange here..
+        var index = 0
+        while (index < size) {
+            this[index] = init(index)
+            ++index
         }
     }
 
@@ -464,8 +482,11 @@ public final class DoubleArray {
      */
     @Suppress("WRONG_MODIFIER_TARGET")
     public inline constructor(size: Int, init: (Int) -> Double): this(size) {
-        for (i in 0..size - 1) {
-            this[i] = init(i)
+        // Kleaver: do not allocate an IntRange here..
+        var index = 0
+        while (index < size) {
+            this[index] = init(index)
+            ++index
         }
     }
 
@@ -535,8 +556,11 @@ public final class BooleanArray {
      */
     @Suppress("WRONG_MODIFIER_TARGET")
     public inline constructor(size: Int, init: (Int) -> Boolean): this(size) {
-        for (i in 0..size - 1) {
-            this[i] = init(i)
+        // Kleaver: do not allocate an IntRange here..
+        var index = 0
+        while (index < size) {
+            this[index] = init(index)
+            ++index
         }
     }
 

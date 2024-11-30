@@ -42,10 +42,10 @@ internal annotation class HidesMembers
 internal annotation class OnlyInputTypes
 
 // Kleaver implementation begin
+// TODO: This shouldn't be public if possible..
 
 /**
  * Specifies that this function should not be called directly without inlining.
- * Kleaver: Make this completely accessible to any outside package without opt-in as we would break source compability.
  */
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER)
 @Retention(AnnotationRetention.BINARY)

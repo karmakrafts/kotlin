@@ -2457,7 +2457,6 @@ internal class CodeGeneratorVisitor(
                                      resultLifetime: Lifetime, resultSlot: LLVMValueRef?): LLVMValueRef {
         val function = callee.symbol.owner
         require(!function.isSuspend) { "Suspend functions should be lowered out at this point"}
-
         return when {
             function.isTypedIntrinsic -> intrinsicGenerator.evaluateCall(callee, args, resultSlot)
             function.isBuiltInOperator -> evaluateOperatorCall(callee, args)

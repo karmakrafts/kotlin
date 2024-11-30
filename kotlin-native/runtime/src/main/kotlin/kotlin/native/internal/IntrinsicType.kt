@@ -81,11 +81,15 @@ internal class IntrinsicType {
         const val INTEROP_NARROW                = "INTEROP_NARROW"
         const val INTEROP_STATIC_C_FUNCTION     = "INTEROP_STATIC_C_FUNCTION"
         const val INTEROP_FUNPTR_INVOKE         = "INTEROP_FUNPTR_INVOKE"
+
         // Kleaver implementation begin
-        const val INTEROP_MEMORY_COPY           = "INTEROP_MEMORY_COPY"
-        const val INTEROP_MEMORY_SET            = "INTEROP_MEMORY_SET"
-        const val INTEROP_MEMORY_MOVE           = "INTEROP_MEMORY_MOVE"
-        const val INTEROP_ALLOCA                = "INTEROP_ALLOCA"
+        const val KLEAVER_MEMORY_COPY           = "KLEAVER_MEMORY_COPY"
+        const val KLEAVER_MEMORY_SET            = "KLEAVER_MEMORY_SET"
+        const val KLEAVER_MEMORY_MOVE           = "KLEAVER_MEMORY_MOVE"
+        const val KLEAVER_ALLOCA                = "KLEAVER_ALLOCA"
+        const val KLEAVER_ADDRESS_OF            = "KLEAVER_ADDRESS_OF"
+        const val KLEAVER_ALIGN_OF              = "KLEAVER_ALIGN_OF"
+        const val KLEAVER_SIZE_OF               = "KLEAVER_SIZE_OF"
         // Kleaver implementation end
 
         // Worker
