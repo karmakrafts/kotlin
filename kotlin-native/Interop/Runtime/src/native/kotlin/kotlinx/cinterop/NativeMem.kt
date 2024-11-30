@@ -108,8 +108,12 @@ internal object nativeMemUtils {
 
     @TypedIntrinsic(IntrinsicType.KLEAVER_ALLOCA)
     external fun alloca(size: Int): NativePtr
-    inline fun allocaEnterFrame() {} // stubs on the native implementation
-    inline fun allocaLeaveFrame() {} // stubs on the native implementation
+
+    @InlineOnly
+    inline fun allocaEnterFrame() {}
+
+    @InlineOnly
+    inline fun allocaLeaveFrame() {}
 
     @InlineOnly
     inline fun getByteArray(source: NativePointed, dest: ByteArray, length: Int): Unit {

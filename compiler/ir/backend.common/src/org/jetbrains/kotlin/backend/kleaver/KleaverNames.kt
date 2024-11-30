@@ -11,7 +11,4 @@ import org.jetbrains.kotlin.name.Name
 object KleaverNames {
     val packageName: FqName = FqName("kotlinx.kleaver")
     val neverThrowsAnnotation: FqName = ClassId(packageName, Name.identifier("NeverThrows")).asSingleFqName()
-    val structAnnotation: FqName = ClassId(packageName, Name.identifier("Struct")).asSingleFqName()
-    val unionAnnotation: FqName = ClassId(packageName, Name.identifier("Union")).asSingleFqName()
-    val assemblyAnnotation: FqName = ClassId(packageName, Name.identifier("Assembly")).asSingleFqName()
 }

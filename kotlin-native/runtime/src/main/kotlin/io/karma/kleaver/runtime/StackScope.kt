@@ -230,13 +230,13 @@ public object StackScope : DeferScope() {
 
 /**
  * Allows allocating CInterop variables on the native stack.
+ * The parameter is explicitly declared `noinline` so we push/pop a stack frame appropriately.
  *
  * **Draft for KT-73312** Kotlin/Native: Allow proper stack memory allocation
  */
 @OptIn(DelicateMemoryApi::class)
-@ForceInline
 @ExperimentalKleaverApi
-public inline fun <reified R> stackScoped(block: StackScope.() -> R): R {
+public inline fun <reified R> stackScoped(noinline block: StackScope.() -> R): R {
     return try {
         StackScope.enter()
         block(StackScope)
