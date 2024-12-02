@@ -1,5 +1,8 @@
 package io.karma.kleaver.runtime
 
+import io.karma.kleaver.compiler.DelicateMemoryApi
+import io.karma.kleaver.compiler.ExperimentalKleaverApi
+import io.karma.kleaver.compiler.ForceInline
 import kotlinx.cinterop.*
 
 /**
