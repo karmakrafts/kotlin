@@ -1490,6 +1490,7 @@ internal abstract class FunctionGenerationContext(
                 check(!forbidRuntime) { "Attempt to start a frame where runtime usage is forbidden" }
                 // Zero-init slots.
                 val slotsMem = bitcast(llvm.int8PtrType, slots)
+                // Kleaver: use memset to clear stack memory to improve performance
                 memset(slotsMem, 0, slotCount * codegen.runtime.pointerSize)
             }
             addPhiIncoming(slotsPhi!!, prologueBb to slots)

@@ -18,9 +18,7 @@ import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 
 internal class StructFunctionLoweringTransformer(
         private val state: NativeGenerationState
-) : IrElementTransformerVoid() {
-
-}
+) : IrElementTransformerVoid()
 
 internal fun transformStructFunctions(state: NativeGenerationState, file: IrFile) {
     if (!LoweringAnalyzer.needsTransformation(file)) return

@@ -21,13 +21,13 @@ import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
  * @since 30/11/2024
  */
 internal object LoweringAnalyzer {
-    val structTypes: HashMap<IrFile, ArrayList<IrClass>> = HashMap()
-    val unionTypes: HashMap<IrFile, ArrayList<IrClass>> = HashMap()
-    val byRefParameters: HashMap<IrFunction, ArrayList<IrValueParameter>> = HashMap()
-    val structFields: HashMap<IrFile, ArrayList<IrProperty>> = HashMap()
-    val filesToBeTransformed: ArrayList<IrFile> = ArrayList()
+    private val structTypes: HashMap<IrDeclarationContainer, ArrayList<IrClass>> = HashMap()
+    private val unionTypes: HashMap<IrDeclarationContainer, ArrayList<IrClass>> = HashMap()
+    private val structFields: HashMap<IrDeclarationContainer, ArrayList<IrProperty>> = HashMap()
+    private val byRefParameters: HashMap<IrDeclarationContainer, HashMap<IrFunction, ArrayList<IrValueParameter>>> = HashMap()
+    private val filesToBeTransformed: HashSet<IrFile> = HashSet()
 
-    val allStructTypes: Map<IrFile, ArrayList<IrClass>>
+    private val allStructTypes: Map<IrDeclarationContainer, ArrayList<IrClass>>
         get() = structTypes + unionTypes
 
     fun isStruct(type: IrType): Boolean = structTypes.any { v -> v.value.any { it.defaultType == type } }
@@ -44,15 +44,13 @@ internal object LoweringAnalyzer {
                 for (iface in declaration.implementedInterfaces) {
                     val container = declaration.parentClassOrNull ?: declaration.parentFileOrNull ?: continue
                     if (iface.isClassWithFqName(KleaverNames.Interfaces.union)) {
-                        unionTypes.getOrPut(file) { ArrayList() } += declaration
+                        unionTypes.getOrPut(container) { ArrayList() } += declaration
                         KleaverLog.info { "Found Union type ${declaration.name} in ${container.kotlinFqName}" }
-                        filesToBeTransformed += file
                         continue
                     }
                     if (!iface.isClassWithFqName(KleaverNames.Interfaces.struct)) continue
-                    structTypes.getOrPut(file) { ArrayList() } += declaration
+                    structTypes.getOrPut(container) { ArrayList() } += declaration
                     KleaverLog.info { "Found Struct type ${declaration.name} in ${container.kotlinFqName}" }
-                    filesToBeTransformed += file
                 }
                 super.visitClass(declaration)
             }
@@ -66,7 +64,8 @@ internal object LoweringAnalyzer {
                     if (!isStructOrUnion(field.type)) return@let
                     val container = declaration.parentClassOrNull ?: declaration.parentFileOrNull ?: return@let
                     KleaverLog.info { "Found struct field ${declaration.name} in ${container.kotlinFqName}" }
-                    structFields.getOrPut(file) { ArrayList() } += declaration
+                    structFields.getOrPut(container) { ArrayList() } += declaration
+                    filesToBeTransformed += file
                 }
                 super.visitProperty(declaration)
             }
@@ -79,7 +78,7 @@ internal object LoweringAnalyzer {
                 for (param in declaration.valueParameters) {
                     if (!param.hasAnnotation(KleaverNames.Annotations.byRef)) continue
                     val container = declaration.parentClassOrNull ?: declaration.parentFileOrNull ?: continue
-                    byRefParameters.getOrPut(declaration) { ArrayList() } += param
+                    byRefParameters.getOrPut(container) { HashMap() }.getOrPut(declaration) { ArrayList() } += param
                     KleaverLog.info { "Found ByRef value parameter ${declaration.name}#${param.name} in ${container.kotlinFqName}" }
                     filesToBeTransformed += file
                 }

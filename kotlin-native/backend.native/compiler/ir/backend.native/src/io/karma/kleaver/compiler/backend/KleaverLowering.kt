@@ -44,7 +44,5 @@ internal object KleaverLowering {
         modules.forEachFile { transformStructLocals(state, it) }
         // Move struct member functions to a synthetic object class & transform functions
         modules.forEachFile { transformStructFunctions(state, it) }
-        // Remove all residual struct classes, as they are only a compile-time construct
-        modules.forEachFile { transformStructTypes(state, it) }
     }
 }

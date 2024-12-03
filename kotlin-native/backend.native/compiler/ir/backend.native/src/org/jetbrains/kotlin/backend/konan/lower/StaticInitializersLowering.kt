@@ -11,11 +11,14 @@ import org.jetbrains.kotlin.backend.konan.ConfigChecks
 import org.jetbrains.kotlin.backend.konan.Context
 import org.jetbrains.kotlin.backend.konan.DECLARATION_ORIGIN_ENTRY_POINT
 import org.jetbrains.kotlin.backend.konan.KonanFqNames
-import org.jetbrains.kotlin.backend.konan.llvm.*
+import org.jetbrains.kotlin.backend.konan.llvm.FieldStorageKind
+import org.jetbrains.kotlin.backend.konan.llvm.needsGCRegistration
+import org.jetbrains.kotlin.backend.konan.llvm.storageKind
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.IrElement
-import org.jetbrains.kotlin.ir.builders.*
+import org.jetbrains.kotlin.ir.builders.IrBuilderWithScope
 import org.jetbrains.kotlin.ir.builders.declarations.buildFun
+import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrBlockBody
 import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
@@ -52,10 +55,12 @@ internal class StaticInitializersLowering(val context: Context) : FileLoweringPa
             override fun visitElement(element: IrElement) {
                 element.acceptChildrenVoid(this)
             }
+
             override fun visitFile(declaration: IrFile) {
                 processDeclarationContainter(declaration)
                 declaration.acceptChildrenVoid(this)
             }
+
             override fun visitClass(declaration: IrClass) {
                 processDeclarationContainter(declaration)
                 declaration.acceptChildrenVoid(this)

@@ -27,5 +27,6 @@ object KleaverNames {
         val byRef: FqName = ClassId(compilerPackageName, Name.identifier("ByRef")).asSingleFqName()
         val alignAs: FqName = ClassId(compilerPackageName, Name.identifier("AlignAs")).asSingleFqName()
         val bitField: FqName = ClassId(compilerPackageName, Name.identifier("BitField")).asSingleFqName()
+        val neverThrows: FqName = ClassId(compilerPackageName, Name.identifier("NeverThrows")).asSingleFqName()
     }
 }

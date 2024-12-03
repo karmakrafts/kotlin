@@ -5,12 +5,13 @@
 
 package io.karma.kleaver.compiler.backend
 
+import org.jetbrains.kotlin.ir.builders.*
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrFile
+import org.jetbrains.kotlin.ir.expressions.IrConst
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
 import org.jetbrains.kotlin.ir.types.*
-import org.jetbrains.kotlin.ir.util.SYNTHETIC_OFFSET
 
 /**
  * @author Alexander Hinze
@@ -26,17 +27,22 @@ val IrDeclaration.parentFileOrNull: IrFile?
         }
     }
 
-fun IrType.createDefaultValue(
-        startOffset: Int = SYNTHETIC_OFFSET,
-        endOffset: Int = SYNTHETIC_OFFSET
+fun IrBuilderWithScope.irFloat(value: Float): IrConst<*> =
+        IrConstImpl.float(startOffset, endOffset, context.irBuiltIns.floatType, value)
+
+fun IrBuilderWithScope.irDouble(value: Double): IrConst<*> =
+        IrConstImpl.double(startOffset, endOffset, context.irBuiltIns.floatType, value)
+
+fun IrBuilderWithScope.createDefaultValue(
+        type: IrType
 ): IrExpression = when {
-    isByte() -> IrConstImpl.byte(startOffset, endOffset, this, 0)
-    isShort() -> IrConstImpl.short(startOffset, endOffset, this, 0)
-    isInt() -> IrConstImpl.int(startOffset, endOffset, this, 0)
-    isLong() -> IrConstImpl.long(startOffset, endOffset, this, 0)
-    isFloat() -> IrConstImpl.float(startOffset, endOffset, this, 0F)
-    isDouble() -> IrConstImpl.double(startOffset, endOffset, this, 0.0)
-    isBoolean() -> IrConstImpl.boolean(startOffset, endOffset, this, false)
-    isString() -> IrConstImpl.string(startOffset, endOffset, this, "")
+    type.isByte() -> irByte(0)
+    type.isShort() -> irShort(0)
+    type.isInt() -> irInt(0)
+    type.isLong() -> irLong(0)
+    type.isFloat() -> irFloat(0F)
+    type.isDouble() -> irDouble(0.0)
+    type.isBoolean() -> irBoolean(false)
+    type.isString() -> irString("")
     else -> throw IllegalStateException("No constant default value for type $this")
 }

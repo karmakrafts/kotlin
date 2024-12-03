@@ -5,17 +5,22 @@
 
 package io.karma.kleaver.compiler.backend
 
+import org.jetbrains.kotlin.backend.common.lower.createIrBuilder
+import org.jetbrains.kotlin.backend.common.lower.irBlockBody
 import org.jetbrains.kotlin.backend.konan.NativeGenerationState
-import org.jetbrains.kotlin.backend.konan.serialization.KonanManglerIr.signatureString
+import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.Modality
-import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.builders.declarations.addBackingField
+import org.jetbrains.kotlin.ir.builders.declarations.addGetter
 import org.jetbrains.kotlin.ir.builders.declarations.buildProperty
+import org.jetbrains.kotlin.ir.builders.irExprBody
+import org.jetbrains.kotlin.ir.builders.irGetField
+import org.jetbrains.kotlin.ir.builders.irReturn
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.types.getClass
 import org.jetbrains.kotlin.ir.util.*
-import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
-import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
+import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
+import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.name.Name
 import java.util.*
 
@@ -24,19 +29,20 @@ import java.util.*
  * @since 30/11/2024
  */
 internal class StructFieldLoweringTransformer(
-        private val state: NativeGenerationState
-) : IrElementTransformerVoid() {
-    companion object {
-        private const val STRUCT_FIELD_PREFIX: String = "__kleaver_struct"
+        private val state: NativeGenerationState,
+        private val isTopLevel: Boolean
+) : IrElementVisitorVoid {
+    private val propertiesToAdd: HashMap<IrDeclarationContainer, ArrayList<IrProperty>> = HashMap()
+    private val propertiesToRemove: HashMap<IrDeclarationContainer, ArrayList<IrProperty>> = HashMap()
 
-        private fun IrDeclarationContainer.mangledName(): String = when (this) {
-            is IrClass -> signatureString(true)
-            is IrFile -> name.replace('.', '_')
-            else -> throw IllegalStateException("Unexpected declaration container type")
+    internal fun updateDeclarations() {
+        propertiesToAdd.forEach { (container, declarations) ->
+            container.addChildren(declarations)
+        }
+        propertiesToRemove.forEach { (container, declarations) ->
+            container.declarations -= declarations.toSet()
         }
     }
-
-    internal val properties: ArrayList<IrProperty> = ArrayList()
 
     private fun isValidStructProperty(property: IrProperty): Boolean {
         if (property.isConst || property.isExternal || property.isDelegated) return false
@@ -48,52 +54,66 @@ internal class StructFieldLoweringTransformer(
             rootProperty: IrProperty,
             type: IrClass,
             rootContainer: IrDeclarationContainer,
-            parentNameStack: Stack<String> = Stack<String>()
+            parentNameStack: Stack<String>
     ) {
-        val props = type.properties.filter(::isValidStructProperty)
-        for (property in props) {
-            val container = property.parentClassOrNull ?: property.parentFileOrNull ?: return
-            val backingField = property.backingField ?: continue
+        type.properties.filter(::isValidStructProperty).forEach { property ->
+            val container = property.parentClassOrNull ?: property.parentFileOrNull ?: return@forEach
+            val backingField = property.backingField ?: return@forEach
             val fieldType = backingField.type
 
             if (!LoweringAnalyzer.isStructOrUnion(fieldType)) {
-                val propertyName = property.name
-                val parentName = (parentNameStack + container.mangledName()).joinToString(separator = "_")
-                val fieldName = Name.identifier("${STRUCT_FIELD_PREFIX}_${parentName}_$propertyName")
-                rootContainer.addChild(state.context.irFactory.buildProperty {
+                val propertyName = property.name.identifier
+                val parentName = parentNameStack.joinToString(KleaverMangler.NAME_DELIMITER)
+                val fieldName = with(KleaverMangler) { parentName and propertyName }
+                val isMutable = rootProperty.isVar
+                // This-spam is to avoid scope confusion
+                propertiesToAdd.getOrPut(container) { ArrayList() } += state.context.irFactory.buildProperty {
                     startOffset = SYNTHETIC_OFFSET
                     endOffset = SYNTHETIC_OFFSET
-                    name = fieldName
+                    name = requireNotNull(Name.identifierIfValid(fieldName)) { "Field name '$fieldName' is invalid" }
                     modality = Modality.FINAL
                     visibility = rootProperty.visibility
-                    isVar = rootProperty.isVar
+                    isVar = isMutable
                     isLateinit = property.isLateinit
-                }.apply {
+                }.apply property@{
                     copyAnnotationsFrom(rootProperty)
                     copyAnnotationsFrom(property)
                     parent = rootContainer
                     addBackingField {
                         startOffset = SYNTHETIC_OFFSET
                         endOffset = SYNTHETIC_OFFSET
-                        name = fieldName
                         this.type = fieldType
-                        this.isStatic = rootProperty.backingField!!.isStatic
-                        isFinal = !property.isVar
-                        isLateinit = property.isLateinit
-                        visibility = rootProperty.visibility
+                        isStatic = rootProperty.backingField!!.isStatic
+                        isFinal = !isMutable
+                        visibility = DescriptorVisibilities.PRIVATE // Do we need to inherit this?
                     }.apply {
-                        // Shallow-copy initializer into a new expression body
-                        initializer = state.context.irFactory.createExpressionBody(fieldType.createDefaultValue())
+                        // Shallow-copy initializer expression into a new expression body
+                        initializer = state.context.createIrBuilder(symbol, SYNTHETIC_OFFSET, SYNTHETIC_OFFSET).run {
+                            // TODO: process initializers
+                            irExprBody(createDefaultValue(fieldType))
+                        }
                     }
-                })
+                    addGetter {
+                        returnType = fieldType
+                        startOffset = SYNTHETIC_OFFSET
+                        endOffset = SYNTHETIC_OFFSET
+                    }.apply {
+                        body = state.context.createIrBuilder(symbol, SYNTHETIC_OFFSET, SYNTHETIC_OFFSET).irBlockBody(this) {
+                            +irReturn(irGetField(null, this@property.backingField!!))
+                        }
+                    }
+                }
                 KleaverLog.info { "Unrolled flat field ${container.kotlinFqName}#$propertyName into $fieldName" }
-                continue
+                return@forEach
             }
-            val structTypeClass = fieldType.getClass() ?: continue
+            val structTypeClass = fieldType.getClass() ?: return@forEach
 
-            parentNameStack.push(structTypeClass.mangledName())
+            with(KleaverMangler) {
+                parentNameStack.push(structTypeClass.mangledName())
+            }
             unrollPropertyRecursively(rootProperty, structTypeClass, rootContainer, parentNameStack)
             parentNameStack.pop()
+
             KleaverLog.info { "Unrolled nested field $${container.kotlinFqName}#${property.name}" }
         }
     }
@@ -108,20 +128,29 @@ internal class StructFieldLoweringTransformer(
         val structTypeClass = fieldType.getClass() ?: return
         KleaverLog.info { "Unrolling struct field ${container.kotlinFqName}#${field.name}" }
 
-        unrollPropertyRecursively(property, structTypeClass, container)
-        properties += property // Track which fields we have lowered
+        val parentNameStack = Stack<String>()
+        with(KleaverMangler) {
+            parentNameStack.push(field.mangledName())
+        }
+        unrollPropertyRecursively(property, structTypeClass, container, parentNameStack)
+
+        propertiesToRemove.getOrPut(container) { ArrayList() } += property // Track which fields we have lowered
     }
 
-    override fun visitProperty(declaration: IrProperty): IrStatement {
-        if (isValidStructProperty(declaration)) {
+    override fun visitProperty(declaration: IrProperty) {
+        if (isValidStructProperty(declaration) && declaration.isTopLevel == isTopLevel) {
             unrollProperty(declaration)
         }
-        return super.visitProperty(declaration)
+        super.visitProperty(declaration)
     }
 }
 
 internal fun transformStructFields(state: NativeGenerationState, file: IrFile) {
     if (!LoweringAnalyzer.needsTransformation(file)) return
-    KleaverLog.info { "Running StructFieldLoweringTransformer for ${file.path}" }
-    file.transformChildrenVoid(StructFieldLoweringTransformer(state))
+    KleaverLog.info { "Running StructFieldLoweringPreTransformer for ${file.path}" }
+    // Transform globals
+    StructFieldLoweringTransformer(state, true).apply {
+        file.acceptChildrenVoid(this)
+        updateDeclarations() // Remove residual global declarations once we're done with this file
+    }
 }

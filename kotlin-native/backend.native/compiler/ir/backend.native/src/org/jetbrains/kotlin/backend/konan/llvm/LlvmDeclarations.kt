@@ -457,7 +457,8 @@ private class DeclarationsGeneratorVisitor(override val generationState: NativeG
             val symbolName = if (declaration.isExported()) {
                 declaration.computeSymbolName().also {
                     if (declaration.name.asString() != "main") {
-                        assert(LLVMGetNamedFunction(llvm.module, it) == null) { it }
+                        // Kleaver: improve error message
+                        assert(LLVMGetNamedFunction(llvm.module, it) == null) { "$it is not a named LLVM function" }
                     } else {
                         // As a workaround, allow `main` functions to clash because frontend accepts this.
                         // See [OverloadResolver.isTopLevelMainInDifferentFiles] usage.

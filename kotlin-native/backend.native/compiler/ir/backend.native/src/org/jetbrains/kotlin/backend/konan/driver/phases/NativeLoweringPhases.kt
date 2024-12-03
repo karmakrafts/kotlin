@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.backend.konan.driver.phases
 
+import io.karma.kleaver.compiler.backend.KleaverLowering
 import org.jetbrains.kotlin.backend.common.BodyLoweringPass
 import org.jetbrains.kotlin.backend.common.FileLoweringPass
 import org.jetbrains.kotlin.backend.common.lower.*
@@ -37,7 +38,10 @@ import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 
 internal typealias LoweringList = List<AbstractNamedCompilerPhase<NativeGenerationState, IrFile, IrFile>>
 
-internal fun PhaseEngine<NativeGenerationState>.runLowerings(lowerings: LoweringList, modules: List<IrModuleFragment>) {
+// Kleaver implementation begin
+internal fun PhaseEngine<NativeGenerationState>.runLowerings(lowerings: LoweringList, modules: List<IrModuleFragment>, upToInline: Boolean) {
+    if (upToInline) KleaverLowering.lowerModules(context, modules)
+    // Kleaver implementation end
     for (module in modules) {
         for (file in module.files) {
             context.fileLowerState = FileLowerState()

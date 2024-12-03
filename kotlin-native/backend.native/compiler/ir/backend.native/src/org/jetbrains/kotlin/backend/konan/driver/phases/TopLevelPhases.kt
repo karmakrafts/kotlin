@@ -339,11 +339,14 @@ internal fun PhaseEngine<NativeGenerationState>.lowerModuleWithDependencies(modu
     // stage, because otherwise we may be actually validating a partially lowered IR that may not pass certain checks
     // (like IR visibility checks).
     // This is what we call a 'lowering synchronization point'.
+
+    // Kleaver implementation begin
     runIrValidationPhase(validateIrBeforeLowering, allModulesToLower)
-    runLowerings(getLoweringsUpToAndIncludingInlining(), allModulesToLower)
+    runLowerings(getLoweringsUpToAndIncludingInlining(), allModulesToLower, true)
     runIrValidationPhase(validateIrAfterInlining, allModulesToLower)
-    runLowerings(getLoweringsAfterInlining(), allModulesToLower)
+    runLowerings(getLoweringsAfterInlining(), allModulesToLower, false)
     runIrValidationPhase(validateIrAfterLowering, allModulesToLower)
+    // Kleaver implementation end
 
     mergeDependencies(module, dependenciesToCompile)
 }
