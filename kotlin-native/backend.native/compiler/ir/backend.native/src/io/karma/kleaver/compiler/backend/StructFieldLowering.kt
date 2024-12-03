@@ -10,12 +10,8 @@ import org.jetbrains.kotlin.backend.common.lower.irBlockBody
 import org.jetbrains.kotlin.backend.konan.NativeGenerationState
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.Modality
-import org.jetbrains.kotlin.ir.builders.declarations.addBackingField
-import org.jetbrains.kotlin.ir.builders.declarations.addGetter
-import org.jetbrains.kotlin.ir.builders.declarations.buildProperty
-import org.jetbrains.kotlin.ir.builders.irExprBody
-import org.jetbrains.kotlin.ir.builders.irGetField
-import org.jetbrains.kotlin.ir.builders.irReturn
+import org.jetbrains.kotlin.ir.builders.*
+import org.jetbrains.kotlin.ir.builders.declarations.*
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.types.getClass
 import org.jetbrains.kotlin.ir.util.*
@@ -97,9 +93,24 @@ internal class StructFieldLoweringTransformer(
                         returnType = fieldType
                         startOffset = SYNTHETIC_OFFSET
                         endOffset = SYNTHETIC_OFFSET
+                        visibility = property.getter?.visibility ?: DescriptorVisibilities.PRIVATE
                     }.apply {
                         body = state.context.createIrBuilder(symbol, SYNTHETIC_OFFSET, SYNTHETIC_OFFSET).irBlockBody(this) {
                             +irReturn(irGetField(null, this@property.backingField!!))
+                        }
+                    }
+                    if (isMutable) { // If the original property is mutable, we need a setter too
+                        addSetter {
+                            returnType = state.context.irBuiltIns.unitType
+                            startOffset = SYNTHETIC_OFFSET
+                            endOffset = SYNTHETIC_OFFSET
+                            visibility = property.setter?.visibility ?: DescriptorVisibilities.PRIVATE
+                        }.apply {
+                            val valueParam = addValueParameter("value", fieldType)
+                            body = state.context.createIrBuilder(symbol, SYNTHETIC_OFFSET, SYNTHETIC_OFFSET).irBlockBody(this) {
+                                +irSetField(null, this@property.backingField!!, irGet(valueParam))
+                                +irReturnUnit()
+                            }
                         }
                     }
                 }
