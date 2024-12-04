@@ -22,7 +22,9 @@ internal object KleaverMangler {
     private const val STRUCT_FUNCTION_PREFIX: String = "__${KLEAVER_PREFIX}sfn__"
     private const val ARRAY_PREFIX: String = "A$"
     private const val NULLABLE_PREFIX: String = "N$"
-    internal const val NAME_DELIMITER: String = "_"
+    private const val NAME_DELIMITER: String = "_"
+
+    private val disableHashing: Boolean = System.getProperty("kleaver.mangler.disableHashing")?.toBoolean() ?: false
 
     infix fun String.and(value: String): String = when {
         isBlank() -> value
@@ -30,6 +32,9 @@ internal object KleaverMangler {
         else -> "${this}$NAME_DELIMITER$value"
     }
 
+    fun Collection<String>.joinAndMangle(): String = joinToString(NAME_DELIMITER)
+
+    @OptIn(ExperimentalStdlibApi::class)
     fun FqName.mangle(): String = toString().replace(".", NAME_DELIMITER)
 
     fun IrClass.mangledName(): String = kotlinFqName.mangle()

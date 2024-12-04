@@ -6,6 +6,7 @@
 package io.karma.kleaver.compiler.backend
 
 import org.jetbrains.kotlin.backend.konan.ir.implementedInterfaces
+import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.interpreter.hasAnnotation
 import org.jetbrains.kotlin.ir.types.IrType
@@ -15,6 +16,7 @@ import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.ir.util.parentClassOrNull
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
+import org.jetbrains.kotlin.ir.visitors.acceptVoid
 
 /**
  * @author Alexander Hinze
@@ -37,7 +39,11 @@ internal object LoweringAnalyzer {
     fun needsTransformation(file: IrFile): Boolean = file in filesToBeTransformed
 
     fun discoverStructs(file: IrFile) {
-        file.acceptChildrenVoid(object : IrElementVisitorVoid {
+        file.acceptVoid(object : IrElementVisitorVoid {
+            override fun visitElement(element: IrElement) {
+                element.acceptChildrenVoid(this)
+            }
+
             override fun visitClass(declaration: IrClass) {
                 if (declaration.isClassWithFqName(KleaverNames.Interfaces.struct)
                         || declaration.isClassWithFqName(KleaverNames.Interfaces.union)) return
@@ -58,11 +64,17 @@ internal object LoweringAnalyzer {
     }
 
     fun discoverStructFields(file: IrFile) {
-        file.acceptChildrenVoid(object : IrElementVisitorVoid {
+        file.acceptVoid(object : IrElementVisitorVoid {
+            override fun visitElement(element: IrElement) {
+                element.acceptChildrenVoid(this)
+            }
+
             override fun visitProperty(declaration: IrProperty) {
+                val container = declaration.parentClassOrNull ?: declaration.parentFileOrNull ?: return
+                // Don't look for struct fields that need unrolling inside other structs
+                if (container is IrClass && isStructOrUnion(container.defaultType)) return
                 declaration.backingField?.let { field ->
                     if (!isStructOrUnion(field.type)) return@let
-                    val container = declaration.parentClassOrNull ?: declaration.parentFileOrNull ?: return@let
                     KleaverLog.info { "Found struct field ${declaration.name} in ${container.kotlinFqName}" }
                     structFields.getOrPut(container) { ArrayList() } += declaration
                     filesToBeTransformed += file
@@ -73,7 +85,11 @@ internal object LoweringAnalyzer {
     }
 
     fun discoverByRefParameters(file: IrFile) {
-        file.acceptChildrenVoid(object : IrElementVisitorVoid {
+        file.acceptVoid(object : IrElementVisitorVoid {
+            override fun visitElement(element: IrElement) {
+                element.acceptChildrenVoid(this)
+            }
+
             override fun visitFunction(declaration: IrFunction) {
                 for (param in declaration.valueParameters) {
                     if (!param.hasAnnotation(KleaverNames.Annotations.byRef)) continue
