@@ -25,41 +25,49 @@ internal external fun getPointerSize(): Int
 internal object nativeMemUtils {
     @TypedIntrinsic(IntrinsicType.INTEROP_READ_PRIMITIVE)
     external fun getByte(mem: NativePointed): Byte
+
     @TypedIntrinsic(IntrinsicType.INTEROP_WRITE_PRIMITIVE)
     external fun putByte(mem: NativePointed, value: Byte)
 
     @TypedIntrinsic(IntrinsicType.INTEROP_READ_PRIMITIVE)
     external fun getShort(mem: NativePointed): Short
+
     @TypedIntrinsic(IntrinsicType.INTEROP_WRITE_PRIMITIVE)
     external fun putShort(mem: NativePointed, value: Short)
 
     @TypedIntrinsic(IntrinsicType.INTEROP_READ_PRIMITIVE)
     external fun getInt(mem: NativePointed): Int
+
     @TypedIntrinsic(IntrinsicType.INTEROP_WRITE_PRIMITIVE)
     external fun putInt(mem: NativePointed, value: Int)
 
     @TypedIntrinsic(IntrinsicType.INTEROP_READ_PRIMITIVE)
     external fun getLong(mem: NativePointed): Long
+
     @TypedIntrinsic(IntrinsicType.INTEROP_WRITE_PRIMITIVE)
     external fun putLong(mem: NativePointed, value: Long)
 
     @TypedIntrinsic(IntrinsicType.INTEROP_READ_PRIMITIVE)
     external fun getFloat(mem: NativePointed): Float
+
     @TypedIntrinsic(IntrinsicType.INTEROP_WRITE_PRIMITIVE)
     external fun putFloat(mem: NativePointed, value: Float)
 
     @TypedIntrinsic(IntrinsicType.INTEROP_READ_PRIMITIVE)
     external fun getDouble(mem: NativePointed): Double
+
     @TypedIntrinsic(IntrinsicType.INTEROP_WRITE_PRIMITIVE)
     external fun putDouble(mem: NativePointed, value: Double)
 
     @TypedIntrinsic(IntrinsicType.INTEROP_READ_PRIMITIVE)
     external fun getNativePtr(mem: NativePointed): NativePtr
+
     @TypedIntrinsic(IntrinsicType.INTEROP_WRITE_PRIMITIVE)
     external fun putNativePtr(mem: NativePointed, value: NativePtr)
 
     @TypedIntrinsic(IntrinsicType.INTEROP_READ_PRIMITIVE)
     external fun getVector(mem: NativePointed): Vector128
+
     @TypedIntrinsic(IntrinsicType.INTEROP_WRITE_PRIMITIVE)
     external fun putVector(mem: NativePointed, value: Vector128)
 
@@ -67,6 +75,7 @@ internal object nativeMemUtils {
 
     @TypedIntrinsic(IntrinsicType.KLEAVER_MEMORY_SET)
     external fun setMemory(dest: NativePointed, value: Byte, size: Int): Unit
+
     @TypedIntrinsic(IntrinsicType.KLEAVER_MEMORY_SET)
     external fun setMemory(dest: NativePointed, value: Byte, size: Long): Unit
 
@@ -110,10 +119,12 @@ internal object nativeMemUtils {
     external fun alloca(size: Int): NativePtr
 
     @InlineOnly
-    inline fun allocaEnterFrame() {}
+    inline fun allocaEnterFrame() {
+    }
 
     @InlineOnly
-    inline fun allocaLeaveFrame() {}
+    inline fun allocaLeaveFrame() {
+    }
 
     @InlineOnly
     inline fun getByteArray(source: NativePointed, dest: ByteArray, length: Int): Unit {

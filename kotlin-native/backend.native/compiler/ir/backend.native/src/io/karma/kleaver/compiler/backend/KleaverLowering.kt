@@ -6,43 +6,18 @@
 package io.karma.kleaver.compiler.backend
 
 import org.jetbrains.kotlin.backend.konan.NativeGenerationState
-import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 
 /**
  * @author Alexander Hinze
  * @since 30/11/2024
  */
-
-private inline fun List<IrModuleFragment>.forEachFile(closure: (IrFile) -> Unit) {
-    for (module in this) {
-        for (file in module.files) {
-            closure(file)
-        }
-    }
-}
-
 internal object KleaverLowering {
     fun lowerModules(state: NativeGenerationState, modules: List<IrModuleFragment>) {
-        analyze(modules)
-        transform(state, modules)
-    }
-
-    private fun analyze(modules: List<IrModuleFragment>) {
-        // Find all structs
-        modules.forEachFile(LoweringAnalyzer::discoverStructs)
-        // Find all struct fields
-        modules.forEachFile(LoweringAnalyzer::discoverStructFields)
-        // Find all ByRef parameters
-        modules.forEachFile(LoweringAnalyzer::discoverByRefParameters)
-    }
-
-    private fun transform(state: NativeGenerationState, modules: List<IrModuleFragment>) {
+        val types = KleaverTypes(state)
         // Transform all fields that have a union or struct type
-        modules.forEachFile { transformStructFields(state, it) }
-        // Transform all locals that have a union or struct type
-        modules.forEachFile { transformStructLocals(state, it) }
-        // Move struct member functions to a synthetic object class & transform functions
-        modules.forEachFile { transformStructFunctions(state, it) }
+        modules.forEachFile { transformStructFields(state, it, types) }
+        // Move struct member functions to synthetic objects/classes
+        modules.forEachFile { transformStructFunctions(state, it, types) }
     }
 }

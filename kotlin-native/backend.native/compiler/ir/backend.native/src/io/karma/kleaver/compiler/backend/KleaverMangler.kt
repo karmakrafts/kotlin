@@ -20,11 +20,15 @@ internal object KleaverMangler {
     private const val STRUCT_OBJECT_PREFIX: String = "__${KLEAVER_PREFIX}sob__"
     private const val STRUCT_FIELD_PREFIX: String = "__${KLEAVER_PREFIX}sfd__"
     private const val STRUCT_FUNCTION_PREFIX: String = "__${KLEAVER_PREFIX}sfn__"
+    private const val STRUCT_PARAM_PREFIX: String = "__${KLEAVER_PREFIX}srp__"
     private const val ARRAY_PREFIX: String = "A$"
     private const val NULLABLE_PREFIX: String = "N$"
     private const val NAME_DELIMITER: String = "_"
 
     private val disableHashing: Boolean = System.getProperty("kleaver.mangler.disableHashing")?.toBoolean() ?: false
+
+    val String.mangledParameterName: String
+        get() = "$STRUCT_PARAM_PREFIX$this"
 
     infix fun String.and(value: String): String = when {
         isBlank() -> value

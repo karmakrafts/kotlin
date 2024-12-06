@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.name.Name
 object KleaverNames {
     val runtimePackageName: FqName = FqName("io.karma.kleaver.runtime")
     val compilerPackageName: FqName = FqName("io.karma.kleaver.compiler")
+    val cinteropPackageName: FqName = FqName("kotlinx.cinterop")
 
     object Interfaces {
         val struct: FqName = ClassId(runtimePackageName, Name.identifier("Struct")).asSingleFqName()
@@ -28,5 +29,10 @@ object KleaverNames {
         val alignAs: FqName = ClassId(compilerPackageName, Name.identifier("AlignAs")).asSingleFqName()
         val bitField: FqName = ClassId(compilerPackageName, Name.identifier("BitField")).asSingleFqName()
         val neverThrows: FqName = ClassId(compilerPackageName, Name.identifier("NeverThrows")).asSingleFqName()
+    }
+
+    object Classes {
+        val nativePtr: FqName = ClassId(cinteropPackageName, Name.identifier("NativePtr")).asSingleFqName()
+        val nativeMemUtils: FqName = ClassId(cinteropPackageName, Name.identifier("nativeMemUtils")).asSingleFqName()
     }
 }

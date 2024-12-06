@@ -1,28 +1,20 @@
 package org.jetbrains.kotlin.backend.konan.llvm
 
+import io.karma.kleaver.compiler.backend.KleaverIntrinsics
 import llvm.*
 import org.jetbrains.kotlin.backend.konan.*
 import org.jetbrains.kotlin.backend.konan.ir.isConstantConstructorIntrinsic
 import org.jetbrains.kotlin.backend.konan.ir.isTypedIntrinsic
 import org.jetbrains.kotlin.backend.konan.llvm.objc.genObjCSelector
-import org.jetbrains.kotlin.backend.konan.reportCompilationError
-import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.IrElement
-import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrFunction
-import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
-import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.expressions.*
-import org.jetbrains.kotlin.ir.interpreter.IrInterpreter
-import org.jetbrains.kotlin.ir.interpreter.IrInterpreterEnvironment
 import org.jetbrains.kotlin.ir.symbols.IrConstructorSymbol
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.findAnnotation
 import org.jetbrains.kotlin.ir.util.getAnnotationStringValue
-import org.jetbrains.kotlin.ir.util.toIrConst
-import java.lang.IllegalArgumentException
 
 internal enum class IntrinsicType {
     PLUS,
@@ -109,6 +101,31 @@ internal enum class IntrinsicType {
     KLEAVER_MEMORY_SET,
     KLEAVER_MEMORY_MOVE,
     KLEAVER_ALLOCA,
+    KLEAVER_ADDRESS_OF,
+    KLEAVER_ALIGN_OF,
+    KLEAVER_SIZE_OF,
+    KLEAVER_OFFSET_OF,
+
+    KLEAVER_SAT_ADDS,
+    KLEAVER_SAT_SUBS,
+    KLEAVER_SAT_SHLS,
+    KLEAVER_SAT_ADDU,
+    KLEAVER_SAT_SUBU,
+    KLEAVER_SAT_SHLU,
+
+    KLEAVER_U2F,
+    KLEAVER_F2U,
+    KLEAVER_UDIV,
+    KLEAVER_UREM,
+    KLEAVER_UCMP,
+
+    KLEAVER_BIT_REVERSE,
+    KLEAVER_BIT_SWAP,
+    KLEAVER_CTPOP,
+    KLEAVER_CTLZ,
+    KLEAVER_CTTZ,
+    KLEAVER_FSHL,
+    KLEAVER_FSHR,
     // Kleaver implementation end
 
     // Worker
@@ -193,8 +210,8 @@ internal class IntrinsicGenerator(
     private val IrCall.llvmReturnType: LLVMTypeRef
         get() = codegen.getLlvmFunctionReturnType(symbol.owner).llvmType
 
-
-    private fun LLVMTypeRef.sizeInBits() = LLVMSizeOfTypeInBits(codegen.llvmTargetData, this).toInt()
+    // Kleaver: make this accessible
+    internal fun LLVMTypeRef.sizeInBits() = LLVMSizeOfTypeInBits(codegen.llvmTargetData, this).toInt()
 
     /**
      * Some intrinsics have to be processed before evaluation of their arguments.
@@ -288,12 +305,6 @@ internal class IntrinsicGenerator(
                 IntrinsicType.INTEROP_NATIVE_PTR_PLUS_LONG -> emitNativePtrPlusLong(args)
                 IntrinsicType.INTEROP_GET_NATIVE_NULL_PTR -> emitGetNativeNullPtr()
                 IntrinsicType.IDENTITY -> emitIdentity(args)
-                // Kleaver implementation begin
-                IntrinsicType.KLEAVER_MEMORY_COPY -> emitMemoryCopy(callSite, args)
-                IntrinsicType.KLEAVER_MEMORY_SET -> emitMemorySet(callSite, args)
-                IntrinsicType.KLEAVER_MEMORY_MOVE -> emitMemoryMove(callSite, args)
-                IntrinsicType.KLEAVER_ALLOCA -> emitAlloca(callSite, args)
-                // Kleaver implementation end
                 IntrinsicType.IS_EXPERIMENTAL_MM -> emitIsExperimentalMM()
                 IntrinsicType.THE_UNIT_INSTANCE -> theUnitInstanceRef.llvm
                 IntrinsicType.ATOMIC_GET_FIELD -> reportNonLoweredIntrinsic(intrinsicType)
@@ -334,6 +345,8 @@ internal class IntrinsicGenerator(
                 IntrinsicType.OBJC_GET_SELECTOR,
                 IntrinsicType.IMMUTABLE_BLOB ->
                     reportSpecialIntrinsic(intrinsicType)
+                // Kleaver: all non-exhausted branches belong to Kleaver intrinsics
+                else -> with(KleaverIntrinsics) { evalCall(this@IntrinsicGenerator, callSite, args, resultSlot) }
             }
 
     fun evaluateConstantConstructorFields(constant: IrConstantObject, args: List<ConstValue>): List<ConstValue> {
@@ -605,89 +618,6 @@ internal class IntrinsicGenerator(
         LLVMBuildStore(builder, bitsToStore, bitsWithPaddingPtr)!!.setUnaligned()
         return codegen.theUnitInstanceRef.llvm
     }
-
-    // Kleaver implementation begin
-
-    /*
-    @Suppress("UNCHECKED_CAST")
-    private fun FunctionGenerationContext.emitAssembly(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
-        assert(args.size in 3..11) { "Wrong number of arguments for asm intrinsic" }
-        val lastValueArg = callSite.valueArgumentsCount - 1
-
-        println("ARG0: ${callSite.getValueArgument(lastValueArg - 2)}")
-        println("ARG1: ${callSite.getValueArgument(lastValueArg - 1)}")
-        println("ARG2: ${callSite.getValueArgument(lastValueArg)}")
-
-        println("Evaluating assembly code block")
-        val code = callSite.getValueArgument(lastValueArg - 2)!!
-        assert(!code.type.isString()) { "Code block must be a String value" }
-
-        println("Evaluating assembly constraints block")
-        val constraints = callSite.getValueArgument(lastValueArg - 1)!!
-        assert(!constraints.type.isString()) { "Constraints must be a String value" }
-
-        println("Evaluating assembly dialect flag")
-        val isIntelSyntax = callSite.getValueArgument(lastValueArg)!!
-        assert(!isIntelSyntax.type.isBoolean()) { "Dialect flag must be a Boolean value" }
-
-        assert(callSite.typeArgumentsCount >= 1) { "Invalid number of type parameters for asm intrinsic" }
-        val returnType = callSite.getTypeArgument(0)!! // Always return type
-        val inArgTypes = ArrayList<LLVMTypeRef>(callSite.typeArgumentsCount - 1).apply {
-            for (index in 0..<size) {
-                this[index] = callSite.getTypeArgument(1 + index)!!.toLLVMType(llvm) // Always skip the return type
-            }
-        }
-
-        return asm(
-                functionType(returnType.toLLVMType(llvm), false, inArgTypes),
-                args.slice(0..args.size - 3),
-                (code as IrConst<String>).value,
-                (constraints as IrConst<String>).value,
-                (isIntelSyntax as IrConst<Boolean>).value
-        )
-    }
-     */
-
-    @Suppress("UNUSED", "UNUSED_VARIABLE")
-    private fun FunctionGenerationContext.emitMemoryCopy(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
-        assert(args.size == 4) { "Wrong number of arguments for memcpy intrinsic" }
-        val (obj, dst, size, src) = args
-        return when (size.type.sizeInBits()) {
-            32 -> memcpy(dst, src, size)
-            64 -> memcpy64(dst, src, size)
-            else -> throw IllegalArgumentException("Unsupported size type for memcpy intrinsic")
-        }
-    }
-
-    @Suppress("UNUSED", "UNUSED_VARIABLE")
-    private fun FunctionGenerationContext.emitMemoryMove(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
-        assert(args.size == 4) { "Wrong number of arguments for memmove intrinsic" }
-        val (obj, dst, size, src) = args
-        return when (size.type.sizeInBits()) {
-            32 -> memmove(dst, src, size)
-            64 -> memmove64(dst, src, size)
-            else -> throw IllegalArgumentException("Unsupported size type for memmove intrinsic")
-        }
-    }
-
-    @Suppress("UNUSED", "UNUSED_VARIABLE")
-    private fun FunctionGenerationContext.emitMemorySet(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
-        assert(args.size == 4) { "Wrong number of arguments for memset intrinsic" }
-        val (obj, address, value, size) = args
-        return when (size.type.sizeInBits()) {
-            32 -> memset(address, value, size)
-            64 -> memset64(address, value, size)
-            else -> throw IllegalArgumentException("Unsupported size type for memset intrinsic")
-        }
-    }
-
-    @Suppress("UNUSED", "UNUSED_VARIABLE")
-    private fun FunctionGenerationContext.emitAlloca(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
-        assert(args.size == 2) { "Wrong number of arguments for alloca intrinsic" }
-        return alloca(args.last())
-    }
-
-    // Kleaver implementation end
 
     private fun FunctionGenerationContext.emitObjCCreateSuperStruct(args: List<LLVMValueRef>): LLVMValueRef {
         assert(args.size == 2)

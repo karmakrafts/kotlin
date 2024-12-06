@@ -9,7 +9,6 @@ import kotlinx.cinterop.toCValues
 import kotlinx.cinterop.toKString
 import llvm.*
 import org.jetbrains.kotlin.backend.konan.*
-import org.jetbrains.kotlin.backend.konan.Context
 import org.jetbrains.kotlin.descriptors.konan.*
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.util.*
@@ -255,7 +254,7 @@ internal class InitializersGenerationState {
 
     var scopeState = ScopeInitializersGenerationState()
 
-    fun reset(newState: ScopeInitializersGenerationState) : ScopeInitializersGenerationState {
+    fun reset(newState: ScopeInitializersGenerationState): ScopeInitializersGenerationState {
         val t = scopeState
         scopeState = newState
         return t
@@ -358,7 +357,7 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
     // Kleaver implementation begin
 
     private fun importMemset(bitness: Int = 32): LlvmCallable {
-        val sizeType = if(bitness == 32) int32Type else int64Type
+        val sizeType = if (bitness == 32) int32Type else int64Type
         val functionType = functionType(voidType, false, int8PtrType, int8Type, sizeType, int1Type)
         return llvmIntrinsic(
                 if (context.config.useLlvmOpaquePointers) "llvm.memset.p0.i$bitness"
@@ -367,7 +366,7 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
     }
 
     private fun importMemcpy(bitness: Int = 32): LlvmCallable {
-        val sizeType = if(bitness == 32) int32Type else int64Type
+        val sizeType = if (bitness == 32) int32Type else int64Type
         val functionType = functionType(voidType, false, int8PtrType, int8PtrType, sizeType, int1Type)
         return llvmIntrinsic(
                 if (context.config.useLlvmOpaquePointers) "llvm.memcpy.p0.p0.i$bitness"
@@ -376,7 +375,7 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
     }
 
     private fun importMemmove(bitness: Int = 32): LlvmCallable {
-        val sizeType = if(bitness == 32) int32Type else int64Type
+        val sizeType = if (bitness == 32) int32Type else int64Type
         val functionType = functionType(voidType, false, int8PtrType, int8PtrType, sizeType, int1Type)
         return llvmIntrinsic(
                 if (context.config.useLlvmOpaquePointers) "llvm.memmove.p0.p0.i$bitness"

@@ -6,65 +6,100 @@
 package kotlin
 
 import kotlin.internal.InlineOnly
+import kotlin.native.internal.IntrinsicType
+import kotlin.native.internal.TypedIntrinsic
 
 // CHANGES IN THIS FILE SHOULD BE SYNCED WITH THE SAME CHANGES IN: UnsignedJVM.kt and UnsignedJs.kt
 // Division and remainder are based on Guava's UnsignedLongs implementation
 // Copyright 2011 The Guava Authors
 
-@PublishedApi
-internal actual fun uintRemainder(v1: UInt, v2: UInt): UInt = (v1.toLong() % v2.toLong()).toUInt()
+// Kleaver implementation begin
 
 @PublishedApi
-internal actual fun uintDivide(v1: UInt, v2: UInt): UInt = (v1.toLong() / v2.toLong()).toUInt()
+@TypedIntrinsic(IntrinsicType.KLEAVER_U2F)
+internal external fun _u2f(value: Int): Float
 
 @PublishedApi
-internal actual fun ulongDivide(v1: ULong, v2: ULong): ULong {
-    val dividend = v1.toLong()
-    val divisor = v2.toLong()
-    if (divisor < 0) { // i.e., divisor >= 2^63:
-        return if (v1 < v2) ULong(0) else ULong(1)
-    }
-
-    // Optimization - use signed division if both dividend and divisor < 2^63
-    if (dividend >= 0) {
-        return ULong(dividend / divisor)
-    }
-
-    // Otherwise, approximate the quotient, check, and correct if necessary.
-    val quotient = ((dividend ushr 1) / divisor) shl 1
-    val rem = dividend - quotient * divisor
-    return ULong(quotient + if (ULong(rem) >= ULong(divisor)) 1 else 0)
-
-}
+@TypedIntrinsic(IntrinsicType.KLEAVER_U2F)
+internal external fun _u2f(value: Long): Double
 
 @PublishedApi
-internal actual fun ulongRemainder(v1: ULong, v2: ULong): ULong {
-    val dividend = v1.toLong()
-    val divisor = v2.toLong()
-    if (divisor < 0) { // i.e., divisor >= 2^63:
-        return if (v1 < v2) {
-            v1 // dividend < divisor
-        } else {
-            v1 - v2 // dividend >= divisor
-        }
-    }
-
-    // Optimization - use signed modulus if both dividend and divisor < 2^63
-    if (dividend >= 0) {
-        return ULong(dividend % divisor)
-    }
-
-    // Otherwise, approximate the quotient, check, and correct if necessary.
-    val quotient = ((dividend ushr 1) / divisor) shl 1
-    val rem = dividend - quotient * divisor
-    return ULong(rem - if (ULong(rem) >= ULong(divisor)) divisor else 0)
-}
+@TypedIntrinsic(IntrinsicType.KLEAVER_U2F)
+internal external fun _f2u(value: Float): Int
 
 @PublishedApi
-internal actual fun uintCompare(v1: Int, v2: Int): Int = (v1 xor Int.MIN_VALUE).compareTo(v2 xor Int.MIN_VALUE)
+@TypedIntrinsic(IntrinsicType.KLEAVER_U2F)
+internal external fun _f2u(value: Double): Long
 
 @PublishedApi
-internal actual fun ulongCompare(v1: Long, v2: Long): Int = (v1 xor Long.MIN_VALUE).compareTo(v2 xor Long.MIN_VALUE)
+@TypedIntrinsic(IntrinsicType.KLEAVER_UDIV)
+internal external fun _udiv(a: Byte, b: Byte): Byte
+
+@PublishedApi
+@TypedIntrinsic(IntrinsicType.KLEAVER_UDIV)
+internal external fun _udiv(a: Short, b: Short): Short
+
+@PublishedApi
+@TypedIntrinsic(IntrinsicType.KLEAVER_UDIV)
+internal external fun _udiv(a: Int, b: Int): Int
+
+@PublishedApi
+@TypedIntrinsic(IntrinsicType.KLEAVER_UDIV)
+internal external fun _udiv(a: Long, b: Long): Long
+
+@PublishedApi
+@TypedIntrinsic(IntrinsicType.KLEAVER_UREM)
+internal external fun _urem(a: Byte, b: Byte): Byte
+
+@PublishedApi
+@TypedIntrinsic(IntrinsicType.KLEAVER_UREM)
+internal external fun _urem(a: Short, b: Short): Short
+
+@PublishedApi
+@TypedIntrinsic(IntrinsicType.KLEAVER_UREM)
+internal external fun _urem(a: Int, b: Int): Int
+
+@PublishedApi
+@TypedIntrinsic(IntrinsicType.KLEAVER_UCMP)
+internal external fun _ucmp(a: Long, b: Long): Int
+
+@PublishedApi
+@TypedIntrinsic(IntrinsicType.KLEAVER_UCMP)
+internal external fun _ucmp(a: Short, b: Short): Int
+
+@PublishedApi
+@TypedIntrinsic(IntrinsicType.KLEAVER_UCMP)
+internal external fun _ucmp(a: Int, b: Int): Int
+
+@PublishedApi
+@TypedIntrinsic(IntrinsicType.KLEAVER_UCMP)
+internal external fun _ucmp(a: Long, b: Long): Int
+
+// Kleaver implementation end
+
+// Kleaver: use the intrinsic implementation of urem
+@PublishedApi
+internal actual fun uintRemainder(v1: UInt, v2: UInt): UInt = UInt(_urem(v1.data, v2.data))
+
+// Kleaver: use the intrinsic implementation of udiv
+@PublishedApi
+internal actual fun uintDivide(v1: UInt, v2: UInt): UInt = UInt(_udiv(v1.data, v2.data))
+
+// Kleaver: use the intrinsic implementation of udiv
+@PublishedApi
+internal actual fun ulongDivide(v1: ULong, v2: ULong): ULong = ULong(_udiv(v1.data, v2.data))
+
+// Kleaver: use the intrinsic implementation of udiv
+@PublishedApi
+internal actual fun ulongRemainder(v1: ULong, v2: ULong): ULong = ULong(_urem(v1.data, v2.data))
+
+// Kleaver: use the intrinsic implementation of ucmp
+@PublishedApi
+internal actual fun uintCompare(v1: Int, v2: Int): Int = _ucmp(v1, v2)
+
+// Kleaver: use the intrinsic implementation of ucmp
+@PublishedApi
+internal actual fun ulongCompare(v1: Long, v2: Long): Int = _ucmp(v1, v2)
 
 @PublishedApi
 @InlineOnly
@@ -74,13 +109,15 @@ internal actual inline fun uintToULong(value: Int): ULong = ULong(uintToLong(val
 @InlineOnly
 internal actual inline fun uintToLong(value: Int): Long = value.toLong() and 0xFFFF_FFFF
 
+// Kleaver: use the intrinsic implementation of u2f
 @PublishedApi
 @InlineOnly
-internal actual inline fun uintToFloat(value: Int): Float = uintToDouble(value).toFloat()
+internal actual inline fun uintToFloat(value: Int): Float = _u2f(value)
 
+// Kleaver: use the intrinsic implementation of f2u
 @PublishedApi
 @InlineOnly
-internal actual inline fun floatToUInt(value: Float): UInt = doubleToUInt(value.toDouble())
+internal actual inline fun floatToUInt(value: Float): UInt = _f2u(value)
 
 @PublishedApi
 internal actual fun uintToDouble(value: Int): Double = (value and Int.MAX_VALUE).toDouble() + (value ushr 31 shl 30).toDouble() * 2
@@ -102,19 +139,13 @@ internal actual inline fun ulongToFloat(value: Long): Float = ulongToDouble(valu
 @InlineOnly
 internal actual inline fun floatToULong(value: Float): ULong = doubleToULong(value.toDouble())
 
+// Kleaver: use the intrinsic implementation of f2u
 @PublishedApi
-internal actual fun ulongToDouble(value: Long): Double = (value ushr 11).toDouble() * 2048 + (value and 2047)
+internal actual fun ulongToDouble(value: Long): Double = _u2f(value)
 
+// Kleaver: use the intrinsic implementation of f2u
 @PublishedApi
-internal actual fun doubleToULong(value: Double): ULong = when {
-    value.isNaN() -> 0u
-    value <= ULong.MIN_VALUE.toDouble() -> ULong.MIN_VALUE
-    value >= ULong.MAX_VALUE.toDouble() -> ULong.MAX_VALUE
-    value < Long.MAX_VALUE -> value.toLong().toULong()
-
-    // Real values from Long.MAX_VALUE to (Long.MAX_VALUE + 1) are not representable in Double, so don't handle them.
-    else -> (value - 9223372036854775808.0).toLong().toULong() + 9223372036854775808uL      // Long.MAX_VALUE + 1 < v < ULong.MAX_VALUE
-}
+internal actual fun doubleToULong(value: Double): ULong = _f2u(value)
 
 @InlineOnly
 internal actual inline fun uintToString(value: Int): String = uintToLong(value).toString()

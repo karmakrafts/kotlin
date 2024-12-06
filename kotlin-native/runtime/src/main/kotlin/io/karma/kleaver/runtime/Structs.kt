@@ -6,6 +6,7 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlin.native.internal.IntrinsicType
 import kotlin.native.internal.TypedIntrinsic
+import kotlin.reflect.KProperty1
 
 /**
  * @author Alexander Hinze
@@ -24,14 +25,6 @@ import kotlin.native.internal.TypedIntrinsic
 public interface Struct
 
 /**
- * A type of structure where the offset of all its member fields
- * into the backing memory of the structure is zero, effectively
- * overlaying its fields in memory.
- */
-@ExperimentalKleaverApi
-public interface Union : Struct
-
-/**
  * Obtains the address of the structure being passed in.
  * Can be used to pass Kleaver structures to cinterop code.
  */
@@ -42,7 +35,7 @@ public external fun addressOf(@ByRef ref: Struct?): COpaquePointer?
 
 /**
  * This intrinsic is lowered to the memory alignment
- * of the specified structure that was calculated at compile-time.
+ * of the specified structure.
  */
 @ExperimentalKleaverApi
 @TypedIntrinsic(IntrinsicType.KLEAVER_ALIGN_OF)
@@ -50,8 +43,16 @@ public external fun <T : Struct> alignOf(): Int
 
 /**
  * This intrinsic is lowered to the byte size
- * of the specified structure that was calculated at compile-time.
+ * of the specified structure.
  */
 @ExperimentalKleaverApi
 @TypedIntrinsic(IntrinsicType.KLEAVER_SIZE_OF)
 public external fun <T : Struct> sizeOf(): Long
+
+/**
+ * This intrinsic is lowered to the byte offset
+ * in memory of the specified structure property.
+ */
+@ExperimentalKleaverApi
+@TypedIntrinsic(IntrinsicType.KLEAVER_OFFSET_OF)
+public external fun <T : Struct> offsetOf(selector: KProperty1<T, *>): Long

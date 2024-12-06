@@ -18,9 +18,7 @@ package kotlinx.cinterop
 
 import org.jetbrains.kotlin.utils.nativeMemoryAllocator
 import sun.misc.Unsafe
-import java.lang.AutoCloseable
-import java.lang.ThreadLocal
-import java.util.Stack
+import java.util.*
 import kotlin.internal.InlineOnly
 
 // Kleaver: make this accessible as a published API
@@ -53,7 +51,7 @@ internal val dataModel: DataModel = when (System.getProperty("sun.arch.data.mode
 
 @PublishedApi
 internal class VirtualStackFrame internal constructor(
-    private val stack: VirtualStack
+        private val stack: VirtualStack
 ) : AutoCloseable {
     companion object {
         private const val SIZE: Long = 1024 * 1024 * 1024 // 1MB
@@ -106,31 +104,37 @@ internal val pointerSize: Int = dataModel.pointerSize.toInt()
 internal object nativeMemUtils {
     @InlineOnly
     inline fun getByte(mem: NativePointed) = unsafe.getByte(mem.address)
+
     @InlineOnly
     inline fun putByte(mem: NativePointed, value: Byte) = unsafe.putByte(mem.address, value)
 
     @InlineOnly
     inline fun getShort(mem: NativePointed) = unsafe.getShort(mem.address)
+
     @InlineOnly
     inline fun putShort(mem: NativePointed, value: Short) = unsafe.putShort(mem.address, value)
 
     @InlineOnly
     inline fun getInt(mem: NativePointed) = unsafe.getInt(mem.address)
+
     @InlineOnly
     inline fun putInt(mem: NativePointed, value: Int) = unsafe.putInt(mem.address, value)
 
     @InlineOnly
     inline fun getLong(mem: NativePointed) = unsafe.getLong(mem.address)
+
     @InlineOnly
     inline fun putLong(mem: NativePointed, value: Long) = unsafe.putLong(mem.address, value)
 
     @InlineOnly
     inline fun getFloat(mem: NativePointed) = unsafe.getFloat(mem.address)
+
     @InlineOnly
     inline fun putFloat(mem: NativePointed, value: Float) = unsafe.putFloat(mem.address, value)
 
     @InlineOnly
     inline fun getDouble(mem: NativePointed) = unsafe.getDouble(mem.address)
+
     @InlineOnly
     inline fun putDouble(mem: NativePointed, value: Double) = unsafe.putDouble(mem.address, value)
 
@@ -263,9 +267,9 @@ internal object nativeMemUtils {
     // moveMemory
 
     fun moveMemory(dest: NativePtr, length: Int, src: NativePtr): Unit {
-        if(src < dest) { // Backwards copy to allow overlap
+        if (src < dest) { // Backwards copy to allow overlap
             var index = length - 1
-            while(index > 0) {
+            while (index > 0) {
                 unsafe.putByte(dest + index, unsafe.getByte(src + index))
                 index++
             }
@@ -275,9 +279,9 @@ internal object nativeMemUtils {
     }
 
     fun moveMemory(dest: NativePtr, length: Long, src: NativePtr): Unit {
-        if(src < dest) { // Backwards copy to allow overlap
+        if (src < dest) { // Backwards copy to allow overlap
             var index = length - 1
-            while(index > 0) {
+            while (index > 0) {
                 unsafe.putByte(dest + index, unsafe.getByte(src + index))
                 index++
             }
@@ -306,8 +310,10 @@ internal object nativeMemUtils {
 
     @PublishedApi
     internal val byteArrayBaseOffset = unsafe.arrayBaseOffset(ByteArray::class.java).toLong()
+
     @PublishedApi
     internal val charArrayBaseOffset = unsafe.arrayBaseOffset(CharArray::class.java).toLong()
+
     @PublishedApi
     internal val floatArrayBaseOffset = unsafe.arrayBaseOffset(FloatArray::class.java).toLong()
 }
