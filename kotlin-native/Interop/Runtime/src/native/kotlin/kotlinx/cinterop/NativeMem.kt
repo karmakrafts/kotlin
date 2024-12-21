@@ -46,6 +46,8 @@ internal object nativeMemUtils {
     @TypedIntrinsic(IntrinsicType.INTEROP_READ_PRIMITIVE) external fun getVector(mem: NativePointed): Vector128
     @TypedIntrinsic(IntrinsicType.INTEROP_WRITE_PRIMITIVE) external fun putVector(mem: NativePointed, value: Vector128)
 
+    @TypedIntrinsic(IntrinsicType.INTEROP_ALLOCA) external fun alloca(size: Long, align: Int): NativePointed
+
     // TODO: optimize
     fun getByteArray(source: NativePointed, dest: ByteArray, length: Int) {
         val sourceArray = source.reinterpret<ByteVar>().ptr
