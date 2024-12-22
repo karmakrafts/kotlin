@@ -1,3 +1,4 @@
+
 /*
  * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
@@ -5,9 +6,8 @@
 @file:OptIn(ExperimentalForeignApi::class)
 package kotlinx.cinterop
 
-import kotlin.native.*
+import kotlin.internal.InlineOnly
 import kotlin.native.internal.GCUnsafeCall
-import kotlin.native.internal.Intrinsic
 import kotlin.native.internal.TypedIntrinsic
 import kotlin.native.internal.IntrinsicType
 
@@ -18,6 +18,14 @@ internal inline val pointerSize: Int
 @PublishedApi
 @TypedIntrinsic(IntrinsicType.INTEROP_GET_POINTER_SIZE)
 internal external fun getPointerSize(): Int
+
+@PublishedApi
+@TypedIntrinsic(IntrinsicType.INTEROP_ALLOCA)
+internal external fun alloca(size: Long, align: Int): NativePointed
+
+@PublishedApi
+@InlineOnly
+internal inline fun <reified T : CVariable> alloca(): T = alloca(sizeOf<T>(), alignOf<T>()).reinterpret()
 
 // TODO: do not use singleton because it leads to init-check on any access.
 @PublishedApi
@@ -45,8 +53,6 @@ internal object nativeMemUtils {
 
     @TypedIntrinsic(IntrinsicType.INTEROP_READ_PRIMITIVE) external fun getVector(mem: NativePointed): Vector128
     @TypedIntrinsic(IntrinsicType.INTEROP_WRITE_PRIMITIVE) external fun putVector(mem: NativePointed, value: Vector128)
-
-    @TypedIntrinsic(IntrinsicType.INTEROP_ALLOCA) external fun alloca(size: Long, align: Int): NativePointed
 
     // TODO: optimize
     fun getByteArray(source: NativePointed, dest: ByteArray, length: Int) {

@@ -128,13 +128,19 @@ internal data class EscapeAnalysisInput(
         get() = irModule
 }
 
-internal val EscapeAnalysisPhase = createSimpleNamedCompilerPhase<NativeGenerationState, EscapeAnalysisInput, Map<IrElement, Lifetime>>(
+internal data class EscapeAnalysisOutput(
+        val lifetimes: Map<IrElement, Lifetime> = emptyMap(),
+        val interopLifetimes: Map<IrElement, Lifetime> = emptyMap()
+)
+
+internal val EscapeAnalysisPhase = createSimpleNamedCompilerPhase<NativeGenerationState, EscapeAnalysisInput, EscapeAnalysisOutput>(
         name = "EscapeAnalysis",
-        outputIfNotEnabled = { _, _, _, _ -> emptyMap() },
+        outputIfNotEnabled = { _, _, _, _ -> EscapeAnalysisOutput() },
         preactions = getDefaultIrActions(),
         postactions = getDefaultIrActions(),
         op = { generationState, input ->
-            val lifetimes = mutableMapOf<IrElement, Lifetime>()
+            val lifetimes = HashMap<IrElement, Lifetime>()
+            val interopLifetimes = HashMap<IrElement, Lifetime>()
             val context = generationState.context
             val entryPoint = context.ir.symbols.entryPoint?.owner
             val nonDevirtualizedCallSitesUnfoldFactor =
@@ -157,8 +163,8 @@ internal val EscapeAnalysisPhase = createSimpleNamedCompilerPhase<NativeGenerati
                     DevirtualizationUnfoldFactors.DFG_DEVIRTUALIZED_CALL,
                     nonDevirtualizedCallSitesUnfoldFactor
             ).build()
-            EscapeAnalysis.computeLifetimes(context, generationState, input.moduleDFG, callGraph, lifetimes)
-            lifetimes
+            EscapeAnalysis.computeLifetimes(context, generationState, input.moduleDFG, callGraph, lifetimes, interopLifetimes)
+            EscapeAnalysisOutput(lifetimes, interopLifetimes)
         }
 )
 

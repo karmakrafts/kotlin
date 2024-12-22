@@ -346,6 +346,7 @@ internal object EscapeAnalysis {
             val callGraph: CallGraph,
             val moduleDFG: ModuleDFG,
             val lifetimes: MutableMap<IrElement, Lifetime>,
+            val interopLifetimes: MutableMap<IrElement, Lifetime>,
             val propagateExiledToHeapObjects: Boolean
     ) {
 
@@ -534,9 +535,14 @@ internal object EscapeAnalysis {
                                 ++stats.totalStackAllocsCount
                                 if (!isFilteredOut)
                                     ++stats.filteredStackAllocsCount
+
                             }
 
                             lifetimes[it] = lifetime
+                        }
+
+                        if (node is DataFlowIR.Node.Call && isInteropAllocCallee(node.callee.irFunction)) {
+                            interopLifetimes[it] = lifetime
                         }
                     }
                 }
@@ -1768,13 +1774,14 @@ internal object EscapeAnalysis {
             generationState: NativeGenerationState,
             moduleDFG: ModuleDFG,
             callGraph: CallGraph,
-            lifetimes: MutableMap<IrElement, Lifetime>
+            lifetimes: MutableMap<IrElement, Lifetime>,
+            interopLifetimes: MutableMap<IrElement, Lifetime>,
     ) {
         assert(lifetimes.isEmpty())
 
         try {
             InterproceduralAnalysis(context, generationState, callGraph,
-                    moduleDFG, lifetimes,
+                    moduleDFG, lifetimes, interopLifetimes,
                     // The GC must be careful not to scan exiled objects, that have already became dead,
                     // as they may reference other already destroyed stack-allocated objects.
                     // TODO somehow tag these object, so that GC could handle them properly.

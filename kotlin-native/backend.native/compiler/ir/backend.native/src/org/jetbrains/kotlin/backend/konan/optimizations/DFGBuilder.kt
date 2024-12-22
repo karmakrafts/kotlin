@@ -408,6 +408,7 @@ internal class FunctionDFGBuilder(private val generationState: NativeGenerationS
     private val executeImplProducerInvoke = executeImplProducerClass.simpleFunctions()
             .single { it.name == OperatorNameConventions.INVOKE }
     private val reinterpret = symbols.reinterpret
+    private val interopGetPtr = symbols.interopGetPtr
     private val saveCoroutineState = symbols.saveCoroutineState
     private val restoreCoroutineState = symbols.restoreCoroutineState
     private val objCObjectRawValueGetter = symbols.interopObjCObjectRawValueGetter
@@ -651,7 +652,7 @@ internal class FunctionDFGBuilder(private val generationState: NativeGenerationS
                                     // like a fixed-size object.
                                     DataFlowIR.Node.AllocInstance(symbolTable.mapType(createEmptyStringSymbol.owner.returnType), value)
 
-                                reinterpret -> getNode(value.extensionReceiver!!).value
+                                reinterpret, interopGetPtr -> getNode(value.extensionReceiver!!).value
 
                                 initInstanceSymbol -> error("Should've been lowered: ${value.render()}")
 
