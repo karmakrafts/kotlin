@@ -148,5 +148,10 @@ public class StackFrame private constructor() {
 @ExperimentalForeignApi
 @ForceInline
 public inline fun <reified R> stackFrame(noinline frame: StackFrame.() -> R): R {
-    return frame(StackFrame.instance)
+    try {
+        enterStackFrame()
+        return frame(StackFrame.instance)
+    } finally {
+        leaveStackFrame()
+    }
 }

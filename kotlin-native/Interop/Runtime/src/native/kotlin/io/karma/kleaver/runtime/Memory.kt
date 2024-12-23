@@ -17,10 +17,12 @@ import kotlin.native.internal.TypedIntrinsic
 @TypedIntrinsic("KLEAVER_ALLOCA")
 internal external fun alloca(size: Int): NativePointed
 
+@PublishedApi
 @ForceInline
 internal inline fun enterStackFrame() {
 }
 
+@PublishedApi
 @ForceInline
 internal inline fun leaveStackFrame() {
 }
