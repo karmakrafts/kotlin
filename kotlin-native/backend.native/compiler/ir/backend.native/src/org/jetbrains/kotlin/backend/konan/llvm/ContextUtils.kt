@@ -384,19 +384,19 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
 
     // Kleaver: implementation for memcmp intrinsic
     private fun importMemcmp(): LlvmCallable {
-        val functionType = functionType(int8PtrType, false, int8PtrType, int8PtrType, int64Type)
+        val functionType = functionType(int32Type, false, int8PtrType, int8PtrType, intptrType)
         return llvmIntrinsic("memcmp", functionType, "nounwind")
     }
 
     // Kleaver: implementation for strlen intrinsic
     private fun importStrlen(): LlvmCallable {
-        val functionType = functionType(int64Type, false, int8PtrType)
+        val functionType = functionType(intptrType, false, int8PtrType)
         return llvmIntrinsic("strlen", functionType, "nounwind")
     }
 
     // Kleaver: implementation for wcslen intrinsic
     private fun importWcslen(): LlvmCallable {
-        val functionType = functionType(int64Type, false, int8PtrType)
+        val functionType = functionType(intptrType, false, int8PtrType)
         return llvmIntrinsic("wcslen", functionType, "nounwind")
     }
 

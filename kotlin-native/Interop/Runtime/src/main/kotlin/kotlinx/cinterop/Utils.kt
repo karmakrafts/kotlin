@@ -5,8 +5,6 @@
 
 package kotlinx.cinterop
 
-import io.karma.kleaver.runtime.putCharArray
-import io.karma.kleaver.runtime.wcslen
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
@@ -590,11 +588,18 @@ public fun CPointer<ByteVar>.toKString(): String = this.toKStringFromUtf8()
 @ExperimentalForeignApi
 public fun CPointer<ShortVar>.toKStringFromUtf16(): String {
     val nativeBytes = this
-    // Kleaver: optimize using wcslen and memcpy
-    val length = wcslen - 1
-    return CharArray(length.toInt()).apply {
-        putCharArray(this, nativeBytes.pointed, length)
-    }.concatToString()
+
+    var length = 0
+    while (nativeBytes[length] != 0.toShort()) {
+        ++length
+    }
+    val chars = CharArray(length)
+    var index = 0
+    while (index < length) {
+        chars[index] = nativeBytes[index].toInt().toChar()
+        ++index
+    }
+    return chars.concatToString()
 }
 
 /**
