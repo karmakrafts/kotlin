@@ -1,5 +1,6 @@
 package org.jetbrains.kotlin.backend.konan.llvm
 
+import io.karma.kleaver.compiler.backend.evaluateKleaverIntrinsic
 import llvm.*
 import org.jetbrains.kotlin.backend.konan.*
 import org.jetbrains.kotlin.backend.konan.ir.isConstantConstructorIntrinsic
@@ -110,7 +111,15 @@ internal enum class IntrinsicType {
     COMPARE_AND_EXCHANGE_ARRAY_ELEMENT,
     COMPARE_AND_SET_ARRAY_ELEMENT,
     GET_AND_SET_ARRAY_ELEMENT,
-    GET_AND_ADD_ARRAY_ELEMENT
+    GET_AND_ADD_ARRAY_ELEMENT,
+    // Kleaver
+    KLEAVER_ALLOCA,
+    KLEAVER_MEMCPY,
+    KLEAVER_MEMMOVE,
+    KLEAVER_MEMSET,
+    KLEAVER_MEMCMP,
+    KLEAVER_STRLEN,
+    KLEAVER_WCSLEN
 }
 
 internal enum class ConstantConstructorIntrinsicType {
@@ -289,6 +298,7 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
                 IntrinsicType.OBJC_GET_SELECTOR,
                 IntrinsicType.IMMUTABLE_BLOB ->
                     reportSpecialIntrinsic(intrinsicType)
+                else -> evaluateKleaverIntrinsic(this, intrinsicType, callSite, args, resultSlot)
             }
 
     fun evaluateConstantConstructorFields(constant: IrConstantObject, args: List<ConstValue>) : List<ConstValue> {
@@ -316,7 +326,8 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
     private fun reportSpecialIntrinsic(intrinsicType: IntrinsicType): Nothing =
             context.reportCompilationError("$intrinsicType should be handled by `tryEvaluateSpecialCall`")
 
-    private fun reportNonLoweredIntrinsic(intrinsicType: IntrinsicType): Nothing =
+    // Kleaver: make accessible for extension receicer(s)
+    internal fun reportNonLoweredIntrinsic(intrinsicType: IntrinsicType): Nothing =
             context.reportCompilationError("Intrinsic of type $intrinsicType should be handled by previous lowering phase")
 
     private fun reportNonLoweredIntrinsic(intrinsicType: ConstantConstructorIntrinsicType): Nothing =

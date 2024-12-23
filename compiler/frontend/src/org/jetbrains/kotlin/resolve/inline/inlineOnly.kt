@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.resolve.inline
 
+import io.karma.kleaver.compiler.common.KleaverNames
 import org.jetbrains.kotlin.descriptors.CallableMemberDescriptor
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
@@ -33,5 +34,7 @@ fun MemberDescriptor.isInlineWithReified(): Boolean =
 private fun CallableMemberDescriptor.hasReifiedParameters(): Boolean =
     typeParameters.any { it.isReified }
 
+// Kleaver: take ForceInline annotation into account
 private fun CallableMemberDescriptor.hasInlineOnlyAnnotation(): Boolean =
     annotations.hasAnnotation(INLINE_ONLY_ANNOTATION_FQ_NAME)
+            || annotations.hasAnnotation(KleaverNames.forceInline.asSingleFqName())

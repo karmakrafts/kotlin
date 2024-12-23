@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.light.classes.symbol.annotations
 
 import com.intellij.psi.*
 import com.intellij.psi.impl.light.LightReferenceListBuilder
+import io.karma.kleaver.compiler.common.KleaverNames
 import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.annotations.KaAnnotation
@@ -64,7 +65,9 @@ internal fun KaAnnotatedSymbol.hasJvmNameAnnotation(): Boolean = JvmStandardClas
 
 internal fun KaAnnotatedSymbol.hasJvmStaticAnnotation(): Boolean = JvmStandardClassIds.Annotations.JvmStatic in annotations
 
+// Kleaver: take ForceInline annotation into account
 internal fun KaAnnotatedSymbol.hasInlineOnlyAnnotation(): Boolean = StandardClassIds.Annotations.InlineOnly in annotations
+        || KleaverNames.forceInline in annotations
 
 internal fun KaSession.suppressWildcardMode(
     symbol: KaDeclarationSymbol,

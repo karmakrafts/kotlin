@@ -355,6 +355,51 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
                 functionType)
     }
 
+    // Kleaver: implementation for memcpy intrinsic
+    private fun importMemcpy(): LlvmCallable {
+        val functionType = functionType(voidType, false, int8PtrType, int8PtrType, int64Type, int1Type)
+        return llvmIntrinsic(
+                if (context.config.useLlvmOpaquePointers) "llvm.memcpy.p0.p0.i64"
+                else "llvm.memcpy.p0i8.p0i8.i64",
+                functionType)
+    }
+
+    // Kleaver: implementation for memmove intrinsic
+    private fun importMemmove(): LlvmCallable {
+        val functionType = functionType(voidType, false, int8PtrType, int8PtrType, int64Type, int1Type)
+        return llvmIntrinsic(
+                if (context.config.useLlvmOpaquePointers) "llvm.memmove.p0.p0.i64"
+                else "llvm.memmove.p0i8.p0i8.i64",
+                functionType)
+    }
+
+    // Kleaver: implementation for memset intrinsic
+    private fun importMemset64(): LlvmCallable {
+        val functionType = functionType(voidType, false, int8PtrType, int8Type, int64Type, int1Type)
+        return llvmIntrinsic(
+                if (context.config.useLlvmOpaquePointers) "llvm.memset.p0.i64"
+                else "llvm.memset.p0i8.i64",
+                functionType)
+    }
+
+    // Kleaver: implementation for memcmp intrinsic
+    private fun importMemcmp(): LlvmCallable {
+        val functionType = functionType(int8PtrType, false, int8PtrType, int8PtrType, int64Type)
+        return llvmIntrinsic("memcmp", functionType, "nounwind")
+    }
+
+    // Kleaver: implementation for strlen intrinsic
+    private fun importStrlen(): LlvmCallable {
+        val functionType = functionType(int64Type, false, int8PtrType)
+        return llvmIntrinsic("strlen", functionType, "nounwind")
+    }
+
+    // Kleaver: implementation for wcslen intrinsic
+    private fun importWcslen(): LlvmCallable {
+        val functionType = functionType(int64Type, false, int8PtrType)
+        return llvmIntrinsic("wcslen", functionType, "nounwind")
+    }
+
     private fun llvmIntrinsic(name: String, type: LLVMTypeRef, vararg attributes: String): LlvmCallable {
         val result = LLVMAddFunction(module, name, type)!!
         attributes.forEach {
@@ -565,6 +610,14 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
     val kImmInt32One by lazy { int32(1) }
 
     val memsetFunction = importMemset()
+
+    // Kleaver: cache callables for intrinsic functions
+    val memcpyFunction = importMemcpy()
+    val memmoveFunction = importMemmove()
+    val memset64Function = importMemset64()
+    val memcmpFunction = importMemcmp()
+    val strlenFunction = importStrlen()
+    val wcslenFunction = importWcslen()
 
     val llvmTrap = llvmIntrinsic(
             "llvm.trap",

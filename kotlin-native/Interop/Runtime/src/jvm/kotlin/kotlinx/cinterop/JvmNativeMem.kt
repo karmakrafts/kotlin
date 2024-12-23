@@ -110,7 +110,9 @@ internal object nativeMemUtils {
 
     fun free(mem: NativePtr) = nativeMemoryAllocator.free(mem)
 
-    private val unsafe = with(Unsafe::class.java.getDeclaredField("theUnsafe")) {
+    // Kleaver: make accessible for other internal code
+    @PublishedApi
+    internal val unsafe = with(Unsafe::class.java.getDeclaredField("theUnsafe")) {
         isAccessible = true
         return@with this.get(null) as Unsafe
     }
