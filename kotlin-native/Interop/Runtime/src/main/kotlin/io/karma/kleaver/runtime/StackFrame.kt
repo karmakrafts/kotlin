@@ -20,11 +20,17 @@ public class StackFrame private constructor() {
     }
 
     @ForceInline
-    public inline fun allocUnaligned(size: Int): NativePointed = alloca(size)
+    public inline fun allocUnaligned(size: Int): NativePointed {
+        val address = alloca(size)
+        memset(address, 0, size.toLong())
+        return address
+    }
 
     @ForceInline
     public inline fun alloc(size: Int, alignment: Int = DEFAULT_ALIGNMENT): NativePointed {
-        return alloca(size.align(alignment))
+        val address = alloca(size.align(alignment))
+        memset(address, 0, size.toLong())
+        return address
     }
 
     @ForceInline
@@ -130,7 +136,6 @@ public class StackFrame private constructor() {
     public inline fun cstr(value: String): CArrayPointer<ByteVar> {
         val count = value.length + 1
         val data = allocArray<ByteVar>(count)
-        memset(data.pointed, 0, count.toLong())
         getByteArray(data.pointed, value.encodeToByteArray(), count.toLong())
         return data
     }
@@ -139,7 +144,6 @@ public class StackFrame private constructor() {
     public inline fun wstr(value: String): CArrayPointer<ShortVar> {
         val count = value.length + 1
         val data = allocArray<ShortVar>(count)
-        memset(data.pointed, 0, count.toLong() * Short.SIZE_BYTES)
         getCharArray(data.pointed, value.toCharArray(), count.toLong())
         return data
     }
