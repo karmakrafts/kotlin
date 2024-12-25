@@ -5,16 +5,16 @@
 
 @file:JvmMultifileClass
 @file:JvmName("AtomicArraysKt")
+@file:OptIn(ExperimentalAtomicApi::class)
 
-@file:OptIn(ExperimentalStdlibApi::class)
-
-package kotlin.concurrent
+package kotlin.concurrent.atomics
 
 /**
  * Casts the given [AtomicIntArray] instance to [java.util.concurrent.atomic.AtomicIntegerArray].
  */
 @SinceKotlin("2.1")
 @Suppress("UNCHECKED_CAST")
+@ExperimentalAtomicApi
 public fun AtomicIntArray.asJavaAtomicArray(): java.util.concurrent.atomic.AtomicIntegerArray = this as java.util.concurrent.atomic.AtomicIntegerArray
 
 /**
@@ -22,6 +22,7 @@ public fun AtomicIntArray.asJavaAtomicArray(): java.util.concurrent.atomic.Atomi
  */
 @SinceKotlin("2.1")
 @Suppress("UNCHECKED_CAST")
+@ExperimentalAtomicApi
 public fun java.util.concurrent.atomic.AtomicIntegerArray.asKotlinAtomicArray(): AtomicIntArray = this as AtomicIntArray
 
 /**
@@ -29,6 +30,7 @@ public fun java.util.concurrent.atomic.AtomicIntegerArray.asKotlinAtomicArray():
  */
 @SinceKotlin("2.1")
 @Suppress("UNCHECKED_CAST")
+@ExperimentalAtomicApi
 public fun AtomicLongArray.asJavaAtomicArray(): java.util.concurrent.atomic.AtomicLongArray = this as java.util.concurrent.atomic.AtomicLongArray
 
 /**
@@ -36,6 +38,7 @@ public fun AtomicLongArray.asJavaAtomicArray(): java.util.concurrent.atomic.Atom
  */
 @SinceKotlin("2.1")
 @Suppress("UNCHECKED_CAST")
+@ExperimentalAtomicApi
 public fun java.util.concurrent.atomic.AtomicLongArray.asKotlinAtomicArray(): AtomicLongArray = this as AtomicLongArray
 
 /**
@@ -43,6 +46,7 @@ public fun java.util.concurrent.atomic.AtomicLongArray.asKotlinAtomicArray(): At
  */
 @SinceKotlin("2.1")
 @Suppress("UNCHECKED_CAST")
+@ExperimentalAtomicApi
 public fun <T> AtomicArray<T>.asJavaAtomicArray(): java.util.concurrent.atomic.AtomicReferenceArray<T> = this as java.util.concurrent.atomic.AtomicReferenceArray<T>
 
 /**
@@ -50,4 +54,5 @@ public fun <T> AtomicArray<T>.asJavaAtomicArray(): java.util.concurrent.atomic.A
  */
 @SinceKotlin("2.1")
 @Suppress("UNCHECKED_CAST")
+@ExperimentalAtomicApi
 public fun <T> java.util.concurrent.atomic.AtomicReferenceArray<T>.asKotlinAtomicArray(): AtomicArray<T> = this as AtomicArray<T>

@@ -393,7 +393,7 @@ class BodyGenerator(
         else
             wasmFileCodegenContext.jsExceptionTagIndex
 
-        body.buildCatch(tag)
+        body.buildCatch(tag, SourceLocation.NextLocation)
 
         if (tag === wasmFileCodegenContext.jsExceptionTagIndex) {
             lastCatchBlock.wrapJsThrownValueIntoJsException()
@@ -635,7 +635,9 @@ class BodyGenerator(
     }
 
     private fun generateCall(call: IrFunctionAccessExpression) {
-        val location = call.getSourceLocation()
+        val location = if (call.origin === IrStatementOrigin.DEFAULT_DISPATCH_CALL)
+            SourceLocation.NoLocation("Default dispatch")
+        else call.getSourceLocation()
 
         if (call.symbol == unitGetInstance.symbol) {
             body.buildGetUnit()
@@ -1141,7 +1143,7 @@ class BodyGenerator(
     }
 
     override fun visitWhen(expression: IrWhen) {
-        if (tryGenerateOptimisedWhen(expression, backendContext.wasmSymbols, functionContext, wasmModuleTypeTransformer)) {
+        if (!backendContext.isDebugFriendlyCompilation && tryGenerateOptimisedWhen(expression, backendContext.wasmSymbols, functionContext, wasmModuleTypeTransformer)) {
             return
         }
 

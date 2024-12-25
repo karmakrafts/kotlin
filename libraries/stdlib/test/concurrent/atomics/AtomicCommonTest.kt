@@ -2,14 +2,11 @@
  * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
-@file:OptIn(ExperimentalStdlibApi::class)
+@file:OptIn(ExperimentalAtomicApi::class)
+package test.concurrent.atomics
 
-package test.concurrent
-
-import kotlin.concurrent.*
+import kotlin.concurrent.atomics.*
 import kotlin.test.*
-
-data class Data(val value: Int)
 
 class AtomicIntTest {
     @Test
@@ -203,6 +200,8 @@ class AtomicBooleanTest {
 }
 
 class AtomicReferenceTest {
+    private data class Data(val value: Int)
+
     @Test
     fun ctor() {
         val x = AtomicReference(Data(1))
