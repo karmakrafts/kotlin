@@ -28,8 +28,9 @@ public class StackFrame private constructor() {
 
     @ForceInline
     public inline fun alloc(size: Int, alignment: Int = DEFAULT_ALIGNMENT): NativePointed {
-        val address = alloca(size.align(alignment))
-        memset(address, 0, size.toLong())
+        val alignedSize = size.align(alignment)
+        val address = alloca(alignedSize)
+        memset(address, 0, alignedSize.toLong())
         return address
     }
 
