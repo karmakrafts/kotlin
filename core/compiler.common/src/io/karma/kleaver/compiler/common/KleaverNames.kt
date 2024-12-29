@@ -11,4 +11,7 @@ import org.jetbrains.kotlin.name.Name
 object KleaverNames {
     private val compilerPackage: FqName = FqName("io.karma.kleaver.compiler")
     val forceInline: ClassId = ClassId(compilerPackage, Name.identifier("ForceInline"))
+
+    private val runtimePackage: FqName = FqName("io.karma.kleaver.runtime")
+    val struct: ClassId = ClassId(runtimePackage, Name.identifier("Struct"))
 }

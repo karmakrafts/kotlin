@@ -5,6 +5,8 @@
 
 package org.jetbrains.kotlin.backend.konan.driver.phases
 
+import io.karma.kleaver.compiler.backend.StructPhase
+import io.karma.kleaver.compiler.backend.StructPhaseInput
 import org.jetbrains.kotlin.backend.common.phaser.PhaseEngine
 import org.jetbrains.kotlin.backend.konan.*
 import org.jetbrains.kotlin.backend.konan.driver.PhaseContext
@@ -479,6 +481,10 @@ private fun PhaseEngine<NativeGenerationState>.runCodegen(module: IrModuleFragme
         runPhase(InlineClassPropertyAccessorsPhase, it, disable = !optimize)
     }
     val moduleDFG = runPhase(BuildDFGPhase, module, disable = !optimize)
+
+    // Kleaver: analyze/transform all structures using DFG data
+    runPhase(StructPhase, StructPhaseInput(module, moduleDFG))
+
     runPhase(RemoveRedundantCallsToStaticInitializersPhase, RedundantCallsInput(moduleDFG, module), disable = !enablePreCodegenInliner)
     runPhase(PreCodegenInlinerPhase, PreCodegenInlinerInput(module, moduleDFG), disable = !enablePreCodegenInliner)
     runPhase(DevirtualizationAnalysisPhase, DevirtualizationAnalysisInput(module, moduleDFG), disable = !optimize)

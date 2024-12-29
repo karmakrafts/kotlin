@@ -15,6 +15,11 @@ import kotlin.reflect.KProperty1
  * @since 28/12/2024
  */
 @ExperimentalForeignApi
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.BINARY)
+public annotation class Destructor
+
+@ExperimentalForeignApi
 public interface Struct
 
 @ExperimentalForeignApi

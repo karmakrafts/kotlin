@@ -119,7 +119,18 @@ internal enum class IntrinsicType {
     KLEAVER_MEMSET,
     KLEAVER_MEMCMP,
     KLEAVER_STRLEN,
-    KLEAVER_WCSLEN
+    KLEAVER_WCSLEN,
+    KLEAVER_SIZE_OF,
+    KLEAVER_ALIGN_OF,
+    KLEAVER_OFFSET_OF,
+    KLEAVER_ADDRESS_OF,
+    KLEAVER_SADD_SAT,
+    KLEAVER_SSUB_SAT,
+    KLEAVER_SSHL_SAT,
+    KLEAVER_UADD_SAT,
+    KLEAVER_USUB_SAT,
+    KLEAVER_USHL_SAT,
+    KLEAVER_FMA
 }
 
 internal enum class ConstantConstructorIntrinsicType {
