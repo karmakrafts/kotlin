@@ -572,40 +572,6 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
 
     val memsetFunction = importMemset()
 
-    // Kleaver: cache callables for intrinsic functions
-    val memcpyFunction      by importMemcpy()
-    val memmoveFunction     by importMemmove()
-    val memset64Function    by importMemset64()
-    val memcmpFunction      by importMemcmp()
-    val strlenFunction      by importStrlen()
-    val wcslenFunction      by importWcslen()
-    val fmuladd32Function   by importFmuladd(32)
-    val fmuladd64Function   by importFmuladd(64)
-    val saddSat8Function    by importSAddSat(8)
-    val saddSat16Function   by importSAddSat(16)
-    val saddSat32Function   by importSAddSat(32)
-    val saddSat64Function   by importSAddSat(64)
-    val ssubSat8Function    by importSSubSat(8)
-    val ssubSat16Function   by importSSubSat(16)
-    val ssubSat32Function   by importSSubSat(32)
-    val ssubSat64Function   by importSSubSat(64)
-    val sshlSat8Function    by importSShlSat(8)
-    val sshlSat16Function   by importSShlSat(16)
-    val sshlSat32Function   by importSShlSat(32)
-    val sshlSat64Function   by importSShlSat(64)
-    val uaddSat8Function    by importUAddSat(8)
-    val uaddSat16Function   by importUAddSat(16)
-    val uaddSat32Function   by importUAddSat(32)
-    val uaddSat64Function   by importUAddSat(64)
-    val usubSat8Function    by importUSubSat(8)
-    val usubSat16Function   by importUSubSat(16)
-    val usubSat32Function   by importUSubSat(32)
-    val usubSat64Function   by importUSubSat(64)
-    val ushlSat8Function    by importUShlSat(8)
-    val ushlSat16Function   by importUShlSat(16)
-    val ushlSat32Function   by importUShlSat(32)
-    val ushlSat64Function   by importUShlSat(64)
-
     val llvmTrap = llvmIntrinsic(
             "llvm.trap",
             functionType(voidType, false),

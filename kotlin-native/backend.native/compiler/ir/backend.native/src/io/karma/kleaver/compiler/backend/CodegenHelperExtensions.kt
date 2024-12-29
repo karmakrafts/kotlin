@@ -7,6 +7,7 @@ package io.karma.kleaver.compiler.backend
 
 import llvm.LLVMIntTypeInContext
 import llvm.LLVMTypeRef
+import llvm.LLVMVectorType
 import org.jetbrains.kotlin.backend.konan.llvm.CodegenLlvmHelpers
 import org.jetbrains.kotlin.backend.konan.llvm.LlvmCallable
 import org.jetbrains.kotlin.backend.konan.llvm.functionType
@@ -16,57 +17,65 @@ import org.jetbrains.kotlin.backend.konan.llvm.functionType
  * @since 29/12/2024
  */
 
-@JvmInline
-internal value class LazyLlvmFunction(
-        private val delegate: Lazy<LlvmCallable>
-) : Lazy<LlvmCallable> by delegate
-
-internal fun CodegenLlvmHelpers.lazyIntrinsic(
-        name: String,
-        type: LLVMTypeRef,
-        vararg attributes: String
-): LazyLlvmFunction {
-    return LazyLlvmFunction(lazy {
-        llvmIntrinsic(name, type, *attributes)
-    })
+internal fun vectorType(type: LLVMTypeRef, size: Int): LLVMTypeRef {
+    return requireNotNull(LLVMVectorType(type, size)) { "Could not create vector type" }
 }
 
-internal fun CodegenLlvmHelpers.importMemcpy(): LazyLlvmFunction {
-    return lazyIntrinsic(
+internal fun matrixType(type: LLVMTypeRef, width: Int, height: Int): LLVMTypeRef {
+    return vectorType(type, width * height)
+}
+
+internal fun CodegenLlvmHelpers.importMatrixTranspose(matrixType: MatrixType): LlvmCallable {
+    val llvmMatrixType = matrixType.toLLVMType(this)
+    return llvmIntrinsic(
+            "llvm.matrix.transpose",
+            functionType(llvmMatrixType, false, llvmMatrixType, int32Type, int32Type))
+}
+
+internal fun CodegenLlvmHelpers.importMatrixMultiply(matrixType: MatrixType): LlvmCallable {
+    val llvmMatrixType = matrixType.toLLVMType(this)
+    return llvmIntrinsic(
+            "llvm.matrix.multiply",
+            functionType(llvmMatrixType, false, llvmMatrixType, llvmMatrixType, int32Type, int32Type, int32Type)
+    )
+}
+
+internal fun CodegenLlvmHelpers.importMemcpy(): LlvmCallable {
+    return llvmIntrinsic(
             if (context.config.useLlvmOpaquePointers) "llvm.memcpy.p0.p0.i64"
             else "llvm.memcpy.p0i8.p0i8.i64",
             functionType(voidType, false, int8PtrType, int8PtrType, int64Type, int1Type))
 }
 
-internal fun CodegenLlvmHelpers.importMemmove(): LazyLlvmFunction {
-    return lazyIntrinsic(
+internal fun CodegenLlvmHelpers.importMemmove(): LlvmCallable {
+    return llvmIntrinsic(
             if (context.config.useLlvmOpaquePointers) "llvm.memmove.p0.p0.i64"
             else "llvm.memmove.p0i8.p0i8.i64",
             functionType(voidType, false, int8PtrType, int8PtrType, int64Type, int1Type))
 }
 
-internal fun CodegenLlvmHelpers.importMemset64(): LazyLlvmFunction {
-    return lazyIntrinsic(
+internal fun CodegenLlvmHelpers.importMemset64(): LlvmCallable {
+    return llvmIntrinsic(
             if (context.config.useLlvmOpaquePointers) "llvm.memset.p0.i64"
             else "llvm.memset.p0i8.i64",
             functionType(voidType, false, int8PtrType, int8Type, int64Type, int1Type))
 }
 
-internal fun CodegenLlvmHelpers.importMemcmp(): LazyLlvmFunction {
-    return lazyIntrinsic("memcmp", functionType(int32Type, false, int8PtrType, int8PtrType, intptrType), "nounwind")
+internal fun CodegenLlvmHelpers.importMemcmp(): LlvmCallable {
+    return llvmIntrinsic("memcmp", functionType(int32Type, false, int8PtrType, int8PtrType, intptrType), "nounwind")
 }
 
-internal fun CodegenLlvmHelpers.importStrlen(): LazyLlvmFunction {
-    return lazyIntrinsic("strlen", functionType(intptrType, false, int8PtrType), "nounwind")
+internal fun CodegenLlvmHelpers.importStrlen(): LlvmCallable {
+    return llvmIntrinsic("strlen", functionType(intptrType, false, int8PtrType), "nounwind")
 }
 
-internal fun CodegenLlvmHelpers.importWcslen(): LazyLlvmFunction {
-    return lazyIntrinsic("wcslen", functionType(intptrType, false, int8PtrType), "nounwind")
+internal fun CodegenLlvmHelpers.importWcslen(): LlvmCallable {
+    return llvmIntrinsic("wcslen", functionType(intptrType, false, int8PtrType), "nounwind")
 }
 
-internal fun CodegenLlvmHelpers.importFmuladd(bitness: Int): LazyLlvmFunction {
+internal fun CodegenLlvmHelpers.importFmuladd(bitness: Int): LlvmCallable {
     val type = if (bitness == 64) doubleType else floatType
-    return lazyIntrinsic("llvm.fmuladd.f$bitness", functionType(type, false, type, type, type))
+    return llvmIntrinsic("llvm.fmuladd.f$bitness", functionType(type, false, type, type, type))
 }
 
 private fun CodegenLlvmHelpers.intTypeFromWidth(width: Int): LLVMTypeRef {
@@ -79,32 +88,32 @@ private fun CodegenLlvmHelpers.intTypeFromWidth(width: Int): LLVMTypeRef {
     }
 }
 
-internal fun CodegenLlvmHelpers.importSAddSat(bitness: Int): LazyLlvmFunction {
+internal fun CodegenLlvmHelpers.importSAddSat(bitness: Int): LlvmCallable {
     val type = intTypeFromWidth(bitness)
-    return lazyIntrinsic("llvm.sadd.sat.i$bitness", functionType(type, false, type, type))
+    return llvmIntrinsic("llvm.sadd.sat.i$bitness", functionType(type, false, type, type))
 }
 
-internal fun CodegenLlvmHelpers.importSSubSat(bitness: Int): LazyLlvmFunction {
+internal fun CodegenLlvmHelpers.importSSubSat(bitness: Int): LlvmCallable {
     val type = intTypeFromWidth(bitness)
-    return lazyIntrinsic("llvm.ssub.sat.i$bitness", functionType(type, false, type, type))
+    return llvmIntrinsic("llvm.ssub.sat.i$bitness", functionType(type, false, type, type))
 }
 
-internal fun CodegenLlvmHelpers.importSShlSat(bitness: Int): LazyLlvmFunction {
+internal fun CodegenLlvmHelpers.importSShlSat(bitness: Int): LlvmCallable {
     val type = intTypeFromWidth(bitness)
-    return lazyIntrinsic("llvm.sshl.sat.i$bitness", functionType(type, false, type, type))
+    return llvmIntrinsic("llvm.sshl.sat.i$bitness", functionType(type, false, type, type))
 }
 
-internal fun CodegenLlvmHelpers.importUAddSat(bitness: Int): LazyLlvmFunction {
+internal fun CodegenLlvmHelpers.importUAddSat(bitness: Int): LlvmCallable {
     val type = intTypeFromWidth(bitness)
-    return lazyIntrinsic("llvm.uadd.sat.i$bitness", functionType(type, false, type, type))
+    return llvmIntrinsic("llvm.uadd.sat.i$bitness", functionType(type, false, type, type))
 }
 
-internal fun CodegenLlvmHelpers.importUSubSat(bitness: Int): LazyLlvmFunction {
+internal fun CodegenLlvmHelpers.importUSubSat(bitness: Int): LlvmCallable {
     val type = intTypeFromWidth(bitness)
-    return lazyIntrinsic("llvm.usub.sat.i$bitness", functionType(type, false, type, type))
+    return llvmIntrinsic("llvm.usub.sat.i$bitness", functionType(type, false, type, type))
 }
 
-internal fun CodegenLlvmHelpers.importUShlSat(bitness: Int): LazyLlvmFunction {
+internal fun CodegenLlvmHelpers.importUShlSat(bitness: Int): LlvmCallable {
     val type = intTypeFromWidth(bitness)
-    return lazyIntrinsic("llvm.ushl.sat.i$bitness", functionType(type, false, type, type))
+    return llvmIntrinsic("llvm.ushl.sat.i$bitness", functionType(type, false, type, type))
 }

@@ -7,7 +7,9 @@ import org.jetbrains.kotlin.backend.konan.llvm.FunctionGenerationContext
 import org.jetbrains.kotlin.backend.konan.llvm.IntrinsicGenerator
 import org.jetbrains.kotlin.backend.konan.llvm.IntrinsicType
 import org.jetbrains.kotlin.backend.konan.llvm.toLLVMType
+import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.expressions.IrCall
+import kotlin.math.min
 
 /**
  * @author Alexander Hinze
@@ -47,92 +49,68 @@ internal fun IntrinsicGenerator.evaluateKleaverIntrinsic(
 }
 
 private fun FunctionGenerationContext.emitMatrixTranspose(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
-    TODO("")
+    require(args.size == 3) { "Invalid number of arguments for transposeMatrix intrinsic" }
+    val function = callSite.symbol.owner
+    val matrixType = function.getCommonMatrixType()
+    return call(llvm.importMatrixTranspose(matrixType), args.drop(1)
+            + listOf(llvm.int32(matrixType.width), llvm.int32(matrixType.height)))
 }
 
 private fun FunctionGenerationContext.emitMatrixMultiply(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
-    TODO("")
+    require(args.size == 4) { "Invalid number of arguments for multiplyMatrix intrinsic" }
+    val function = callSite.symbol.owner
+    val params = function.parameters
+            .filter { it.kind == IrParameterKind.Regular || it.kind == IrParameterKind.Context }
+            .drop(1)
+    val matrixTypeA = params[0].getMatrixType()
+    val matrixTypeB = params[1].getMatrixType()
+    val width = min(matrixTypeA.width, matrixTypeB.width)
+    val height = min(matrixTypeA.height, matrixTypeB.height)
+    val commonDim = matrixTypeA.getCommonDimension(matrixTypeB)
+    return call(llvm.importMatrixMultiply(matrixTypeA), args.drop(1)
+            + listOf(llvm.int32(width), llvm.int32(height), llvm.int32(commonDim)))
 }
 
 private fun FunctionGenerationContext.emitFma(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 4) { "Invalid number of arguments for fma intrinsic" }
-    return call(
-            if (callSite.symbol.owner.returnType == context.irBuiltIns.doubleType) llvm.fmuladd64Function
-            else llvm.fmuladd32Function,
-            args.drop(1)
-    )
+    val type = callSite.symbol.owner.returnType.toLLVMType(llvm)
+    return call(llvm.importFmuladd(LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()), args.drop(1))
 }
 
 private fun FunctionGenerationContext.emitSAddSat(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 3) { "Invalid number of arguments for sAddSat intrinsic" }
     val type = callSite.symbol.owner.returnType.toLLVMType(llvm)
-    return call(when (LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()) {
-        8 -> llvm.saddSat8Function
-        16 -> llvm.saddSat16Function
-        32 -> llvm.saddSat32Function
-        64 -> llvm.saddSat64Function
-        else -> error("Unsupported bit width for sAddSat intrinsic")
-    }, args.drop(1))
+    return call(llvm.importSAddSat(LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()), args.drop(1))
 }
 
 private fun FunctionGenerationContext.emitSSubSat(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 3) { "Invalid number of arguments for sSubSat intrinsic" }
     val type = callSite.symbol.owner.returnType.toLLVMType(llvm)
-    return call(when (LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()) {
-        8 -> llvm.ssubSat8Function
-        16 -> llvm.ssubSat16Function
-        32 -> llvm.ssubSat32Function
-        64 -> llvm.ssubSat64Function
-        else -> error("Unsupported bit width for sSubSat intrinsic")
-    }, args.drop(1))
+    return call(llvm.importSSubSat(LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()), args.drop(1))
 }
 
 private fun FunctionGenerationContext.emitSShlSat(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 3) { "Invalid number of arguments for sShlSat intrinsic" }
     val type = callSite.symbol.owner.returnType.toLLVMType(llvm)
-    return call(when (LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()) {
-        8 -> llvm.sshlSat8Function
-        16 -> llvm.sshlSat16Function
-        32 -> llvm.sshlSat32Function
-        64 -> llvm.sshlSat64Function
-        else -> error("Unsupported bit width for sShlSat intrinsic")
-    }, args.drop(1))
+    return call(llvm.importSShlSat(LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()), args.drop(1))
 }
 
 private fun FunctionGenerationContext.emitUAddSat(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 3) { "Invalid number of arguments for uAddSat intrinsic" }
     val type = callSite.symbol.owner.returnType.toLLVMType(llvm)
-    return call(when (LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()) {
-        8 -> llvm.uaddSat8Function
-        16 -> llvm.uaddSat16Function
-        32 -> llvm.uaddSat32Function
-        64 -> llvm.uaddSat64Function
-        else -> error("Unsupported bit width for uAddSat intrinsic")
-    }, args.drop(1))
+    return call(llvm.importUAddSat(LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()), args.drop(1))
 }
 
 private fun FunctionGenerationContext.emitUSubSat(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 3) { "Invalid number of arguments for uSubSat intrinsic" }
     val type = callSite.symbol.owner.returnType.toLLVMType(llvm)
-    return call(when (LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()) {
-        8 -> llvm.usubSat8Function
-        16 -> llvm.usubSat16Function
-        32 -> llvm.usubSat32Function
-        64 -> llvm.usubSat64Function
-        else -> error("Unsupported bit width for uSubSat intrinsic")
-    }, args.drop(1))
+    return call(llvm.importUSubSat(LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()), args.drop(1))
 }
 
 private fun FunctionGenerationContext.emitUShlSat(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 3) { "Invalid number of arguments for uShlSat intrinsic" }
     val type = callSite.symbol.owner.returnType.toLLVMType(llvm)
-    return call(when (LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()) {
-        8 -> llvm.ushlSat8Function
-        16 -> llvm.ushlSat16Function
-        32 -> llvm.ushlSat32Function
-        64 -> llvm.ushlSat64Function
-        else -> error("Unsupported bit width for uShlSat intrinsic")
-    }, args.drop(1))
+    return call(llvm.importUShlSat(LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()), args.drop(1))
 }
 
 private fun FunctionGenerationContext.emitSizeOf(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
@@ -162,30 +140,30 @@ private fun FunctionGenerationContext.emitAlloca(args: List<LLVMValueRef>): LLVM
 
 private fun FunctionGenerationContext.emitMemcpy(args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 3) { "Invalid number of arguments for memcpy intrinsic" }
-    return call(llvm.memcpyFunction, args + llvm.int1(false))
+    return call(llvm.importMemcpy(), args + llvm.int1(false))
 }
 
 private fun FunctionGenerationContext.emitMemmove(args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 3) { "Invalid number of arguments for memmove intrinsic" }
-    return call(llvm.memmoveFunction, args + llvm.int1(false))
+    return call(llvm.importMemmove(), args + llvm.int1(false))
 }
 
 private fun FunctionGenerationContext.emitMemset(args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 3) { "Invalid number of arguments for memset intrinsic" }
-    return call(llvm.memset64Function, args + llvm.int1(false))
+    return call(llvm.importMemset64(), args + llvm.int1(false))
 }
 
 private fun FunctionGenerationContext.emitMemcmp(args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 3) { "Invalid number of arguments for memcmp intrinsic" }
-    return call(llvm.memcmpFunction, args)
+    return call(llvm.importMemcmp(), args)
 }
 
 private fun FunctionGenerationContext.emitStrlen(args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 1) { "Invalid number of arguments for strlen intrinsic" }
-    return call(llvm.strlenFunction, args)
+    return call(llvm.importStrlen(), args)
 }
 
 private fun FunctionGenerationContext.emitWcslen(args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 1) { "Invalid number of arguments for wcslen intrinsic" }
-    return call(llvm.wcslenFunction, args)
+    return call(llvm.importWcslen(), args)
 }

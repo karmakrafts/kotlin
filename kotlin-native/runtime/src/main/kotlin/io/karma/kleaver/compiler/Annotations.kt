@@ -17,7 +17,7 @@ import kotlin.reflect.KClass
 @Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.VALUE_PARAMETER)
 public annotation class MatrixType(
-        val elementType: KClass<*>,
+        val type: KClass<*>,
         val width: Int,
         val height: Int
 )
