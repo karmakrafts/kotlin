@@ -5,6 +5,11 @@
 
 package org.jetbrains.kotlin.backend.konan.llvm
 
+import io.karma.kleaver.compiler.backend.*
+import io.karma.kleaver.compiler.backend.importMemcmp
+import io.karma.kleaver.compiler.backend.importMemcpy
+import io.karma.kleaver.compiler.backend.importMemmove
+import io.karma.kleaver.compiler.backend.importMemset64
 import kotlinx.cinterop.toCValues
 import kotlinx.cinterop.toKString
 import llvm.*
@@ -328,7 +333,8 @@ internal open class BasicLlvmHelpers(bitcodeContext: BitcodePostProcessingContex
 
 @Suppress("FunctionName", "PropertyName", "PrivatePropertyName")
 internal class CodegenLlvmHelpers(private val generationState: NativeGenerationState, module: LLVMModuleRef) : BasicLlvmHelpers(generationState, module), RuntimeAware {
-    private val context = generationState.context
+    // Kleaver: change visibility to internal
+    internal val context = generationState.context
 
     private fun importFunction(name: String, otherModule: LLVMModuleRef, returnsObjectType: Boolean): LlvmCallable {
         if (LLVMGetNamedFunction(module, name) != null) {
@@ -354,85 +360,8 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
                 functionType(voidType, false, int8PtrType, int8Type, int32Type, int1Type))
     }
 
-    private fun importMemcpy(): LlvmCallable {
-        return llvmIntrinsic(
-                if (context.config.useLlvmOpaquePointers) "llvm.memcpy.p0.p0.i64"
-                else "llvm.memcpy.p0i8.p0i8.i64",
-                functionType(voidType, false, int8PtrType, int8PtrType, int64Type, int1Type))
-    }
-
-    private fun importMemmove(): LlvmCallable {
-        return llvmIntrinsic(
-                if (context.config.useLlvmOpaquePointers) "llvm.memmove.p0.p0.i64"
-                else "llvm.memmove.p0i8.p0i8.i64",
-                functionType(voidType, false, int8PtrType, int8PtrType, int64Type, int1Type))
-    }
-
-    private fun importMemset64(): LlvmCallable {
-        return llvmIntrinsic(
-                if (context.config.useLlvmOpaquePointers) "llvm.memset.p0.i64"
-                else "llvm.memset.p0i8.i64",
-                functionType(voidType, false, int8PtrType, int8Type, int64Type, int1Type))
-    }
-
-    private fun importMemcmp(): LlvmCallable {
-        return llvmIntrinsic("memcmp", functionType(int32Type, false, int8PtrType, int8PtrType, intptrType), "nounwind")
-    }
-
-    private fun importStrlen(): LlvmCallable {
-        return llvmIntrinsic("strlen", functionType(intptrType, false, int8PtrType), "nounwind")
-    }
-
-    private fun importWcslen(): LlvmCallable {
-        return llvmIntrinsic("wcslen", functionType(intptrType, false, int8PtrType), "nounwind")
-    }
-
-    private fun importFmuladd(bitness: Int): LlvmCallable {
-        val type = if (bitness == 64) doubleType else floatType
-        return llvmIntrinsic("llvm.fmuladd.f$bitness", functionType(type, false, type, type, type))
-    }
-
-    private fun intTypeFromWidth(width: Int): LLVMTypeRef {
-        return when (width) {
-            8 -> int8Type
-            16 -> int16Type
-            32 -> int32Type
-            64 -> int64Type
-            else -> requireNotNull(LLVMIntTypeInContext(llvmContext, width)) { "Could not create variable width integer type" }
-        }
-    }
-
-    private fun importSAddSat(bitness: Int): LlvmCallable {
-        val type = intTypeFromWidth(bitness)
-        return llvmIntrinsic("llvm.sadd.sat.i$bitness", functionType(type, false, type, type))
-    }
-
-    private fun importSSubSat(bitness: Int): LlvmCallable {
-        val type = intTypeFromWidth(bitness)
-        return llvmIntrinsic("llvm.ssub.sat.i$bitness", functionType(type, false, type, type))
-    }
-
-    private fun importSShlSat(bitness: Int): LlvmCallable {
-        val type = intTypeFromWidth(bitness)
-        return llvmIntrinsic("llvm.sshl.sat.i$bitness", functionType(type, false, type, type))
-    }
-
-    private fun importUAddSat(bitness: Int): LlvmCallable {
-        val type = intTypeFromWidth(bitness)
-        return llvmIntrinsic("llvm.uadd.sat.i$bitness", functionType(type, false, type, type))
-    }
-
-    private fun importUSubSat(bitness: Int): LlvmCallable {
-        val type = intTypeFromWidth(bitness)
-        return llvmIntrinsic("llvm.usub.sat.i$bitness", functionType(type, false, type, type))
-    }
-
-    private fun importUShlSat(bitness: Int): LlvmCallable {
-        val type = intTypeFromWidth(bitness)
-        return llvmIntrinsic("llvm.ushl.sat.i$bitness", functionType(type, false, type, type))
-    }
-
-    private fun llvmIntrinsic(name: String, type: LLVMTypeRef, vararg attributes: String): LlvmCallable {
+    // Kleaver: change visibility to internal
+    internal fun llvmIntrinsic(name: String, type: LLVMTypeRef, vararg attributes: String): LlvmCallable {
         val result = LLVMAddFunction(module, name, type)!!
         attributes.forEach {
             val kindId = getLlvmAttributeKindId(it)
@@ -644,38 +573,38 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
     val memsetFunction = importMemset()
 
     // Kleaver: cache callables for intrinsic functions
-    val memcpyFunction      = importMemcpy()
-    val memmoveFunction     = importMemmove()
-    val memset64Function    = importMemset64()
-    val memcmpFunction      = importMemcmp()
-    val strlenFunction      = importStrlen()
-    val wcslenFunction      = importWcslen()
-    val fmuladd32Function   = importFmuladd(32)
-    val fmuladd64Function   = importFmuladd(64)
-    val saddSat8Function    = importSAddSat(8)
-    val saddSat16Function   = importSAddSat(16)
-    val saddSat32Function   = importSAddSat(32)
-    val saddSat64Function   = importSAddSat(64)
-    val ssubSat8Function    = importSSubSat(8)
-    val ssubSat16Function   = importSSubSat(16)
-    val ssubSat32Function   = importSSubSat(32)
-    val ssubSat64Function   = importSSubSat(64)
-    val sshlSat8Function    = importSShlSat(8)
-    val sshlSat16Function   = importSShlSat(16)
-    val sshlSat32Function   = importSShlSat(32)
-    val sshlSat64Function   = importSShlSat(64)
-    val uaddSat8Function    = importUAddSat(8)
-    val uaddSat16Function   = importUAddSat(16)
-    val uaddSat32Function   = importUAddSat(32)
-    val uaddSat64Function   = importUAddSat(64)
-    val usubSat8Function    = importUSubSat(8)
-    val usubSat16Function   = importUSubSat(16)
-    val usubSat32Function   = importUSubSat(32)
-    val usubSat64Function   = importUSubSat(64)
-    val ushlSat8Function    = importUShlSat(8)
-    val ushlSat16Function   = importUShlSat(16)
-    val ushlSat32Function   = importUShlSat(32)
-    val ushlSat64Function   = importUShlSat(64)
+    val memcpyFunction      by importMemcpy()
+    val memmoveFunction     by importMemmove()
+    val memset64Function    by importMemset64()
+    val memcmpFunction      by importMemcmp()
+    val strlenFunction      by importStrlen()
+    val wcslenFunction      by importWcslen()
+    val fmuladd32Function   by importFmuladd(32)
+    val fmuladd64Function   by importFmuladd(64)
+    val saddSat8Function    by importSAddSat(8)
+    val saddSat16Function   by importSAddSat(16)
+    val saddSat32Function   by importSAddSat(32)
+    val saddSat64Function   by importSAddSat(64)
+    val ssubSat8Function    by importSSubSat(8)
+    val ssubSat16Function   by importSSubSat(16)
+    val ssubSat32Function   by importSSubSat(32)
+    val ssubSat64Function   by importSSubSat(64)
+    val sshlSat8Function    by importSShlSat(8)
+    val sshlSat16Function   by importSShlSat(16)
+    val sshlSat32Function   by importSShlSat(32)
+    val sshlSat64Function   by importSShlSat(64)
+    val uaddSat8Function    by importUAddSat(8)
+    val uaddSat16Function   by importUAddSat(16)
+    val uaddSat32Function   by importUAddSat(32)
+    val uaddSat64Function   by importUAddSat(64)
+    val usubSat8Function    by importUSubSat(8)
+    val usubSat16Function   by importUSubSat(16)
+    val usubSat32Function   by importUSubSat(32)
+    val usubSat64Function   by importUSubSat(64)
+    val ushlSat8Function    by importUShlSat(8)
+    val ushlSat16Function   by importUShlSat(16)
+    val ushlSat32Function   by importUShlSat(32)
+    val ushlSat64Function   by importUShlSat(64)
 
     val llvmTrap = llvmIntrinsic(
             "llvm.trap",

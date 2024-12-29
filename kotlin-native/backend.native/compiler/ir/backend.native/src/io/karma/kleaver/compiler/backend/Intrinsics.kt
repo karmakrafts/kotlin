@@ -40,6 +40,8 @@ internal fun IntrinsicGenerator.evaluateKleaverIntrinsic(
         IntrinsicType.KLEAVER_UADD_SAT -> emitUAddSat(callSite, args)
         IntrinsicType.KLEAVER_USUB_SAT -> emitUSubSat(callSite, args)
         IntrinsicType.KLEAVER_USHL_SAT -> emitUShlSat(callSite, args)
+        IntrinsicType.KLEAVER_MATRIX_TRANSPOSE -> emitMatrixTranspose(callSite, args)
+        IntrinsicType.KLEAVER_MATRIX_MULTIPLY -> emitMatrixMultiply(callSite, args)
         else -> reportNonLoweredIntrinsic(type)
     }
 }
