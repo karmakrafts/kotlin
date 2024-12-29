@@ -44,6 +44,14 @@ internal fun IntrinsicGenerator.evaluateKleaverIntrinsic(
     }
 }
 
+private fun FunctionGenerationContext.emitMatrixTranspose(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
+    TODO("")
+}
+
+private fun FunctionGenerationContext.emitMatrixMultiply(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
+    TODO("")
+}
+
 private fun FunctionGenerationContext.emitFma(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 4) { "Invalid number of arguments for fma intrinsic" }
     return call(
