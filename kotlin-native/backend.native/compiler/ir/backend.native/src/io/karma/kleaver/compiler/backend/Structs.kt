@@ -16,16 +16,16 @@ import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
  * @since 29/12/2024
  */
 internal data class StructPhaseInput(
-    val module: IrModuleFragment,
-    val dfg: ModuleDFG,
+        val module: IrModuleFragment,
+        val dfg: ModuleDFG,
 )
 
 // Called by TopLevelPhases#runCodegen in the compiler guts
 internal val StructPhase = createSimpleNamedCompilerPhase<NativeGenerationState, StructPhaseInput>(
-    name = "KleaverStructs",
-    preactions = getDefaultIrActions(),
-    postactions = getDefaultIrActions(),
-    op = { _, input ->
-        StructAnalyzer.analyzeModule(input.module)
-    }
+        name = "KleaverStructs",
+        preactions = getDefaultIrActions(),
+        postactions = getDefaultIrActions(),
+        op = { _, input ->
+            StructAnalyzer.analyzeModule(input.module)
+        }
 )

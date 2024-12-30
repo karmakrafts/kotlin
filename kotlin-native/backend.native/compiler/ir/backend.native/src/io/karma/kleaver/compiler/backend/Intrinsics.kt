@@ -2,27 +2,18 @@ package io.karma.kleaver.compiler.backend
 
 import llvm.LLVMBuildArrayAlloca
 import llvm.LLVMSizeOfTypeInBits
+import llvm.LLVMTypeRef
 import llvm.LLVMValueRef
-import org.jetbrains.kotlin.backend.konan.llvm.FunctionGenerationContext
-import org.jetbrains.kotlin.backend.konan.llvm.IntrinsicGenerator
-import org.jetbrains.kotlin.backend.konan.llvm.IntrinsicType
-import org.jetbrains.kotlin.backend.konan.llvm.toLLVMType
+import org.jetbrains.kotlin.backend.konan.llvm.*
 import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.expressions.IrCall
-import kotlin.math.min
 
 /**
  * @author Alexander Hinze
  * @since 23/12/2024
  */
 
-internal fun IntrinsicGenerator.evaluateKleaverIntrinsic(
-        context: FunctionGenerationContext,
-        type: IntrinsicType,
-        callSite: IrCall,
-        args: List<LLVMValueRef>,
-        resultSlot: LLVMValueRef?
-): LLVMValueRef = with(context) {
+internal fun IntrinsicGenerator.evaluateKleaverIntrinsic(context: FunctionGenerationContext, type: IntrinsicType, callSite: IrCall, args: List<LLVMValueRef>, resultSlot: LLVMValueRef?): LLVMValueRef = with(context) {
     when (type) {
         IntrinsicType.KLEAVER_ALLOCA -> emitAlloca(args)
         IntrinsicType.KLEAVER_MEMCPY -> emitMemcpy(args)
@@ -48,33 +39,104 @@ internal fun IntrinsicGenerator.evaluateKleaverIntrinsic(
     }
 }
 
+private fun FunctionGenerationContext.getTransposeShuffleTable(matrixType: MatrixType): LLVMValueRef {
+    return when (matrixType.width) {
+        2 -> llvm.vectorI32(0, 2, 1, 3)
+        3 -> llvm.vectorI32(0, 3, 6, 1, 4, 7, 2, 5, 8)
+        4 -> llvm.vectorI32(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15)
+        else -> error("Unsupported matrix dimensions for transpose shuffle table")
+    }
+}
+
 private fun FunctionGenerationContext.emitMatrixTranspose(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
-    require(args.size == 3) { "Invalid number of arguments for transposeMatrix intrinsic" }
+    require(args.size == 2) { "Invalid number of arguments for transposeMatrix intrinsic" }
     val function = callSite.symbol.owner
     val matrixType = function.getCommonMatrixType()
-    return call(llvm.importMatrixTranspose(matrixType), args.drop(1)
-            + listOf(llvm.int32(matrixType.width), llvm.int32(matrixType.height)))
+    require(matrixType.width == matrixType.height) { "Implicit rows/column are not supported" }
+
+    val type = matrixType.toLLVMType(llvm)
+    val address = bitcast(pointerType(type), args[1])
+    var value = load(type, address)
+    value = shuffleVector(value, undef(type), getTransposeShuffleTable(matrixType))
+    store(value, address)
+
+    return theUnitInstanceRef.llvm
+}
+
+private fun FunctionGenerationContext.emitMatrixMultiply2x2(type: LLVMTypeRef, args: List<LLVMValueRef>) {
+    val ptrType = pointerType(type)
+    val addressA = bitcast(ptrType, args[1])
+    val addressB = bitcast(ptrType, args[2])
+
+    var valueA = load(type, addressA)
+    val valueB = load(type, addressB)
+    val row0 = shuffleVector(valueA, undef(type), llvm.vectorI32(0, 0, 1, 1))
+    val row1 = shuffleVector(valueA, undef(type), llvm.vectorI32(2, 2, 3, 3))
+    val col0 = shuffleVector(valueB, undef(type), llvm.vectorI32(0, 2, 0, 2))
+    val col1 = shuffleVector(valueB, undef(type), llvm.vectorI32(1, 3, 1, 3))
+    valueA = fma(type, row0, col0, fmul(row1, col1))
+    store(valueA, addressA)
+}
+
+private fun FunctionGenerationContext.emitMatrixMultiply3x3(type: LLVMTypeRef, args: List<LLVMValueRef>) {
+    val ptrType = pointerType(type)
+    val addressA = bitcast(ptrType, args[1])
+    val addressB = bitcast(ptrType, args[2])
+
+    var valueA = load(type, addressA)
+    val valueB = load(type, addressB)
+    val row0 = shuffleVector(valueA, undef(type), llvm.vectorI32(0, 0, 0, 1, 1, 1, 2, 2, 2))
+    val row1 = shuffleVector(valueA, undef(type), llvm.vectorI32(3, 3, 3, 4, 4, 4, 5, 5, 5))
+    val row2 = shuffleVector(valueA, undef(type), llvm.vectorI32(6, 6, 6, 7, 7, 7, 8, 8, 8))
+    val col0 = shuffleVector(valueB, undef(type), llvm.vectorI32(0, 3, 6, 0, 3, 6, 0, 3, 6))
+    val col1 = shuffleVector(valueB, undef(type), llvm.vectorI32(1, 4, 7, 1, 4, 7, 1, 4, 7))
+    val col2 = shuffleVector(valueB, undef(type), llvm.vectorI32(2, 5, 8, 2, 5, 8, 2, 5, 8))
+    valueA = fma(type, row2, col2, fma(type, row0, col0, fmul(row1, col1)))
+    store(valueA, addressA)
+}
+
+private fun FunctionGenerationContext.emitMatrixMultiply4x4(type: LLVMTypeRef, args: List<LLVMValueRef>) {
+    val ptrType = pointerType(type)
+    val addressA = bitcast(ptrType, args[1])
+    val addressB = bitcast(ptrType, args[2])
+
+    var valueA = load(type, addressA)
+    val valueB = load(type, addressB)
+    val row0 = shuffleVector(valueA, undef(type), llvm.vectorI32(0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3))
+    val row1 = shuffleVector(valueA, undef(type), llvm.vectorI32(4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7))
+    val row2 = shuffleVector(valueA, undef(type), llvm.vectorI32(8, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10, 10, 11, 11, 11, 11))
+    val row3 = shuffleVector(valueA, undef(type), llvm.vectorI32(12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 15))
+    val col0 = shuffleVector(valueB, undef(type), llvm.vectorI32(0, 4, 8, 12, 0, 4, 8, 12, 0, 4, 8, 12, 0, 4, 8, 12))
+    val col1 = shuffleVector(valueB, undef(type), llvm.vectorI32(1, 5, 9, 13, 1, 5, 9, 13, 1, 5, 9, 13, 1, 5, 9, 13))
+    val col2 = shuffleVector(valueB, undef(type), llvm.vectorI32(2, 6, 10, 14, 2, 6, 10, 14, 2, 6, 10, 14, 2, 6, 10, 14))
+    val col3 = shuffleVector(valueB, undef(type), llvm.vectorI32(3, 7, 11, 15, 3, 7, 11, 15, 3, 7, 11, 15, 3, 7, 11, 15))
+    valueA = fma(type, row3, col3, fma(type, row2, col2, fma(type, row0, col0, fmul(row1, col1))))
+    store(valueA, addressA)
 }
 
 private fun FunctionGenerationContext.emitMatrixMultiply(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
-    require(args.size == 4) { "Invalid number of arguments for multiplyMatrix intrinsic" }
+    require(args.size == 3) { "Invalid number of arguments for multiplyMatrix intrinsic" }
     val function = callSite.symbol.owner
-    val params = function.parameters
-            .filter { it.kind == IrParameterKind.Regular || it.kind == IrParameterKind.Context }
-            .drop(1)
+    val params = function.parameters.filter { it.kind == IrParameterKind.Regular || it.kind == IrParameterKind.Context }
     val matrixTypeA = params[0].getMatrixType()
+    require(matrixTypeA.width == matrixTypeA.height) { "Implicit rows/column are not supported" }
     val matrixTypeB = params[1].getMatrixType()
-    val width = min(matrixTypeA.width, matrixTypeB.width)
-    val height = min(matrixTypeA.height, matrixTypeB.height)
-    val commonDim = matrixTypeA.getCommonDimension(matrixTypeB)
-    return call(llvm.importMatrixMultiply(matrixTypeA), args.drop(1)
-            + listOf(llvm.int32(width), llvm.int32(height), llvm.int32(commonDim)))
+    require(matrixTypeA == matrixTypeB) { "Matrices must be of the same type for multiplication" }
+    val type = matrixTypeA.toLLVMType(llvm)
+
+    when (matrixTypeA.width) {
+        2 -> emitMatrixMultiply2x2(type, args)
+        3 -> emitMatrixMultiply3x3(type, args)
+        4 -> emitMatrixMultiply4x4(type, args)
+    }
+
+    return theUnitInstanceRef.llvm
 }
 
 private fun FunctionGenerationContext.emitFma(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
     require(args.size == 4) { "Invalid number of arguments for fma intrinsic" }
     val type = callSite.symbol.owner.returnType.toLLVMType(llvm)
-    return call(llvm.importFmuladd(LLVMSizeOfTypeInBits(llvmTargetData, type).toInt()), args.drop(1))
+    return fma(type, args.drop(1))
 }
 
 private fun FunctionGenerationContext.emitSAddSat(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {

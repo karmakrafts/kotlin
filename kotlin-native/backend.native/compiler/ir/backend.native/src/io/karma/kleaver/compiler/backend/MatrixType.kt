@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.backend.konan.llvm.toLLVMType
 import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
+import org.jetbrains.kotlin.ir.expressions.IrClassReference
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.classFqName
@@ -19,7 +20,7 @@ import org.jetbrains.kotlin.ir.util.getAnnotationValueOrNull
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
-import kotlin.math.min
+import org.jetbrains.kotlin.utils.atMostOne
 
 /**
  * @author Alexander Hinze
@@ -33,18 +34,24 @@ internal data class MatrixType(
         val width: Int,
         val height: Int
 ) {
+    val columnVectorType: VectorType = VectorType(type, width)
+    val rowVectorType: VectorType = VectorType(type, height)
+
     fun toLLVMType(llvm: CodegenLlvmHelpers): LLVMTypeRef {
         return with(llvm) {
             matrixType(type.toLLVMType(this), width, height)
         }
     }
+}
 
-    fun getCommonDimension(other: MatrixType): Int = min(width, other.height)
+internal fun IrConstructorCall.getAnnotationClassValueOrNull(name: String): IrClassReference? {
+    val parameter = symbol.owner.parameters.atMostOne { it.name.asString() == name }
+    return parameter?.let { arguments[it.indexInParameters] } as? IrClassReference
 }
 
 internal fun IrConstructorCall.getMatrixType(): MatrixType {
     return MatrixType(
-            requireNotNull(getAnnotationValueOrNull<IrType>("type")) { "Could not get matrix type" },
+            requireNotNull(getAnnotationClassValueOrNull("type")) { "Could not get matrix type" }.classType,
             requireNotNull(getAnnotationValueOrNull<Int>("width")) { "Could not get matrix width" },
             requireNotNull(getAnnotationValueOrNull<Int>("height")) { "Could not get matrix height" }
     )

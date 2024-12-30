@@ -336,6 +336,9 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
     // Kleaver: change visibility to internal
     internal val context = generationState.context
 
+    // Kleaver: per-module intrinsics cache
+    internal val intrinsicCache: HashMap<String, LlvmCallable> = HashMap()
+
     private fun importFunction(name: String, otherModule: LLVMModuleRef, returnsObjectType: Boolean): LlvmCallable {
         if (LLVMGetNamedFunction(module, name) != null) {
             throw IllegalArgumentException("function $name already exists")
