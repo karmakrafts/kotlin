@@ -7,6 +7,9 @@ package io.karma.kleaver.compiler.backend
 
 import llvm.*
 import org.jetbrains.kotlin.backend.konan.llvm.CodeGenerator
+import org.jetbrains.kotlin.ir.expressions.IrClassReference
+import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
+import org.jetbrains.kotlin.utils.atMostOne
 
 /**
  * @author Alexander Hinze
@@ -25,4 +28,9 @@ internal fun LLVMTypeRef.getTypeName(generator: CodeGenerator): String {
         }
         else -> error("Unsupported type $kind/$size")
     }
+}
+
+internal fun IrConstructorCall.getAnnotationClassValueOrNull(name: String): IrClassReference? {
+    val parameter = symbol.owner.parameters.atMostOne { it.name.asString() == name }
+    return parameter?.let { arguments[it.indexInParameters] } as? IrClassReference
 }

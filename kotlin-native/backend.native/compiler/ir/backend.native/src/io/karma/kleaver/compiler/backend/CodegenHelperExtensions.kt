@@ -22,12 +22,20 @@ internal fun matrixType(type: LLVMTypeRef, width: Int, height: Int): LLVMTypeRef
     return vectorType(type, width * height)
 }
 
-internal fun FunctionGenerationContext.undef(type: LLVMTypeRef): LLVMValueRef {
+internal fun undef(type: LLVMTypeRef): LLVMValueRef {
     return requireNotNull(LLVMGetUndef(type)) { "Could not get undefined value for type" }
 }
 
 internal fun FunctionGenerationContext.fmul(a: LLVMValueRef, b: LLVMValueRef, name: String = ""): LLVMValueRef {
     return requireNotNull(LLVMBuildFMul(builder, a, b, name)) { "Could not create fmul instruction" }
+}
+
+internal fun FunctionGenerationContext.fdiv(a: LLVMValueRef, b: LLVMValueRef, name: String = ""): LLVMValueRef {
+    return requireNotNull(LLVMBuildFDiv(builder, a, b, name)) { "Could not create fdiv instruction" }
+}
+
+internal fun FunctionGenerationContext.frem(a: LLVMValueRef, b: LLVMValueRef, name: String = ""): LLVMValueRef {
+    return requireNotNull(LLVMBuildFRem(builder, a, b, name)) { "Could not create frem instruction" }
 }
 
 internal fun FunctionGenerationContext.fma(type: LLVMTypeRef, args: List<LLVMValueRef>): LLVMValueRef {
@@ -40,6 +48,11 @@ internal fun FunctionGenerationContext.fma(type: LLVMTypeRef, a: LLVMValueRef, b
 
 internal fun FunctionGenerationContext.shuffleVector(v1: LLVMValueRef?, v2: LLVMValueRef?, mask: LLVMValueRef?, name: String = ""): LLVMValueRef {
     return requireNotNull(LLVMBuildShuffleVector(builder, v1, v2, mask, name)) { "Could not create shufflevector instruction" }
+}
+
+internal fun FunctionGenerationContext.filledVector(type: LLVMTypeRef, initialValue: LLVMValueRef, name: String = ""): LLVMValueRef {
+    val vector = LLVMBuildInsertElement(builder, undef(type), initialValue, llvm.int32(0), name)
+    return shuffleVector(vector, vector, llvm.vectorI32(*IntArray(LLVMGetVectorSize(type)) { 0 }))
 }
 
 internal fun CodegenLlvmHelpers.vectorI32(vararg elements: Int): LLVMValueRef {

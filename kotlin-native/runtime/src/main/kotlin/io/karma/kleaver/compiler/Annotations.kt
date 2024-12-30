@@ -21,3 +21,11 @@ public annotation class MatrixType(
         val width: Int,
         val height: Int
 )
+
+@ExperimentalForeignApi
+@Retention(AnnotationRetention.BINARY)
+@Target(AnnotationTarget.VALUE_PARAMETER)
+public annotation class VectorType(
+        val type: KClass<*>,
+        val elementCount: Int
+)

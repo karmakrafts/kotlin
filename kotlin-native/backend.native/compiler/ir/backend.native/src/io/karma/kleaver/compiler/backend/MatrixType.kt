@@ -12,7 +12,6 @@ import org.jetbrains.kotlin.backend.konan.llvm.toLLVMType
 import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
-import org.jetbrains.kotlin.ir.expressions.IrClassReference
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.classFqName
@@ -20,7 +19,6 @@ import org.jetbrains.kotlin.ir.util.getAnnotationValueOrNull
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.utils.atMostOne
 
 /**
  * @author Alexander Hinze
@@ -37,16 +35,14 @@ internal data class MatrixType(
     val columnVectorType: VectorType = VectorType(type, width)
     val rowVectorType: VectorType = VectorType(type, height)
 
+    inline val isQuadratic: Boolean
+        get() = width == height
+
     fun toLLVMType(llvm: CodegenLlvmHelpers): LLVMTypeRef {
         return with(llvm) {
             matrixType(type.toLLVMType(this), width, height)
         }
     }
-}
-
-internal fun IrConstructorCall.getAnnotationClassValueOrNull(name: String): IrClassReference? {
-    val parameter = symbol.owner.parameters.atMostOne { it.name.asString() == name }
-    return parameter?.let { arguments[it.indexInParameters] } as? IrClassReference
 }
 
 internal fun IrConstructorCall.getMatrixType(): MatrixType {
@@ -69,7 +65,7 @@ internal fun IrSimpleFunction.getCommonMatrixType(): MatrixType {
             .filter { it.kind == IrParameterKind.Regular || it.kind == IrParameterKind.Context }
             .map { it.getMatrixType() }
             .reduce { acc, matrixType ->
-                require(acc == matrixType) { "Matrix types for transpose intrinsic must match" }
+                require(acc == matrixType) { "Matrix types for intrinsic must match" }
                 matrixType
             }
 }
