@@ -45,6 +45,8 @@ internal fun IntrinsicGenerator.evaluateKleaverIntrinsic(context: FunctionGenera
     }
 }
 
+private const val SIMD_ALIGNMENT: Int = 16 // Should work on every architecture
+
 private fun FunctionGenerationContext.emitVectorOp(callSite: IrCall, args: List<LLVMValueRef>, op: (LLVMValueRef, LLVMValueRef) -> LLVMValueRef): LLVMValueRef {
     require(args.size == 3) { "Invalid number of arguments for addVector intrinsic" }
     val function = callSite.symbol.owner
@@ -56,9 +58,14 @@ private fun FunctionGenerationContext.emitVectorOp(callSite: IrCall, args: List<
     val address = bitcast(ptrType, args[1])
     // If the second parameter is also a pointer, assume vector, otherwise scalar
     if (params[1].type.isNativePointed(context.ir.symbols)) {
-        store(op(load(type, address), load(type, bitcast(ptrType, args[2]))), address)
+        require(params[1].getVectorType() == vectorType) { "Vector x vector intrinsics must have matching type" }
+        store(op(load(type, address, alignment = SIMD_ALIGNMENT), load(type, bitcast(ptrType, args[2]), alignment = SIMD_ALIGNMENT)),
+                address,
+                alignment = SIMD_ALIGNMENT)
     } else {
-        store(op(load(type, address), filledVector(type, args[2])), address)
+        store(op(load(type, address, alignment = SIMD_ALIGNMENT), filledVector(type, args[2])),
+                address,
+                alignment = SIMD_ALIGNMENT)
     }
 
     return theUnitInstanceRef.llvm
@@ -79,7 +86,7 @@ private fun FunctionGenerationContext.emitMatrixTranspose(callSite: IrCall, args
 
     val type = matrixType.toLLVMType(llvm)
     val address = bitcast(pointerType(type), args[1])
-    store(shuffleVector(load(type, address), undef(type), shuffleMask), address)
+    store(shuffleVector(load(type, address, alignment = SIMD_ALIGNMENT), undef(type), shuffleMask), address, alignment = SIMD_ALIGNMENT)
 
     return theUnitInstanceRef.llvm
 }
@@ -87,34 +94,34 @@ private fun FunctionGenerationContext.emitMatrixTranspose(callSite: IrCall, args
 private fun FunctionGenerationContext.emitMatrixMultiply2x2(type: LLVMTypeRef, args: List<LLVMValueRef>) {
     val ptrType = pointerType(type)
     val address = bitcast(ptrType, args[1])
-    val valueA = load(type, address)
-    val valueB = load(type, bitcast(ptrType, args[2]))
+    val valueA = load(type, address, alignment = SIMD_ALIGNMENT)
+    val valueB = load(type, bitcast(ptrType, args[2]), alignment = SIMD_ALIGNMENT)
     val row0 = shuffleVector(valueA, undef(type), llvm.vectorI32(0, 0, 1, 1))
     val row1 = shuffleVector(valueA, undef(type), llvm.vectorI32(2, 2, 3, 3))
     val col0 = shuffleVector(valueB, undef(type), llvm.vectorI32(0, 2, 0, 2))
     val col1 = shuffleVector(valueB, undef(type), llvm.vectorI32(1, 3, 1, 3))
-    store(fma(type, row0, col0, fmul(row1, col1)), address)
+    store(fma(type, row0, col0, fmul(row1, col1)), address, alignment = SIMD_ALIGNMENT)
 }
 
 private fun FunctionGenerationContext.emitMatrixMultiply3x3(type: LLVMTypeRef, args: List<LLVMValueRef>) {
     val ptrType = pointerType(type)
     val address = bitcast(ptrType, args[1])
-    val valueA = load(type, address)
-    val valueB = load(type, bitcast(ptrType, args[2]))
+    val valueA = load(type, address, alignment = SIMD_ALIGNMENT)
+    val valueB = load(type, bitcast(ptrType, args[2]), alignment = SIMD_ALIGNMENT)
     val row0 = shuffleVector(valueA, undef(type), llvm.vectorI32(0, 0, 0, 1, 1, 1, 2, 2, 2))
     val row1 = shuffleVector(valueA, undef(type), llvm.vectorI32(3, 3, 3, 4, 4, 4, 5, 5, 5))
     val row2 = shuffleVector(valueA, undef(type), llvm.vectorI32(6, 6, 6, 7, 7, 7, 8, 8, 8))
     val col0 = shuffleVector(valueB, undef(type), llvm.vectorI32(0, 3, 6, 0, 3, 6, 0, 3, 6))
     val col1 = shuffleVector(valueB, undef(type), llvm.vectorI32(1, 4, 7, 1, 4, 7, 1, 4, 7))
     val col2 = shuffleVector(valueB, undef(type), llvm.vectorI32(2, 5, 8, 2, 5, 8, 2, 5, 8))
-    store(fma(type, row2, col2, fma(type, row0, col0, fmul(row1, col1))), address)
+    store(fma(type, row2, col2, fma(type, row0, col0, fmul(row1, col1))), address, alignment = SIMD_ALIGNMENT)
 }
 
 private fun FunctionGenerationContext.emitMatrixMultiply4x4(type: LLVMTypeRef, args: List<LLVMValueRef>) {
     val ptrType = pointerType(type)
     val address = bitcast(ptrType, args[1])
-    val valueA = load(type, address)
-    val valueB = load(type, bitcast(ptrType, args[2]))
+    val valueA = load(type, address, alignment = SIMD_ALIGNMENT)
+    val valueB = load(type, bitcast(ptrType, args[2]), alignment = SIMD_ALIGNMENT)
     val row0 = shuffleVector(valueA, undef(type), llvm.vectorI32(0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3))
     val row1 = shuffleVector(valueA, undef(type), llvm.vectorI32(4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7))
     val row2 = shuffleVector(valueA, undef(type), llvm.vectorI32(8, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10, 10, 11, 11, 11, 11))
@@ -123,7 +130,7 @@ private fun FunctionGenerationContext.emitMatrixMultiply4x4(type: LLVMTypeRef, a
     val col1 = shuffleVector(valueB, undef(type), llvm.vectorI32(1, 5, 9, 13, 1, 5, 9, 13, 1, 5, 9, 13, 1, 5, 9, 13))
     val col2 = shuffleVector(valueB, undef(type), llvm.vectorI32(2, 6, 10, 14, 2, 6, 10, 14, 2, 6, 10, 14, 2, 6, 10, 14))
     val col3 = shuffleVector(valueB, undef(type), llvm.vectorI32(3, 7, 11, 15, 3, 7, 11, 15, 3, 7, 11, 15, 3, 7, 11, 15))
-    store(fma(type, row3, col3, fma(type, row2, col2, fma(type, row0, col0, fmul(row1, col1)))), address)
+    store(fma(type, row3, col3, fma(type, row2, col2, fma(type, row0, col0, fmul(row1, col1)))), address, alignment = SIMD_ALIGNMENT)
 }
 
 private fun FunctionGenerationContext.emitMatrixMultiply(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
