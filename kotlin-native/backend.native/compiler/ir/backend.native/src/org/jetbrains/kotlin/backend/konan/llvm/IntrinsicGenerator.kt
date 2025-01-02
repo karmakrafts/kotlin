@@ -130,14 +130,7 @@ internal enum class IntrinsicType {
     KLEAVER_UADD_SAT,
     KLEAVER_USUB_SAT,
     KLEAVER_USHL_SAT,
-    KLEAVER_FMA,
-    KLEAVER_MATRIX_TRANSPOSE,
-    KLEAVER_MATRIX_MULTIPLY,
-    KLEAVER_VECTOR_ADD,
-    KLEAVER_VECTOR_SUB,
-    KLEAVER_VECTOR_MUL,
-    KLEAVER_VECTOR_DIV,
-    KLEAVER_VECTOR_REM
+    KLEAVER_FMA
 }
 
 internal enum class ConstantConstructorIntrinsicType {

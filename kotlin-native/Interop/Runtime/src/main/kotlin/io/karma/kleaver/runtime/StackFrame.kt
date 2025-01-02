@@ -152,7 +152,7 @@ public class StackFrame private constructor() {
 
 @ExperimentalForeignApi
 @ForceInline
-public inline fun <reified R> stackFrame(noinline frame: StackFrame.() -> R): R {
+public inline fun <reified R> stackFrame(frame: StackFrame.() -> R): R {
     try {
         enterStackFrame()
         return frame(StackFrame.instance)
