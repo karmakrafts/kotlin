@@ -5,6 +5,9 @@
 @file:OptIn(ExperimentalForeignApi::class)
 package kotlinx.cinterop
 
+import io.karma.kleaver.runtime.memcpy
+import io.karma.kleaver.runtime.memset
+import io.karma.kleaver.runtime.wcslen
 import kotlin.native.*
 import kotlin.native.internal.GCUnsafeCall
 import kotlin.native.internal.Intrinsic
@@ -20,6 +23,7 @@ internal inline val pointerSize: Int
 internal external fun getPointerSize(): Int
 
 // TODO: do not use singleton because it leads to init-check on any access.
+@Suppress("NOTHING_TO_INLINE")
 @PublishedApi
 internal object nativeMemUtils {
     @TypedIntrinsic(IntrinsicType.INTEROP_READ_PRIMITIVE) external fun getByte(mem: NativePointed): Byte
@@ -46,65 +50,36 @@ internal object nativeMemUtils {
     @TypedIntrinsic(IntrinsicType.INTEROP_READ_PRIMITIVE) external fun getVector(mem: NativePointed): Vector128
     @TypedIntrinsic(IntrinsicType.INTEROP_WRITE_PRIMITIVE) external fun putVector(mem: NativePointed, value: Vector128)
 
-    // TODO: optimize
-    fun getByteArray(source: NativePointed, dest: ByteArray, length: Int) {
-        val sourceArray = source.reinterpret<ByteVar>().ptr
-        var index = 0
-        while (index < length) {
-            dest[index] = sourceArray[index]
-            ++index
+    inline fun getByteArray(source: NativePointed, dest: ByteArray, length: Int) {
+        dest.usePinned { pinnedDest ->
+            memcpy(pinnedDest.addressOf(0).pointed, source, length.toLong())
         }
     }
 
-    // TODO: optimize
-    fun putByteArray(source: ByteArray, dest: NativePointed, length: Int) {
-        val destArray = dest.reinterpret<ByteVar>().ptr
-        var index = 0
-        while (index < length) {
-            destArray[index] = source[index]
-            ++index
+    inline fun putByteArray(source: ByteArray, dest: NativePointed, length: Int) {
+        source.usePinned { pinnedSource ->
+            memcpy(dest, pinnedSource.addressOf(0).pointed, length.toLong())
         }
     }
 
-    // TODO: optimize
-    fun getCharArray(source: NativePointed, dest: CharArray, length: Int) {
-        val sourceArray = source.reinterpret<ShortVar>().ptr
-        var index = 0
-        while (index < length) {
-            dest[index] = sourceArray[index].toInt().toChar()
-            ++index
+    inline fun getCharArray(source: NativePointed, dest: CharArray, length: Int) {
+        dest.usePinned { pinnedDest ->
+            memcpy(pinnedDest.addressOf(0).pointed, source, sizeOf<ShortVar>() * length.toLong())
         }
     }
 
-    // TODO: optimize
-    fun putCharArray(source: CharArray, dest: NativePointed, length: Int) {
-        val destArray = dest.reinterpret<ShortVar>().ptr
-        var index = 0
-        while (index < length) {
-            destArray[index] = source[index].code.toShort()
-            ++index
+    inline fun putCharArray(source: CharArray, dest: NativePointed, length: Int) {
+        source.usePinned { pinnedSource ->
+            memcpy(dest, pinnedSource.addressOf(0).pointed, sizeOf<ShortVar>() * length.toLong())
         }
     }
 
-    // TODO: optimize
-    fun zeroMemory(dest: NativePointed, length: Int): Unit {
-        val destArray = dest.reinterpret<ByteVar>().ptr
-        var index = 0
-        while (index < length) {
-            destArray[index] = 0
-            ++index
-        }
+    inline fun zeroMemory(dest: NativePointed, length: Int): Unit {
+        memset(dest, 0, length.toLong())
     }
 
-    // TODO: optimize
-    fun copyMemory(dest: NativePointed, length: Int, src: NativePointed): Unit {
-        val destArray = dest.reinterpret<ByteVar>().ptr
-        val srcArray = src.reinterpret<ByteVar>().ptr
-        var index = 0
-        while (index < length) {
-            destArray[index] = srcArray[index]
-            ++index
-        }
+    inline fun copyMemory(dest: NativePointed, length: Int, src: NativePointed): Unit {
+        memcpy(dest, src, length.toLong())
     }
 
     fun alloc(size: Long, align: Int): NativePointed {
@@ -130,19 +105,11 @@ internal object nativeMemUtils {
 
 @ExperimentalForeignApi
 public fun CPointer<UShortVar>.toKStringFromUtf16(): String {
-    val nativeBytes = this
-
-    var length = 0
-    while (nativeBytes[length] != 0.toUShort()) {
-        ++length
-    }
-    val chars = kotlin.CharArray(length)
-    var index = 0
-    while (index < length) {
-        chars[index] = nativeBytes[index].toInt().toChar()
-        ++index
-    }
-    return chars.concatToString()
+    return CharArray(wcslen(pointed).toInt()).apply {
+        usePinned { pinned ->
+            memcpy(pinned.addressOf(0).pointed, pointed, sizeOf<UShortVar>() * size.toLong())
+        }
+    }.concatToString()
 }
 
 @ExperimentalForeignApi
