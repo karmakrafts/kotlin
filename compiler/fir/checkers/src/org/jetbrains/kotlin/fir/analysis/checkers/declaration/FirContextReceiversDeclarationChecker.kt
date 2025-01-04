@@ -35,6 +35,15 @@ object FirContextReceiversDeclarationChecker : FirBasicDeclarationChecker(MppChe
             )
         }
 
+        if (declaration is FirAnonymousInitializer) {
+            reporter.reportOn(
+                source,
+                FirErrors.UNSUPPORTED,
+                "Context parameters on initializers are unsupported.",
+                context
+            )
+        }
+
         val contextParameters = declaration.getContextParameters()
         if (contextParameters.isEmpty()) return
 
@@ -95,6 +104,8 @@ object FirContextReceiversDeclarationChecker : FirBasicDeclarationChecker(MppChe
                     parameter.source?.getModifierList()?.modifiers?.forEach { modifier ->
                         reporter.reportOn(modifier.source, FirErrors.WRONG_MODIFIER_TARGET, modifier.token, "context parameter", context)
                     }
+
+                    FirFunctionParameterChecker.checkValOrVar(parameter, reporter, context)
                 }
             }
         } else {

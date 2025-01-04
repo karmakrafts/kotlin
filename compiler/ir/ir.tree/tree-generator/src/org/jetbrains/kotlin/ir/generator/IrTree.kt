@@ -108,6 +108,14 @@ object IrTree : AbstractTreeBuilder() {
         +offsetField("start")
         +offsetField("end")
 
+        +field("attributeOwnerId", rootElement, isChild = false) {
+            deepCopyExcludeFromApply = true
+            kDoc = """
+                Original element before copying. Always satisfies the following
+                invariant: `this.attributeOwnerId == this.attributeOwnerId.attributeOwnerId`.
+            """.trimIndent()
+        }
+
         kDoc = "The root interface of the IR tree. Each IR node implements this interface."
     }
     val statement: Element by element(Other)
@@ -278,7 +286,6 @@ object IrTree : AbstractTreeBuilder() {
         parent(declarationWithVisibility)
         parent(typeParametersContainer)
         parent(declarationContainer)
-        parent(attributeContainer)
         parent(metadataSourceOwner)
 
         +descriptor("ClassDescriptor")
@@ -315,25 +322,6 @@ object IrTree : AbstractTreeBuilder() {
             NOTE: If this [${render()}] was deserialized from a klib, this list will always be empty!
             See [KT-54028](https://youtrack.jetbrains.com/issue/KT-54028).
             """.trimIndent()
-        }
-    }
-    val attributeContainer: Element by element(Declaration) {
-        kDoc = """
-            Represents an IR element that can be copied, but must remember its original element. It is
-            useful, for example, to keep track of generated names for anonymous declarations.
-            @property attributeOwnerId original element before copying. Always satisfies the following
-              invariant: `this.attributeOwnerId == this.attributeOwnerId.attributeOwnerId`.
-            @property originalBeforeInline original element before inlining. Useful only with IR
-              inliner. `null` if the element wasn't inlined. Unlike [attributeOwnerId], doesn't have the
-              idempotence invariant and can contain a chain of declarations.
-        """.trimIndent()
-
-        +field("attributeOwnerId", attributeContainer, isChild = false) {
-            deepCopyExcludeFromApply = true
-        }
-        // null <=> this element wasn't inlined
-        +field("originalBeforeInline", attributeContainer, nullable = true, isChild = false) {
-            deepCopyExcludeFromApply = true
         }
     }
     val mutableAnnotationContainer: Element by element(Declaration) {
@@ -489,7 +477,6 @@ object IrTree : AbstractTreeBuilder() {
         parent(possiblyExternalDeclaration)
         parent(overridableDeclaration.withArgs("S" to propertySymbol))
         parent(metadataSourceOwner)
-        parent(attributeContainer)
         parent(memberWithContainerSource)
 
         +descriptor("PropertyDescriptor")
@@ -540,7 +527,6 @@ object IrTree : AbstractTreeBuilder() {
     val simpleFunction: Element by element(Declaration) {
         parent(function)
         parent(overridableDeclaration.withArgs("S" to simpleFunctionSymbol))
-        parent(attributeContainer)
 
         +descriptor("FunctionDescriptor")
         +declaredSymbol(simpleFunctionSymbol)
@@ -629,7 +615,6 @@ object IrTree : AbstractTreeBuilder() {
 
         parent(statement)
         parent(varargElement)
-        parent(attributeContainer)
 
         +field("type", irTypeType)
     }

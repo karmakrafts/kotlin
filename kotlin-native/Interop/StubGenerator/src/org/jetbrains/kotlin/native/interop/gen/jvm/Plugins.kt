@@ -10,10 +10,6 @@ import org.jetbrains.kotlin.native.interop.indexer.*
 
 object Plugins {
     fun plugin(pluginName: String?): Plugin = when (pluginName) {
-        "org.jetbrains.kotlin.native.interop.skia" ->
-            Class.forName("$pluginName.SkiaPlugin")
-                    .getDeclaredConstructor()
-                    .newInstance() as Plugin
         null -> DefaultPlugin
         else -> error("Unexpected interop plugin: $pluginName")
     }
@@ -22,8 +18,6 @@ object Plugins {
 interface Plugin {
     val name: String
     fun buildNativeIndex(library: NativeLibrary, verbose: Boolean, allowPrecompiledHeaders: Boolean): IndexerResult
-    val managedTypePassing: ManagedTypePassing
-    val ManagedType.stringRepresentation: String
     fun stubsBuildingContext(stubIrContext: StubIrContext): StubsBuildingContext
 }
 
@@ -31,7 +25,5 @@ object DefaultPlugin : Plugin {
     override val name = "Default"
     override fun buildNativeIndex(library: NativeLibrary, verbose: Boolean, allowPrecompiledHeaders: Boolean): IndexerResult =
             buildNativeIndexImpl(library, verbose, allowPrecompiledHeaders)
-    override val managedTypePassing = ManagedTypePassing()
-    override val ManagedType.stringRepresentation get() = error("ManagedType requires non-default interop plugin")
     override fun stubsBuildingContext(stubIrContext: StubIrContext) = StubsBuildingContextImpl(stubIrContext)
 }

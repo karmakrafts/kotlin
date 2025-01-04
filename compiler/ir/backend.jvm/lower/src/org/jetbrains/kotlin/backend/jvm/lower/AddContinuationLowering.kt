@@ -27,6 +27,7 @@ import org.jetbrains.kotlin.ir.builders.declarations.*
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.*
+import org.jetbrains.kotlin.ir.originalBeforeInline
 import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.IrType
@@ -87,7 +88,7 @@ internal class AddContinuationLowering(context: JvmBackendContext) : SuspendLowe
     private fun generateContinuationClassForNamedFunction(
         irFunction: IrFunction,
         dispatchReceiverParameter: IrValueParameter?,
-        attributeContainer: IrAttributeContainer,
+        attributeContainer: IrElement,
         capturesCrossinline: Boolean
     ): IrClass =
         context.irFactory.buildClass {
@@ -353,7 +354,7 @@ internal class AddContinuationLowering(context: JvmBackendContext) : SuspendLowe
                     +generateContinuationClassForNamedFunction(
                         newFunction,
                         view.dispatchReceiverParameter,
-                        function as IrAttributeContainer,
+                        function,
                         capturesCrossinline
                     )
                     if (newFunction.body is IrExpressionBody) {

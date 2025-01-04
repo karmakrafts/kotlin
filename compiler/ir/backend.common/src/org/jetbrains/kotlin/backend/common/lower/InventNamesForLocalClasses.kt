@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.ir.util.isFunctionInlining
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.originalBeforeInline
 import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
 import org.jetbrains.kotlin.ir.util.isAnonymousObject
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
@@ -30,7 +31,7 @@ abstract class InventNamesForLocalClasses(private val shouldIncludeVariableName:
     /** Makes it possible to do customizations for [IrClass] */
     protected open fun customizeNameInventorData(clazz: IrClass, data: NameBuilder): NameBuilder = data
 
-    protected abstract fun putLocalClassName(declaration: IrAttributeContainer, localClassName: String)
+    protected abstract fun putLocalClassName(declaration: IrElement, localClassName: String)
 
     override fun lower(irFile: IrFile) {
         irFile.accept(NameInventor(), NameBuilder.EMPTY)
