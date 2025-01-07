@@ -39,12 +39,6 @@ public class FirOldFrontendMPPDiagnosticsWithLightTreeWithLatestLanguageVersionT
   }
 
   @Test
-  @TestMetadata("actualExternalInJs.kt")
-  public void testActualExternalInJs() {
-    runTest("compiler/testData/diagnostics/tests/multiplatform/actualExternalInJs.kt");
-  }
-
-  @Test
   @TestMetadata("actualMissingConstructor.kt")
   public void testActualMissingConstructor() {
     runTest("compiler/testData/diagnostics/tests/multiplatform/actualMissingConstructor.kt");
@@ -314,12 +308,6 @@ public class FirOldFrontendMPPDiagnosticsWithLightTreeWithLatestLanguageVersionT
   }
 
   @Test
-  @TestMetadata("expectShouldBeJSExportable.kt")
-  public void testExpectShouldBeJSExportable() {
-    runTest("compiler/testData/diagnostics/tests/multiplatform/expectShouldBeJSExportable.kt");
-  }
-
-  @Test
   @TestMetadata("expectTailrec.kt")
   public void testExpectTailrec() {
     runTest("compiler/testData/diagnostics/tests/multiplatform/expectTailrec.kt");
@@ -380,12 +368,6 @@ public class FirOldFrontendMPPDiagnosticsWithLightTreeWithLatestLanguageVersionT
   }
 
   @Test
-  @TestMetadata("JsExternalTypeExtendsActualExternalType.kt")
-  public void testJsExternalTypeExtendsActualExternalType() {
-    runTest("compiler/testData/diagnostics/tests/multiplatform/JsExternalTypeExtendsActualExternalType.kt");
-  }
-
-  @Test
   @TestMetadata("jvmOverloads.kt")
   public void testJvmOverloads() {
     runTest("compiler/testData/diagnostics/tests/multiplatform/jvmOverloads.kt");
@@ -437,6 +419,12 @@ public class FirOldFrontendMPPDiagnosticsWithLightTreeWithLatestLanguageVersionT
   @TestMetadata("kt64166.kt")
   public void testKt64166() {
     runTest("compiler/testData/diagnostics/tests/multiplatform/kt64166.kt");
+  }
+
+  @Test
+  @TestMetadata("kt72704.kt")
+  public void testKt72704() {
+    runTest("compiler/testData/diagnostics/tests/multiplatform/kt72704.kt");
   }
 
   @Test

@@ -753,8 +753,8 @@ object IrTree : AbstractTreeBuilder() {
                 Represents the end offset of the inlined function that was located inside `fileEntry`.                
             """.trimIndent()
         }
-        +field("inlineFunctionSymbol", functionSymbol, isChild = false, nullable = true)
-        +field("fileEntry", type(Packages.tree, "IrFileEntry"), isChild = false)
+        +field("inlinedFunctionSymbol", functionSymbol, isChild = false, nullable = true)
+        +field("inlinedFunctionFileEntry", type(Packages.tree, "IrFileEntry"), isChild = false)
     }
     val syntheticBody: Element by element(Expression) {
         visitorParameterName = "body"

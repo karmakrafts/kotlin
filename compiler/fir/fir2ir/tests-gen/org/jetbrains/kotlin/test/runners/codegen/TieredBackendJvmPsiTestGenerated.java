@@ -12006,12 +12006,6 @@ public class TieredBackendJvmPsiTestGenerated extends AbstractTieredBackendJvmPs
       }
 
       @Test
-      @TestMetadata("actualExternalInJs.kt")
-      public void testActualExternalInJs() {
-        runTest("compiler/testData/diagnostics/tests/multiplatform/actualExternalInJs.kt");
-      }
-
-      @Test
       @TestMetadata("actualTypealiasToSpecialAnnotation_oldLanguageVersion.kt")
       public void testActualTypealiasToSpecialAnnotation_oldLanguageVersion() {
         runTest("compiler/testData/diagnostics/tests/multiplatform/actualTypealiasToSpecialAnnotation_oldLanguageVersion.kt");
@@ -12114,12 +12108,6 @@ public class TieredBackendJvmPsiTestGenerated extends AbstractTieredBackendJvmPs
       }
 
       @Test
-      @TestMetadata("expectShouldBeJSExportable.kt")
-      public void testExpectShouldBeJSExportable() {
-        runTest("compiler/testData/diagnostics/tests/multiplatform/expectShouldBeJSExportable.kt");
-      }
-
-      @Test
       @TestMetadata("expectTailrec_oldLanguageVersion.kt")
       public void testExpectTailrec_oldLanguageVersion() {
         runTest("compiler/testData/diagnostics/tests/multiplatform/expectTailrec_oldLanguageVersion.kt");
@@ -12147,12 +12135,6 @@ public class TieredBackendJvmPsiTestGenerated extends AbstractTieredBackendJvmPs
       @TestMetadata("incDecOperatorsInExpectClass.kt")
       public void testIncDecOperatorsInExpectClass() {
         runTest("compiler/testData/diagnostics/tests/multiplatform/incDecOperatorsInExpectClass.kt");
-      }
-
-      @Test
-      @TestMetadata("JsExternalTypeExtendsActualExternalType.kt")
-      public void testJsExternalTypeExtendsActualExternalType() {
-        runTest("compiler/testData/diagnostics/tests/multiplatform/JsExternalTypeExtendsActualExternalType.kt");
       }
 
       @Test
@@ -26839,6 +26821,28 @@ public class TieredBackendJvmPsiTestGenerated extends AbstractTieredBackendJvmPs
     @TestMetadata("manyCapturedTypes.nkt")
     public void testManyCapturedTypes() {
       runTest("compiler/fir/analysis-tests/testData/resolveFreezesIDE/manyCapturedTypes.nkt");
+    }
+
+    @Nested
+    @TestMetadata("compiler/fir/analysis-tests/testData/resolveFreezesIDE/pcla")
+    @TestDataPath("$PROJECT_ROOT")
+    public class Pcla {
+      @Nested
+      @TestMetadata("compiler/fir/analysis-tests/testData/resolveFreezesIDE/pcla/issues")
+      @TestDataPath("$PROJECT_ROOT")
+      public class Issues {
+        @Test
+        @TestMetadata("kt73771Original.nkt")
+        public void testKt73771Original() {
+          runTest("compiler/fir/analysis-tests/testData/resolveFreezesIDE/pcla/issues/kt73771Original.nkt");
+        }
+
+        @Test
+        @TestMetadata("kt73771Simple.nkt")
+        public void testKt73771Simple() {
+          runTest("compiler/fir/analysis-tests/testData/resolveFreezesIDE/pcla/issues/kt73771Simple.nkt");
+        }
+      }
     }
   }
 }

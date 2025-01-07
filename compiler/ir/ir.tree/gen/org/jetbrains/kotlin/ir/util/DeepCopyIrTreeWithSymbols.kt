@@ -490,8 +490,8 @@ open class DeepCopyIrTreeWithSymbols(
             origin = inlinedBlock.origin,
             inlinedFunctionStartOffset = inlinedBlock.inlinedFunctionStartOffset,
             inlinedFunctionEndOffset = inlinedBlock.inlinedFunctionEndOffset,
-            inlineFunctionSymbol = inlinedBlock.inlineFunctionSymbol?.let(symbolRemapper::getReferencedFunction),
-            fileEntry = inlinedBlock.fileEntry,
+            inlinedFunctionSymbol = inlinedBlock.inlinedFunctionSymbol?.let(symbolRemapper::getReferencedFunction),
+            inlinedFunctionFileEntry = inlinedBlock.inlinedFunctionFileEntry,
         ).apply {
             inlinedBlock.statements.mapTo(statements) { it.transform() }
             processAttributes(inlinedBlock)

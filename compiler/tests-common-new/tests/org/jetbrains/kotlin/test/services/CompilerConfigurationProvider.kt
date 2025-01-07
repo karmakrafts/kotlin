@@ -26,7 +26,6 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.test.TestInfrastructureInternals
 import org.jetbrains.kotlin.test.directives.CodegenTestDirectives
 import org.jetbrains.kotlin.test.directives.JsEnvironmentConfigurationDirectives
-import org.jetbrains.kotlin.test.directives.KlibBasedCompilerTestDirectives
 import org.jetbrains.kotlin.test.directives.isApplicableTo
 import org.jetbrains.kotlin.test.model.FrontendKinds
 import org.jetbrains.kotlin.test.model.TestModule
@@ -91,7 +90,7 @@ open class CompilerConfigurationProviderImpl(
             testRootDisposable,
             CompilerConfiguration()
         )
-        val configuration = createCompilerConfiguration(module, configurators)
+        val configuration = createCompilerConfiguration(testServices, module, configurators)
         val projectEnv = KotlinCoreEnvironment.ProjectEnvironment(testRootDisposable, applicationEnvironment, configuration)
         return KotlinCoreEnvironment.createForTests(
             projectEnv,
@@ -103,7 +102,7 @@ open class CompilerConfigurationProviderImpl(
 
     @OptIn(TestInfrastructureInternals::class)
     fun createCompilerConfiguration(module: TestModule): CompilerConfiguration {
-        return createCompilerConfiguration(module, configurators)
+        return createCompilerConfiguration(testServices, module, configurators)
     }
 }
 
@@ -120,7 +119,11 @@ fun TargetPlatform.platformToEnvironmentConfigFiles() = when {
 }
 
 @TestInfrastructureInternals
-fun createCompilerConfiguration(module: TestModule, configurators: List<AbstractEnvironmentConfigurator>): CompilerConfiguration {
+fun createCompilerConfiguration(
+    testServices: TestServices,
+    module: TestModule,
+    configurators: List<AbstractEnvironmentConfigurator>,
+): CompilerConfiguration {
     val configuration = CompilerConfiguration()
     configuration[CommonConfigurationKeys.MODULE_NAME] = module.name
 
@@ -141,18 +144,18 @@ fun createCompilerConfiguration(module: TestModule, configurators: List<Abstract
         )
     }
 
-    if (module.frontendKind == FrontendKinds.FIR) {
+    if (testServices.defaultsProvider.frontendKind == FrontendKinds.FIR) {
         configuration[CommonConfigurationKeys.USE_FIR] = true
     }
 
     configuration.put(CommonConfigurationKeys.VERIFY_IR, IrVerificationMode.ERROR)
     configuration.put(
         CommonConfigurationKeys.ENABLE_IR_VISIBILITY_CHECKS,
-        !CodegenTestDirectives.DISABLE_IR_VISIBILITY_CHECKS.isApplicableTo(module),
+        !CodegenTestDirectives.DISABLE_IR_VISIBILITY_CHECKS.isApplicableTo(module, testServices),
     )
     configuration.put(
         CommonConfigurationKeys.ENABLE_IR_VARARG_TYPES_CHECKS,
-        !CodegenTestDirectives.DISABLE_IR_VARARG_TYPE_CHECKS.isApplicableTo(module),
+        !CodegenTestDirectives.DISABLE_IR_VARARG_TYPE_CHECKS.isApplicableTo(module, testServices),
     )
 
     val messageCollector = PrintingMessageCollector(System.err, CompilerTestMessageRenderer(module), /*verbose=*/false)

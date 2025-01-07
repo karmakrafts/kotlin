@@ -53,7 +53,7 @@ internal class Kapt4Facade(private val testServices: TestServices) :
         return testServices.sourceFileProvider.getOrCreateRealFileForSourceFile(this)
     }
 
-    override fun shouldRunAnalysis(module: TestModule): Boolean {
+    override fun shouldTransform(module: TestModule): Boolean {
         return true
     }
 }
@@ -108,9 +108,9 @@ internal data class Kapt4ContextBinaryArtifact(
     internal val kaptContext: KaptContext,
     internal val kaptStubs: List<KaptStub>
 ) : ResultingArtifact.Binary<Kapt4ContextBinaryArtifact>() {
-    object Kind : BinaryKind<Kapt4ContextBinaryArtifact>("KaptArtifact")
+    object Kind : ArtifactKind<Kapt4ContextBinaryArtifact>("KaptArtifact")
 
-    override val kind: BinaryKind<Kapt4ContextBinaryArtifact>
+    override val kind: ArtifactKind<Kapt4ContextBinaryArtifact>
         get() = Kind
 }
 

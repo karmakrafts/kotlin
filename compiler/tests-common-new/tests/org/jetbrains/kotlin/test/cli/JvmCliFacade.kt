@@ -47,7 +47,7 @@ abstract class JvmCliFacade(private val testServices: TestServices) : AbstractTe
     override val outputKind: TestArtifactKind<CliArtifact>
         get() = CliArtifact.Kind
 
-    override fun shouldRunAnalysis(module: TestModule): Boolean = true
+    override fun shouldTransform(module: TestModule): Boolean = true
 
     override val directiveContainers: List<DirectivesContainer>
         get() = listOf(CliDirectives)
@@ -70,12 +70,11 @@ abstract class JvmCliFacade(private val testServices: TestServices) : AbstractTe
     private data class ModuleDependencies(val dependencies: List<File>, val friends: List<File>)
 
     private fun TestModule.computeDependencies(): ModuleDependencies {
-        val dependencies = allDependencies.map { (dependencyName, kind, relation) ->
-            check(kind == Binary) { "Only binary dependencies are possible here: $name -> $dependencyName" }
+        val dependencies = allDependencies.map { (dependency, kind, relation) ->
+            check(kind == Binary) { "Only binary dependencies are possible here: $name -> ${dependency.name}" }
             // TODO (KT-69158): add support for KMP in this facade.
-            check(relation != DependsOnDependency) { "Only normal/friend relation is possible here: $name -> $dependencyName" }
-            val dependency = testServices.dependencyProvider.getTestModule(dependencyName)
-            relation to testServices.dependencyProvider.getArtifact(dependency, CliArtifact.Kind).outputDir
+            check(relation != DependsOnDependency) { "Only normal/friend relation is possible here: $name -> ${dependency.name}" }
+            relation to testServices.artifactsProvider.getArtifact(dependency, CliArtifact.Kind).outputDir
         }
         return ModuleDependencies(
             dependencies.map { it.second },
@@ -182,9 +181,9 @@ data class CliArtifact(
     val kotlinDiagnostics: List<CliDiagnostic>,
     val kotlinOutput: String,
 ) : ResultingArtifact.Binary<CliArtifact>() {
-    object Kind : BinaryKind<CliArtifact>("CliArtifact")
+    object Kind : ArtifactKind<CliArtifact>("CliArtifact")
 
-    override val kind: BinaryKind<CliArtifact> get() = Kind
+    override val kind: ArtifactKind<CliArtifact> get() = Kind
 }
 
 abstract class CliArtifactHandler(

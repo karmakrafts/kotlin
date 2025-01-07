@@ -10,13 +10,14 @@ import com.intellij.util.applyIf
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.ReceiverParameterDescriptor
 import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.IrFileEntry
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.symbols.*
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.types.impl.IrCapturedType
-import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
+import org.jetbrains.kotlin.ir.visitors.IrVisitor
 import org.jetbrains.kotlin.name.SpecialNames.IMPLICIT_SET_PARAMETER
 import org.jetbrains.kotlin.renderer.DescriptorRenderer
 import org.jetbrains.kotlin.types.Variance
@@ -25,12 +26,13 @@ import org.jetbrains.kotlin.utils.addIfNotNull
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 import org.jetbrains.kotlin.utils.addToStdlib.runIf
 import org.jetbrains.kotlin.utils.addToStdlib.runUnless
+import java.io.File
 
 fun IrElement.render(options: DumpIrTreeOptions = DumpIrTreeOptions()) =
     accept(RenderIrElementVisitor(options), null)
 
 open class RenderIrElementVisitor(private val options: DumpIrTreeOptions = DumpIrTreeOptions()) :
-    IrElementVisitor<String, Nothing?> {
+    IrVisitor<String, Nothing?>() {
 
     private val flagsRenderer = FlagsRenderer(options.declarationFlagsFilter, isReference = false)
     private val variableNameData = VariableNameData(options.normalizeNames)
@@ -44,6 +46,14 @@ open class RenderIrElementVisitor(private val options: DumpIrTreeOptions = DumpI
         } finally {
             hideParameterNames = oldHideParameterNames
         }
+    }
+
+    fun renderFileEntry(fileEntry: IrFileEntry): String {
+        val fullPath = fileEntry.name
+        val renderedPath = if (options.printFilePath) fullPath else File(fullPath).name
+
+        // TODO: use offsets in IR deserialization tests, KT-73171
+        return "FILE_ENTRY path:$renderedPath"
     }
 
     fun renderType(type: IrType) = type.renderTypeWithRenderer(this@RenderIrElementVisitor, options)
@@ -66,7 +76,7 @@ open class RenderIrElementVisitor(private val options: DumpIrTreeOptions = DumpI
         private val variableNameData: VariableNameData,
         private val hideParameterNames: Boolean,
         private val options: DumpIrTreeOptions,
-    ) : IrElementVisitor<String, Nothing?> {
+    ) : IrVisitor<String, Nothing?>() {
 
         private val flagsRenderer = FlagsRenderer(options.declarationFlagsFilter, isReference = true)
 

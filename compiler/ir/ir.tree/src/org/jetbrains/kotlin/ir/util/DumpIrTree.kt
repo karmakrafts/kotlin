@@ -23,8 +23,8 @@ import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
 import org.jetbrains.kotlin.ir.types.IrType
-import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
-import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
+import org.jetbrains.kotlin.ir.visitors.IrVisitor
+import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.SpecialNames.IMPLICIT_SET_PARAMETER
@@ -152,7 +152,7 @@ internal fun List<IrDeclaration>.stableOrdered(): List<IrDeclaration> {
 class DumpIrTreeVisitor(
     out: Appendable,
     private val options: DumpIrTreeOptions = DumpIrTreeOptions(),
-) : IrElementVisitor<Unit, String> {
+) : IrVisitor<Unit, String>() {
 
     private val printer = Printer(out, "  ")
     private val elementRenderer = RenderIrElementVisitor(options)
@@ -383,7 +383,8 @@ class DumpIrTreeVisitor(
 
     override fun visitInlinedFunctionBlock(inlinedBlock: IrInlinedFunctionBlock, data: String) {
         inlinedBlock.dumpLabeledElementWith(data) {
-            inlinedBlock.inlineFunctionSymbol?.dumpInternal("inlineFunctionSymbol")
+            inlinedBlock.inlinedFunctionSymbol?.dumpInternal("inlinedFunctionSymbol")
+            inlinedBlock.inlinedFunctionFileEntry.dumpInternal("inlinedFunctionFileEntry")
             inlinedBlock.acceptChildren(this, "")
         }
     }
@@ -527,7 +528,12 @@ class DumpIrTreeVisitor(
         } else {
             printer.println(accept(elementRenderer, null))
         }
+    }
 
+    private fun IrFileEntry.dumpInternal(label: String? = null) {
+        val prefix = if (label != null) "$label: " else ""
+        val renderedText = elementRenderer.renderFileEntry(this)
+        printer.println(prefix + renderedText)
     }
 
     private inline fun indented(label: String, body: () -> Unit) {
@@ -550,7 +556,7 @@ class DumpTreeFromSourceLineVisitor(
     private val lineNumber: Int,
     out: Appendable,
     options: DumpIrTreeOptions,
-) : IrElementVisitorVoid {
+) : IrVisitorVoid() {
     private val dumper = DumpIrTreeVisitor(out, options)
 
     override fun visitElement(element: IrElement) {

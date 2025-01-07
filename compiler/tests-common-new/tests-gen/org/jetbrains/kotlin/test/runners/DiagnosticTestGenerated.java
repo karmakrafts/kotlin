@@ -706,6 +706,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
     }
 
     @Test
+    @TestMetadata("genericTypeMismatch.kt")
+    public void testGenericTypeMismatch() {
+      runTest("compiler/testData/diagnostics/tests/genericTypeMismatch.kt");
+    }
+
+    @Test
     @TestMetadata("IdentityComparisonWithPrimitives.kt")
     public void testIdentityComparisonWithPrimitives() {
       runTest("compiler/testData/diagnostics/tests/IdentityComparisonWithPrimitives.kt");
@@ -27704,12 +27710,6 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       }
 
       @Test
-      @TestMetadata("actualExternalInJs.kt")
-      public void testActualExternalInJs() {
-        runTest("compiler/testData/diagnostics/tests/multiplatform/actualExternalInJs.kt");
-      }
-
-      @Test
       @TestMetadata("actualMissingConstructor.kt")
       public void testActualMissingConstructor() {
         runTest("compiler/testData/diagnostics/tests/multiplatform/actualMissingConstructor.kt");
@@ -27979,12 +27979,6 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       }
 
       @Test
-      @TestMetadata("expectShouldBeJSExportable.kt")
-      public void testExpectShouldBeJSExportable() {
-        runTest("compiler/testData/diagnostics/tests/multiplatform/expectShouldBeJSExportable.kt");
-      }
-
-      @Test
       @TestMetadata("expectTailrec.kt")
       public void testExpectTailrec() {
         runTest("compiler/testData/diagnostics/tests/multiplatform/expectTailrec.kt");
@@ -28045,12 +28039,6 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       }
 
       @Test
-      @TestMetadata("JsExternalTypeExtendsActualExternalType.kt")
-      public void testJsExternalTypeExtendsActualExternalType() {
-        runTest("compiler/testData/diagnostics/tests/multiplatform/JsExternalTypeExtendsActualExternalType.kt");
-      }
-
-      @Test
       @TestMetadata("jvmOverloads.kt")
       public void testJvmOverloads() {
         runTest("compiler/testData/diagnostics/tests/multiplatform/jvmOverloads.kt");
@@ -28102,6 +28090,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       @TestMetadata("kt64166.kt")
       public void testKt64166() {
         runTest("compiler/testData/diagnostics/tests/multiplatform/kt64166.kt");
+      }
+
+      @Test
+      @TestMetadata("kt72704.kt")
+      public void testKt72704() {
+        runTest("compiler/testData/diagnostics/tests/multiplatform/kt72704.kt");
       }
 
       @Test

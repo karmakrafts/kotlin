@@ -42,8 +42,8 @@ import org.jetbrains.kotlin.util.metadataVersion
 abstract class AbstractNativeKlibSerializerFacade(
     testServices: TestServices
 ) : IrBackendFacade<BinaryArtifacts.KLib>(testServices, ArtifactKinds.KLib) {
-    final override fun shouldRunAnalysis(module: TestModule): Boolean {
-        return module.backendKind == inputKind && SKIP_GENERATING_KLIB !in module.directives
+    final override fun shouldTransform(module: TestModule): Boolean {
+        return testServices.defaultsProvider.backendKind == inputKind && SKIP_GENERATING_KLIB !in module.directives
     }
 
     final override fun transform(module: TestModule, inputArtifact: IrBackendInput): BinaryArtifacts.KLib {
@@ -110,7 +110,7 @@ class ClassicNativeKlibSerializerFacade(testServices: TestServices) : AbstractNa
     ): SerializerOutput<KotlinLibrary> {
         testServices.assertions.assertTrue(inputArtifact.metadataSerializer == null) { "unexpected single-file metadata serializer" }
 
-        val frontendOutput = testServices.dependencyProvider.getArtifact(module, FrontendKinds.ClassicFrontend)
+        val frontendOutput = testServices.artifactsProvider.getArtifact(module, FrontendKinds.ClassicFrontend)
 
         val serializedMetadata = KlibMetadataMonolithicSerializer(
             configuration.languageVersionSettings,

@@ -132,7 +132,7 @@ class IrMangledNameAndSignatureDumpHandler(
 
     private fun computeDumpExtension(): String {
         return if (
-            testServices.defaultsProvider.defaultFrontend == FrontendKinds.ClassicFrontend ||
+            testServices.defaultsProvider.frontendKind == FrontendKinds.ClassicFrontend ||
             separateSignatureDirectiveNotPresent(testServices)
         ) {
             DUMP_EXTENSION
@@ -173,7 +173,6 @@ class IrMangledNameAndSignatureDumpHandler(
             dumper,
             KotlinLikeDumpOptions(
                 customDumpStrategy = DumpStrategy(
-                    module,
                     info.irMangler,
                     info.descriptorMangler,
                     info.irPluginContext.irBuiltIns,
@@ -194,7 +193,7 @@ class IrMangledNameAndSignatureDumpHandler(
             assertions.assertFileDoesntExist(expectedFile, DUMP_SIGNATURES)
             return
         }
-        val frontendKind = testServices.defaultsProvider.defaultFrontend
+        val frontendKind = testServices.defaultsProvider.frontendKind
         val muteDirectives = listOfNotNull(
             MUTE_SIGNATURE_COMPARISON_K2.takeIf { frontendKind == FrontendKinds.FIR },
         )
@@ -204,14 +203,13 @@ class IrMangledNameAndSignatureDumpHandler(
     }
 
     private inner class DumpStrategy(
-        val module: TestModule,
         val irMangler: KotlinMangler.IrMangler,
         val descriptorMangler: KotlinMangler.DescriptorMangler?,
         val irBuiltIns: IrBuiltIns,
     ) : CustomKotlinLikeDumpStrategy {
 
         private val targetBackend: TargetBackend
-            get() = module.targetBackend!!
+            get() = testServices.defaultsProvider.targetBackend!!
 
         private val IrDeclaration.isFunctionWithNonUnitReturnType: Boolean
             get() = this is IrSimpleFunction && !returnType.isUnit()

@@ -26,7 +26,6 @@ import org.jetbrains.kotlin.js.config.incrementalDataProvider
 import org.jetbrains.kotlin.test.TargetBackend
 import org.jetbrains.kotlin.test.backend.ir.IrBackendInput
 import org.jetbrains.kotlin.test.directives.CodegenTestDirectives
-import org.jetbrains.kotlin.test.directives.JsEnvironmentConfigurationDirectives
 import org.jetbrains.kotlin.test.model.BackendKinds
 import org.jetbrains.kotlin.test.model.Frontend2BackendConverter
 import org.jetbrains.kotlin.test.model.FrontendKinds
@@ -47,11 +46,11 @@ class ClassicFrontend2IrConverter(
         get() = listOf(service(::LibraryProvider))
 
     override fun transform(module: TestModule, inputArtifact: ClassicFrontendOutputArtifact): IrBackendInput {
-        return when (module.targetBackend) {
+        return when (val targetBackend = testServices.defaultsProvider.targetBackend) {
             TargetBackend.JVM_IR, TargetBackend.JVM_IR_SERIALIZE -> transformToJvmIr(module, inputArtifact)
             TargetBackend.JS_IR, TargetBackend.JS_IR_ES6 -> transformToJsIr(module, inputArtifact)
             TargetBackend.WASM -> transformToWasmIr(module, inputArtifact)
-            else -> testServices.assertions.fail { "Target backend ${module.targetBackend} not supported for transformation into IR" }
+            else -> testServices.assertions.fail { "Target backend $targetBackend not supported for transformation into IR" }
         }
     }
 
@@ -83,7 +82,6 @@ class ClassicFrontend2IrConverter(
         val (psiFiles, analysisResult, project, _) = inputArtifact
 
         val configuration = testServices.compilerConfigurationProvider.getCompilerConfiguration(module)
-        val verifySignatures = JsEnvironmentConfigurationDirectives.SKIP_MANGLE_VERIFICATION !in module.directives
 
         val sourceFiles = psiFiles.values.toList()
         val icData = configuration.incrementalDataProvider?.getSerializedData(sourceFiles) ?: emptyList()
@@ -96,7 +94,6 @@ class ClassicFrontend2IrConverter(
             sortDependencies(JsEnvironmentConfigurator.getAllDependenciesMappingFor(module, testServices)),
             icData,
             IrFactoryImpl,
-            verifySignatures
         ) {
             testServices.libraryProvider.getDescriptorByCompiledLibrary(it)
         }
@@ -129,7 +126,6 @@ class ClassicFrontend2IrConverter(
         val (psiFiles, analysisResult, project, _) = inputArtifact
 
         val configuration = testServices.compilerConfigurationProvider.getCompilerConfiguration(module)
-        val verifySignatures = JsEnvironmentConfigurationDirectives.SKIP_MANGLE_VERIFICATION !in module.directives
 
         val sourceFiles = psiFiles.values.toList()
         val icData = configuration.incrementalDataProvider?.getSerializedData(sourceFiles) ?: emptyList()
@@ -142,7 +138,6 @@ class ClassicFrontend2IrConverter(
             sortDependencies(WasmEnvironmentConfigurator.getAllDependenciesMappingFor(module, testServices)),
             icData,
             IrFactoryImpl,
-            verifySignatures
         ) {
             testServices.libraryProvider.getDescriptorByCompiledLibrary(it)
         }

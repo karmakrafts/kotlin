@@ -674,6 +674,34 @@ public class FirLightTreeJsOldFrontendDiagnosticsTestGenerated extends AbstractF
   }
 
   @Nested
+  @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/mpp")
+  @TestDataPath("$PROJECT_ROOT")
+  public class Mpp {
+    @Test
+    @TestMetadata("actualExternalInJs.kt")
+    public void testActualExternalInJs() {
+      runTest("compiler/testData/diagnostics/testsWithJsStdLib/mpp/actualExternalInJs.kt");
+    }
+
+    @Test
+    public void testAllFilesPresentInMpp() {
+      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/diagnostics/testsWithJsStdLib/mpp"), Pattern.compile("^([^_](.+))\\.kt$"), Pattern.compile("^(.+)\\.fir\\.kts?$"), TargetBackend.JS_IR, true);
+    }
+
+    @Test
+    @TestMetadata("expectShouldBeJSExportable.kt")
+    public void testExpectShouldBeJSExportable() {
+      runTest("compiler/testData/diagnostics/testsWithJsStdLib/mpp/expectShouldBeJSExportable.kt");
+    }
+
+    @Test
+    @TestMetadata("JsExternalTypeExtendsActualExternalType.kt")
+    public void testJsExternalTypeExtendsActualExternalType() {
+      runTest("compiler/testData/diagnostics/testsWithJsStdLib/mpp/JsExternalTypeExtendsActualExternalType.kt");
+    }
+  }
+
+  @Nested
   @TestMetadata("compiler/testData/diagnostics/testsWithJsStdLib/name")
   @TestDataPath("$PROJECT_ROOT")
   public class Name {

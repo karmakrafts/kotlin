@@ -14,6 +14,7 @@ import org.jetbrains.kotlin.test.TargetBackend
 import org.jetbrains.kotlin.test.services.TestServices
 import org.jetbrains.kotlin.test.services.configuration.WasmEnvironmentConfigurator
 import org.jetbrains.kotlin.test.services.defaultDirectives
+import org.jetbrains.kotlin.test.services.defaultsProvider
 import org.jetbrains.kotlin.test.services.moduleStructure
 import org.jetbrains.kotlin.test.utils.SteppingTestLoggedData
 import org.jetbrains.kotlin.test.utils.checkSteppingTestResult
@@ -197,8 +198,8 @@ class WasmDebugRunner(testServices: TestServices) : AbstractWasmArtifactsCollect
                 }
 
                 checkSteppingTestResult(
-                    frontendKind = mainModule.frontendKind,
-                    mainModule.targetBackend ?: TargetBackend.WASM,
+                    frontendKind = testServices.defaultsProvider.frontendKind,
+                    testServices.defaultsProvider.targetBackend ?: TargetBackend.WASM,
                     originalFile,
                     groupedByLinesSteppingTestLoggedData,
                     testServices.defaultDirectives

@@ -38,8 +38,8 @@ class WasmLoweringFacade(
 ) : BackendFacade<IrBackendInput, BinaryArtifacts.Wasm>(testServices, BackendKinds.IrBackend, ArtifactKinds.Wasm) {
     private val supportedOptimizer: WasmOptimizer = WasmOptimizer.Binaryen
 
-    override fun shouldRunAnalysis(module: TestModule): Boolean {
-        require(module.backendKind == inputKind && module.binaryKind == outputKind)
+    override fun shouldTransform(module: TestModule): Boolean {
+        require(with(testServices.defaultsProvider) { backendKind == inputKind && artifactKind == outputKind })
         return WasmEnvironmentConfigurator.isMainModule(module, testServices)
     }
 

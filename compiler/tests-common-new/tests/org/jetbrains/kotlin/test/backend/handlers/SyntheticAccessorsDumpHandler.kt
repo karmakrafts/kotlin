@@ -20,7 +20,7 @@ import java.io.File
 
 abstract class SyntheticAccessorsDumpHandler<A : ResultingArtifact.Binary<A>>(
     testServices: TestServices,
-    artifactKind: BinaryKind<A>,
+    artifactKind: ArtifactKind<A>,
 ) : BinaryArtifactHandler<A>(
     testServices,
     artifactKind,
@@ -40,7 +40,7 @@ abstract class SyntheticAccessorsDumpHandler<A : ResultingArtifact.Binary<A>>(
         val withNarrowedVisibility = configuration.getBoolean(KlibConfigurationKeys.SYNTHETIC_ACCESSORS_WITH_NARROWED_VISIBILITY)
 
         val uniqueIrModuleNames = testModules.mapNotNull { testModule ->
-            testServices.dependencyProvider.getArtifactSafe(testModule, BackendKinds.IrBackend)?.irModuleFragment?.name
+            testServices.artifactsProvider.getArtifactSafe(testModule, BackendKinds.IrBackend)?.irModuleFragment?.name
         }.toSet()
 
         assertions.assertSyntheticAccessorDumpIsCorrect(

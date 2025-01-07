@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.ir.IrFileEntry
 import org.jetbrains.kotlin.ir.SourceRangeInfo
 import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
 import org.jetbrains.kotlin.ir.util.RenderIrElementVisitor
-import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
+import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
 import org.jetbrains.kotlin.test.Constructor
@@ -71,7 +71,7 @@ class IrSourceRangesDumpHandler(
     private class DumpSourceLocations(
         out: Appendable,
         val fileEntry: IrFileEntry
-    ) : IrElementVisitorVoid {
+    ) : IrVisitorVoid() {
         val printer = Printer(out, "  ")
         val elementRenderer = RenderIrElementVisitor()
 
@@ -115,7 +115,7 @@ class IrSourceRangesDumpHandler(
     override fun processAfterAllModules(someAssertionWasFailed: Boolean) {
         val moduleStructure = testServices.moduleStructure
         val defaultExpectedFile = moduleStructure.originalTestDataFiles.first()
-            .withExtension(moduleStructure.modules.first().getDumpExtension())
+            .withExtension(getDumpExtension())
         checkOneExpectedFile(defaultExpectedFile, baseDumper.generateResultingDump())
         buildersForSeparateFileDumps.entries.forEach { (expectedFile, dump) -> checkOneExpectedFile(expectedFile, dump.toString()) }
     }
@@ -128,7 +128,7 @@ class IrSourceRangesDumpHandler(
         }
     }
 
-    private fun TestModule.getDumpExtension(ignoreFirIdentical: Boolean = false): String {
-        return IrTextDumpHandler.computeDumpExtension(this, DUMP_EXTENSION, ignoreFirIdentical)
+    private fun getDumpExtension(ignoreFirIdentical: Boolean = false): String {
+        return IrTextDumpHandler.computeDumpExtension(testServices, DUMP_EXTENSION, ignoreFirIdentical)
     }
 }

@@ -28,7 +28,7 @@ import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.util.isNullable
 import org.jetbrains.kotlin.ir.util.isSubtypeOfClass
-import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
+import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
 import org.jetbrains.kotlin.konan.ForeignExceptionMode
@@ -90,7 +90,7 @@ internal val IrField.needsGCRegistration
 
 internal fun IrSimpleFunction.shouldGenerateBody(): Boolean = modality != Modality.ABSTRACT && !isExternal
 
-internal class RTTIGeneratorVisitor(generationState: NativeGenerationState, referencedFunctions: Set<IrSimpleFunction>?) : IrElementVisitorVoid {
+internal class RTTIGeneratorVisitor(generationState: NativeGenerationState, referencedFunctions: Set<IrSimpleFunction>?) : IrVisitorVoid() {
     val generator = RTTIGenerator(generationState, referencedFunctions)
 
     val kotlinObjCClassInfoGenerator = KotlinObjCClassInfoGenerator(generationState)
@@ -217,7 +217,7 @@ internal class CodeGeneratorVisitor(
         val generationState: NativeGenerationState,
         val irBuiltins: IrBuiltIns,
         val lifetimes: Map<IrElement, Lifetime>
-) : IrElementVisitorVoid {
+) : IrVisitorVoid() {
     private val context = generationState.context
     private val llvm = generationState.llvm
     private val debugInfo: DebugInfo
@@ -1933,17 +1933,17 @@ internal class CodeGeneratorVisitor(
 
     //-------------------------------------------------------------------------//
 
-    private inner class InlinedBlockScope(val inlinedBlock: IrInlinedFunctionBlock) : FileScope(file = null, inlinedBlock.fileEntry) {
+    private inner class InlinedBlockScope(val inlinedBlock: IrInlinedFunctionBlock) : FileScope(file = null, inlinedBlock.inlinedFunctionFileEntry) {
 
         private val inlineFunctionScope: DIScopeOpaqueRef? by lazy {
-            val owner = inlinedBlock.inlineFunctionSymbol?.owner
+            val owner = inlinedBlock.inlinedFunctionSymbol?.owner
             if (owner == null) {
                 @Suppress("UNCHECKED_CAST")
                 return@lazy debugInfo.diFunctionScope(
-                        inlinedBlock.fileEntry,
+                        inlinedBlock.inlinedFunctionFileEntry,
                         name = "<inlined-lambda>",
                         linkageName = "<inlined-lambda>",
-                        inlinedBlock.fileEntry.line(inlinedBlock.inlinedFunctionStartOffset),
+                        inlinedBlock.inlinedFunctionFileEntry.line(inlinedBlock.inlinedFunctionStartOffset),
                         debugInfo.subroutineType(debugInfo.llvmTargetData, listOf(inlinedBlock.type)),
                         nodebug = false,
                         isTransparentStepping = false
@@ -1966,7 +1966,7 @@ internal class CodeGeneratorVisitor(
         }
 
         override fun wrapException(e: Exception): NativeCodeGeneratorException {
-            return NativeCodeGeneratorException.wrap(e, inlinedBlock.inlineFunctionSymbol?.owner)
+            return NativeCodeGeneratorException.wrap(e, inlinedBlock.inlinedFunctionSymbol?.owner)
         }
     }
 

@@ -330,7 +330,10 @@ class NewConstraintSystemImpl(
         @OptIn(AssertionsOnly::class)
         storage.outerCS = outerSystem
 
-        addOtherSystem(outerSystem, isAddingOuter = true)
+        @OptIn(AssertionsOnly::class)
+        runOuterCSRelatedAssertions(outerSystem, isAddingOuter = true)
+
+        doAddOtherSystem(outerSystem)
     }
 
     @K2Only
@@ -350,32 +353,39 @@ class NewConstraintSystemImpl(
     }
 
     override fun addOtherSystem(otherSystem: ConstraintStorage) {
-        addOtherSystem(otherSystem, isAddingOuter = false)
+        @OptIn(AssertionsOnly::class)
+        runOuterCSRelatedAssertions(otherSystem, isAddingOuter = false)
+
+        doAddOtherSystem(otherSystem)
     }
 
     fun replaceContentWith(otherSystem: ConstraintStorage) {
-        addOtherSystem(otherSystem, isAddingOuter = false, replacingContent = true)
+        @OptIn(AssertionsOnly::class)
+        runOuterCSRelatedAssertions(otherSystem, isAddingOuter = false)
+
+        // Clean all existing data
+        // NB: `postponedTypeVariables` is always empty in K2/PCLA, thus no need to clear it
+        notFixedTypeVariables.clear()
+        typeVariableDependencies.clear()
+        storage.initialConstraints.clear()
+        storage.errors.clear()
+        storage.constraintsFromAllForkPoints.clear()
+
+        // There's no need to clean `allTypeVariables` as `otherSystem.allTypeVariables` is expected to be a superset of what we've got
+        if (AbstractTypeChecker.RUN_SLOW_ASSERTIONS) {
+            check(otherSystem.allTypeVariables.keys.containsAll(storage.allTypeVariables.keys))
+        }
+
+        doAddOtherSystem(otherSystem)
     }
 
-    private fun addOtherSystem(otherSystem: ConstraintStorage, isAddingOuter: Boolean, replacingContent: Boolean = false) {
-        @OptIn(AssertionsOnly::class)
-        runOuterCSRelatedAssertions(otherSystem, isAddingOuter)
-
+    private fun doAddOtherSystem(otherSystem: ConstraintStorage) {
         if (otherSystem.allTypeVariables.isNotEmpty()) {
             otherSystem.allTypeVariables.forEach {
                 transactionRegisterVariable(it.value)
             }
             storage.allTypeVariables.putAll(otherSystem.allTypeVariables)
             notProperTypesCache.clear()
-        }
-
-        if (replacingContent) {
-            notFixedTypeVariables.clear()
-            typeVariableDependencies.clear()
-            storage.initialConstraints.clear()
-            storage.errors.clear()
-            storage.constraintsFromAllForkPoints.clear()
-            // NB: `postponedTypeVariables` can't be non-empty in K2/PCLA, thus no need to clear it
         }
 
         for ((variable, constraints) in otherSystem.notFixedTypeVariables) {
@@ -385,7 +395,6 @@ class NewConstraintSystemImpl(
         for ((variable, variablesThatReferenceGivenOne) in otherSystem.typeVariableDependencies) {
             typeVariableDependencies[variable] = variablesThatReferenceGivenOne.toMutableSet()
         }
-
 
         storage.initialConstraints.addAll(otherSystem.initialConstraints)
 

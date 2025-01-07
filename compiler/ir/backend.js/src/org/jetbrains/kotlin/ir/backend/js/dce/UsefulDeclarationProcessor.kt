@@ -14,7 +14,7 @@ import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.types.classifierOrNull
 import org.jetbrains.kotlin.ir.util.*
-import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
+import org.jetbrains.kotlin.ir.visitors.IrVisitor
 import java.io.File
 import java.util.*
 
@@ -32,7 +32,7 @@ abstract class UsefulDeclarationProcessor(
     protected abstract fun isExported(declaration: IrDeclaration): Boolean
     protected abstract val bodyVisitor: BodyVisitorBase
 
-    protected abstract inner class BodyVisitorBase : IrElementVisitor<Unit, IrDeclaration> {
+    protected abstract inner class BodyVisitorBase : IrVisitor<Unit, IrDeclaration>() {
         override fun visitValueAccess(expression: IrValueAccessExpression, data: IrDeclaration) {
             visitDeclarationReference(expression, data)
             expression.symbol.owner.enqueue(data, "variable access")
@@ -54,7 +54,7 @@ abstract class UsefulDeclarationProcessor(
 
         override fun visitInlinedFunctionBlock(inlinedBlock: IrInlinedFunctionBlock, data: IrDeclaration) {
             super.visitInlinedFunctionBlock(inlinedBlock, data)
-            inlinedBlock.inlineFunctionSymbol?.owner?.addToUsefulPolyfilledDeclarations()
+            inlinedBlock.inlinedFunctionSymbol?.owner?.addToUsefulPolyfilledDeclarations()
         }
 
         override fun visitFieldAccess(expression: IrFieldAccessExpression, data: IrDeclaration) {

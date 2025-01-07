@@ -27,8 +27,8 @@ class IrInlinedFunctionBlockImpl internal constructor(
     override var origin: IrStatementOrigin?,
     override var inlinedFunctionStartOffset: Int,
     override var inlinedFunctionEndOffset: Int,
-    override var inlineFunctionSymbol: IrFunctionSymbol?,
-    override var fileEntry: IrFileEntry,
+    override var inlinedFunctionSymbol: IrFunctionSymbol?,
+    override var inlinedFunctionFileEntry: IrFileEntry,
 ) : IrInlinedFunctionBlock() {
     override var attributeOwnerId: IrElement = this
 
