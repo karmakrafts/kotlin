@@ -219,7 +219,7 @@ object FirDiagnosticRenderers {
                 }
 
                 val simpleRepresentationsByConstructor: Map<TypeConstructorMarker, String> = constructors.associateWith {
-                    buildString { ConeTypeRendererForReadability(this) { ConeIdRendererForDiagnostics() }.renderConstructor(it) }
+                    buildString { ConeTypeRendererForReadability(this) { ConeIdShortRenderer() }.renderConstructor(it) }
                 }
 
                 val constructorsByRepresentation: Map<String, List<TypeConstructorMarker>> =
@@ -229,17 +229,24 @@ object FirDiagnosticRenderers {
                     val representation = simpleRepresentationsByConstructor.getValue(it)
 
                     val typesWithSameRepresentation = constructorsByRepresentation.getValue(representation)
-                    if (typesWithSameRepresentation.size == 1 && typesWithSameRepresentation.single() !is ConeTypeParameterLookupTag) {
+                    val isAmbiguous = typesWithSameRepresentation.size > 1
+
+                    if (!isAmbiguous && typesWithSameRepresentation.single() !is ConeTypeParameterLookupTag) {
                         return@associateWith "$representation^"
                     }
 
-                    val index = typesWithSameRepresentation.indexOf(it) + 1
-
                     buildString {
-                        append(representation)
-                        if (typesWithSameRepresentation.size > 1) {
+                        val isClassLike = it is ConeClassLikeLookupTag
+
+                        if (isClassLike && isAmbiguous) {
+                            ConeTypeRendererForReadability(this) { ConeIdRendererForDiagnostics() }.renderConstructor(it)
+                        } else {
+                            append(representation)
+                        }
+
+                        if (!isClassLike && isAmbiguous) {
                             append('#')
-                            append(index)
+                            append(typesWithSameRepresentation.indexOf(it) + 1)
                         }
                         // Special symbol to be replaced with a nullability marker, like "", "?", "!", or maybe something else in future
                         append("^")
@@ -323,8 +330,13 @@ object FirDiagnosticRenderers {
         if (!it.isNullOrBlank()) " for operator '$it'" else ""
     }
 
-    val SYMBOL_WITH_CONTAINING_DECLARATION = Renderer { symbol: FirCallableSymbol<*> ->
-        "'${SYMBOL.render(symbol)}' defined in ${NAME_OF_CONTAINING_DECLARATION_OR_FILE.render(symbol.callableId)}"
+    val SYMBOL_WITH_CONTAINING_DECLARATION = Renderer { symbol: FirBasedSymbol<*> ->
+        val containingClassId = when (symbol) {
+            is FirCallableSymbol<*> -> symbol.callableId.classId
+            is FirTypeParameterSymbol -> (symbol.containingDeclarationSymbol as? FirClassLikeSymbol<*>)?.classId
+            else -> null
+        }
+        "'${SYMBOL.render(symbol)}' defined in ${NAME_OF_DECLARATION_OR_FILE.render(containingClassId)}"
     }
 
     val SYMBOL_KIND = Renderer { symbol: FirBasedSymbol<*> ->

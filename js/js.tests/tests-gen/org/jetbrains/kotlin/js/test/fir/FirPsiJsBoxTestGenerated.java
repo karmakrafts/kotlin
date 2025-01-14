@@ -2138,6 +2138,12 @@ public class FirPsiJsBoxTestGenerated extends AbstractFirPsiJsBoxTest {
       }
 
       @Test
+      @TestMetadata("eagerInitializationGlobal4.kt")
+      public void testEagerInitializationGlobal4() {
+        runTest("js/js.translator/testData/box/esModules/crossModuleRefPerFile/eagerInitializationGlobal4.kt");
+      }
+
+      @Test
       @TestMetadata("inheritance.kt")
       public void testInheritance() {
         runTest("js/js.translator/testData/box/esModules/crossModuleRefPerFile/inheritance.kt");
@@ -2554,6 +2560,12 @@ public class FirPsiJsBoxTestGenerated extends AbstractFirPsiJsBoxTest {
       }
 
       @Test
+      @TestMetadata("overridingDefaultMethod.kt")
+      public void testOverridingDefaultMethod() {
+        runTest("js/js.translator/testData/box/esModules/jsExport/overridingDefaultMethod.kt");
+      }
+
+      @Test
       @TestMetadata("packages.kt")
       public void testPackages() {
         runTest("js/js.translator/testData/box/esModules/jsExport/packages.kt");
@@ -2569,6 +2581,12 @@ public class FirPsiJsBoxTestGenerated extends AbstractFirPsiJsBoxTest {
       @TestMetadata("privateInnerClass.kt")
       public void testPrivateInnerClass() {
         runTest("js/js.translator/testData/box/esModules/jsExport/privateInnerClass.kt");
+      }
+
+      @Test
+      @TestMetadata("privateNestedDataClass.kt")
+      public void testPrivateNestedDataClass() {
+        runTest("js/js.translator/testData/box/esModules/jsExport/privateNestedDataClass.kt");
       }
 
       @Test
@@ -7524,6 +7542,12 @@ public class FirPsiJsBoxTestGenerated extends AbstractFirPsiJsBoxTest {
     @TestMetadata("jsExportInClass.kt")
     public void testJsExportInClass() {
       runTest("js/js.translator/testData/box/jsExport/jsExportInClass.kt");
+    }
+
+    @Test
+    @TestMetadata("privateNestedDataClass.kt")
+    public void testPrivateNestedDataClass() {
+      runTest("js/js.translator/testData/box/jsExport/privateNestedDataClass.kt");
     }
 
     @Test

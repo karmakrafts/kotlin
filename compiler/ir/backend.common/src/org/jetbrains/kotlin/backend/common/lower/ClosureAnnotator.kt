@@ -296,6 +296,17 @@ class ClosureAnnotator(irElement: IrElement, declaration: IrDeclaration) {
             processMemberAccess(expression.function, data)
         }
 
+        override fun visitRichFunctionReference(expression: IrRichFunctionReference, data: ClosureBuilder?) {
+            super.visitRichFunctionReference(expression, data)
+            processMemberAccess(expression.invokeFunction, data)
+        }
+
+        override fun visitRichPropertyReference(expression: IrRichPropertyReference, data: ClosureBuilder?) {
+            super.visitRichPropertyReference(expression, data)
+            processMemberAccess(expression.getterFunction, data)
+            expression.setterFunction?.let { processMemberAccess(it, data) }
+        }
+
         override fun visitPropertyReference(expression: IrPropertyReference, data: ClosureBuilder?) {
             super.visitPropertyReference(expression, data)
             expression.getter?.let { processMemberAccess(it.owner, data) }
@@ -313,10 +324,13 @@ class ClosureAnnotator(irElement: IrElement, declaration: IrDeclaration) {
         private fun processScriptCapturing(receiverExpression: IrExpression?, declaration: IrDeclaration, data: ClosureBuilder?) {
             if (receiverExpression == null) {
                 val parent = declaration.parent
-                if (parent is IrScript) {
-                    data?.seeVariable(parent.thisReceiver!!.symbol)
-                } else if (parent is IrClass && parent.origin == IrDeclarationOrigin.SCRIPT_CLASS) {
-                    data?.seeVariable(parent.thisReceiver!!.symbol)
+                when (parent) {
+                    is IrScript -> {
+                        data?.seeVariable(parent.thisReceiver!!.symbol)
+                    }
+                    is IrClass if (parent.origin == IrDeclarationOrigin.SCRIPT_CLASS || parent.origin == IrDeclarationOrigin.REPL_FROM_OTHER_SNIPPET) -> {
+                        data?.seeVariable(parent.thisReceiver!!.symbol)
+                    }
                 }
             }
         }

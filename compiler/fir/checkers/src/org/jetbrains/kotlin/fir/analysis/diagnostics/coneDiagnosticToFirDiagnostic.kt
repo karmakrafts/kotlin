@@ -330,11 +330,11 @@ private fun mapInapplicableCandidateError(
             is UnitReturnTypeLambdaContradictsExpectedType -> {
                 FirErrors.ARGUMENT_TYPE_MISMATCH.createOn(
                     rootCause.sourceForFunctionExpression ?: rootCause.lambda.source ?: source,
-                    rootCause.wholeLambdaExpectedType.substituteTypeVariableTypes(
+                    rootCause.lambda.typeRef.coneType.substituteTypeVariableTypes(
                         diagnostic.candidate,
                         typeContext,
                     ),
-                    rootCause.lambda.typeRef.coneType.substituteTypeVariableTypes(
+                    rootCause.wholeLambdaExpectedType.substituteTypeVariableTypes(
                         diagnostic.candidate,
                         typeContext,
                     ),
@@ -491,9 +491,9 @@ private fun diagnosticForArgumentTypeMismatch(
     } else {
         FirErrors.ARGUMENT_TYPE_MISMATCH.createOn(
             source,
-            expectedType,
             // For lambda expressions, use their resolved type because `rootCause.actualType` can contain unresolved types
             actualType,
+            expectedType,
             isMismatchDueToNullability
         )
     }
@@ -778,6 +778,7 @@ private fun ConeSimpleDiagnostic.getFactory(source: KtSourceElement?): KtDiagnos
         DiagnosticKind.NotASupertype -> FirErrors.NOT_A_SUPERTYPE
         DiagnosticKind.SuperNotAvailable -> FirErrors.SUPER_NOT_AVAILABLE
         DiagnosticKind.AnnotationInWhereClause -> FirErrors.ANNOTATION_IN_WHERE_CLAUSE_ERROR
+        DiagnosticKind.MultipleAnnotationWithAllTarget -> FirErrors.INAPPLICABLE_ALL_TARGET_IN_MULTI_ANNOTATION
         DiagnosticKind.UnresolvedSupertype,
         DiagnosticKind.UnresolvedExpandedType,
         DiagnosticKind.Other -> FirErrors.OTHER_ERROR

@@ -6352,27 +6352,34 @@ public final class kotlin/time/TimedValue {
 public abstract interface annotation class kotlin/uuid/ExperimentalUuidApi : java/lang/annotation/Annotation {
 }
 
-public final class kotlin/uuid/Uuid : java/io/Serializable {
+public final class kotlin/uuid/Uuid : java/io/Serializable, java/lang/Comparable {
 	public static final field Companion Lkotlin/uuid/Uuid$Companion;
 	public static final field SIZE_BITS I
 	public static final field SIZE_BYTES I
+	public synthetic fun <init> (JJLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun compareTo (Ljava/lang/Object;)I
+	public fun compareTo (Lkotlin/uuid/Uuid;)I
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getLeastSignificantBits ()J
 	public final fun getMostSignificantBits ()J
 	public fun hashCode ()I
 	public final fun toByteArray ()[B
+	public final fun toHexDashString ()Ljava/lang/String;
 	public final fun toHexString ()Ljava/lang/String;
 	public fun toString ()Ljava/lang/String;
+	public final fun toUByteArray-TcUX1vc ()[B
 }
 
 public final class kotlin/uuid/Uuid$Companion {
 	public final fun fromByteArray ([B)Lkotlin/uuid/Uuid;
 	public final fun fromLongs (JJ)Lkotlin/uuid/Uuid;
+	public final fun fromUByteArray-GBYM_sE ([B)Lkotlin/uuid/Uuid;
 	public final fun fromULongs-eb3DHEI (JJ)Lkotlin/uuid/Uuid;
 	public final fun getLEXICAL_ORDER ()Ljava/util/Comparator;
 	public final fun getNIL ()Lkotlin/uuid/Uuid;
 	public final fun parse (Ljava/lang/String;)Lkotlin/uuid/Uuid;
 	public final fun parseHex (Ljava/lang/String;)Lkotlin/uuid/Uuid;
+	public final fun parseHexDash (Ljava/lang/String;)Lkotlin/uuid/Uuid;
 	public final fun random ()Lkotlin/uuid/Uuid;
 }
 

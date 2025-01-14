@@ -1646,33 +1646,9 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
       }
 
       @Test
-      @TestMetadata("cyclicSupertype3.kt")
-      public void testCyclicSupertype3() {
-        runTest("compiler/fir/analysis-tests/testData/resolve/classpathSubstitution/cyclicSupertype3.kt");
-      }
-
-      @Test
-      @TestMetadata("cyclicSupertype4.kt")
-      public void testCyclicSupertype4() {
-        runTest("compiler/fir/analysis-tests/testData/resolve/classpathSubstitution/cyclicSupertype4.kt");
-      }
-
-      @Test
       @TestMetadata("cyclicSupertypeBetweenModules.kt")
       public void testCyclicSupertypeBetweenModules() {
         runTest("compiler/fir/analysis-tests/testData/resolve/classpathSubstitution/cyclicSupertypeBetweenModules.kt");
-      }
-
-      @Test
-      @TestMetadata("cyclicSupertypeWithAlias.kt")
-      public void testCyclicSupertypeWithAlias() {
-        runTest("compiler/fir/analysis-tests/testData/resolve/classpathSubstitution/cyclicSupertypeWithAlias.kt");
-      }
-
-      @Test
-      @TestMetadata("cyclicSupertypeWithAlias2.kt")
-      public void testCyclicSupertypeWithAlias2() {
-        runTest("compiler/fir/analysis-tests/testData/resolve/classpathSubstitution/cyclicSupertypeWithAlias2.kt");
       }
     }
 
@@ -1757,6 +1733,18 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
       @TestMetadata("contextualLateinit.kt")
       public void testContextualLateinit() {
         runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/contextualLateinit.kt");
+      }
+
+      @Test
+      @TestMetadata("expectActualMatch.kt")
+      public void testExpectActualMatch() {
+        runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/expectActualMatch.kt");
+      }
+
+      @Test
+      @TestMetadata("expectActualMismatch.kt")
+      public void testExpectActualMismatch() {
+        runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/expectActualMismatch.kt");
       }
 
       @Test
@@ -3143,12 +3131,6 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
         }
 
         @Test
-        @TestMetadata("binaryOpIntStackOverflow.kt")
-        public void testBinaryOpIntStackOverflow() {
-          runTest("compiler/fir/analysis-tests/testData/resolve/expresssions/operators/binaryOpIntStackOverflow.kt");
-        }
-
-        @Test
         @TestMetadata("plus.kt")
         public void testPlus() {
           runTest("compiler/fir/analysis-tests/testData/resolve/expresssions/operators/plus.kt");
@@ -4254,21 +4236,45 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
       }
 
       @Test
-      @TestMetadata("nestedTypeAliasVisibility.kt")
-      public void testNestedTypeAliasVisibility() {
-        runTest("compiler/fir/analysis-tests/testData/resolve/nestedTypeAliases/nestedTypeAliasVisibility.kt");
+      @TestMetadata("deepInnerRHS.kt")
+      public void testDeepInnerRHS() {
+        runTest("compiler/fir/analysis-tests/testData/resolve/nestedTypeAliases/deepInnerRHS.kt");
       }
 
       @Test
-      @TestMetadata("nestedTypeAliasWithInnerRHS.kt")
-      public void testNestedTypeAliasWithInnerRHS() {
-        runTest("compiler/fir/analysis-tests/testData/resolve/nestedTypeAliases/nestedTypeAliasWithInnerRHS.kt");
+      @TestMetadata("innerRHS.kt")
+      public void testInnerRHS() {
+        runTest("compiler/fir/analysis-tests/testData/resolve/nestedTypeAliases/innerRHS.kt");
+      }
+
+      @Test
+      @TestMetadata("innerRHSandTypeArguments.kt")
+      public void testInnerRHSandTypeArguments() {
+        runTest("compiler/fir/analysis-tests/testData/resolve/nestedTypeAliases/innerRHSandTypeArguments.kt");
+      }
+
+      @Test
+      @TestMetadata("kmp.kt")
+      public void testKmp() {
+        runTest("compiler/fir/analysis-tests/testData/resolve/nestedTypeAliases/kmp.kt");
+      }
+
+      @Test
+      @TestMetadata("local.kt")
+      public void testLocal() {
+        runTest("compiler/fir/analysis-tests/testData/resolve/nestedTypeAliases/local.kt");
       }
 
       @Test
       @TestMetadata("simple.kt")
       public void testSimple() {
         runTest("compiler/fir/analysis-tests/testData/resolve/nestedTypeAliases/simple.kt");
+      }
+
+      @Test
+      @TestMetadata("visibility.kt")
+      public void testVisibility() {
+        runTest("compiler/fir/analysis-tests/testData/resolve/nestedTypeAliases/visibility.kt");
       }
     }
 
@@ -6260,6 +6266,12 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
       }
 
       @Test
+      @TestMetadata("annotationAllUseSiteTarget.kt")
+      public void testAnnotationAllUseSiteTarget() {
+        runTest("compiler/fir/analysis-tests/testData/resolveWithStdlib/annotations/annotationAllUseSiteTarget.kt");
+      }
+
+      @Test
       @TestMetadata("annotationDefaultTargetFirstOnly.kt")
       public void testAnnotationDefaultTargetFirstOnly() {
         runTest("compiler/fir/analysis-tests/testData/resolveWithStdlib/annotations/annotationDefaultTargetFirstOnly.kt");
@@ -6281,6 +6293,12 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
       @TestMetadata("annotationUseSites.kt")
       public void testAnnotationUseSites() {
         runTest("compiler/fir/analysis-tests/testData/resolveWithStdlib/annotations/annotationUseSites.kt");
+      }
+
+      @Test
+      @TestMetadata("multipleAnnotationsWithAllUseSiteTarget.kt")
+      public void testMultipleAnnotationsWithAllUseSiteTarget() {
+        runTest("compiler/fir/analysis-tests/testData/resolveWithStdlib/annotations/multipleAnnotationsWithAllUseSiteTarget.kt");
       }
     }
 

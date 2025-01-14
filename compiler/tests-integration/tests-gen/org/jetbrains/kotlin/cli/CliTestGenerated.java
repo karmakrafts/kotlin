@@ -1348,6 +1348,16 @@ public class CliTestGenerated extends AbstractCliTest {
       runTest("compiler/testData/cli/jvm/annotationDefaultTargetWithSuppressedOptInParamProperty.args");
     }
 
+    @TestMetadata("annotationTargetAll.args")
+    public void testAnnotationTargetAll() {
+      runTest("compiler/testData/cli/jvm/annotationTargetAll.args");
+    }
+
+    @TestMetadata("annotationTargetAllDisabled.args")
+    public void testAnnotationTargetAllDisabled() {
+      runTest("compiler/testData/cli/jvm/annotationTargetAllDisabled.args");
+    }
+
     @TestMetadata("apiAndLanguageVersionsUnsupported.args")
     public void testApiAndLanguageVersionsUnsupported() {
       runTest("compiler/testData/cli/jvm/apiAndLanguageVersionsUnsupported.args");
@@ -1646,6 +1656,16 @@ public class CliTestGenerated extends AbstractCliTest {
     @TestMetadata("modulesWithDependencyCycle.args")
     public void testModulesWithDependencyCycle() {
       runTest("compiler/testData/cli/jvm/modulesWithDependencyCycle.args");
+    }
+
+    @TestMetadata("nestedTypeAliasesEnabled.args")
+    public void testNestedTypeAliasesEnabled() {
+      runTest("compiler/testData/cli/jvm/nestedTypeAliasesEnabled.args");
+    }
+
+    @TestMetadata("nestedTypeAliasesError.args")
+    public void testNestedTypeAliasesError() {
+      runTest("compiler/testData/cli/jvm/nestedTypeAliasesError.args");
     }
 
     @TestMetadata("noJdkAvoidFailure.args")

@@ -4499,6 +4499,12 @@ public class K1WasmCodegenBoxTestGenerated extends AbstractK1WasmCodegenBoxTest 
       }
 
       @Test
+      @TestMetadata("kt74104.kt")
+      public void testKt74104() {
+        runTest("compiler/testData/codegen/box/callableReference/property/kt74104.kt");
+      }
+
+      @Test
       @TestMetadata("listOfStringsMapLength.kt")
       public void testListOfStringsMapLength() {
         runTest("compiler/testData/codegen/box/callableReference/property/listOfStringsMapLength.kt");
@@ -9682,12 +9688,6 @@ public class K1WasmCodegenBoxTestGenerated extends AbstractK1WasmCodegenBoxTest 
       @TestMetadata("kt22694_1_3.kt")
       public void testKt22694_1_3() {
         runTest("compiler/testData/codegen/box/coroutines/controlFlow/kt22694_1_3.kt");
-      }
-
-      @Test
-      @TestMetadata("kt72464.kt")
-      public void testKt72464() {
-        runTest("compiler/testData/codegen/box/coroutines/controlFlow/kt72464.kt");
       }
 
       @Test
@@ -30888,6 +30888,30 @@ public class K1WasmCodegenBoxTestGenerated extends AbstractK1WasmCodegenBoxTest 
     }
 
     @Test
+    @TestMetadata("eagerInitializationGlobal1.kt")
+    public void testEagerInitializationGlobal1() {
+      runTest("compiler/testData/codegen/box/properties/eagerInitializationGlobal1.kt");
+    }
+
+    @Test
+    @TestMetadata("eagerInitializationGlobal2.kt")
+    public void testEagerInitializationGlobal2() {
+      runTest("compiler/testData/codegen/box/properties/eagerInitializationGlobal2.kt");
+    }
+
+    @Test
+    @TestMetadata("eagerInitializationGlobal3.kt")
+    public void testEagerInitializationGlobal3() {
+      runTest("compiler/testData/codegen/box/properties/eagerInitializationGlobal3.kt");
+    }
+
+    @Test
+    @TestMetadata("eagerInitializationGlobal4.kt")
+    public void testEagerInitializationGlobal4() {
+      runTest("compiler/testData/codegen/box/properties/eagerInitializationGlobal4.kt");
+    }
+
+    @Test
     @TestMetadata("field.kt")
     public void testField() {
       runTest("compiler/testData/codegen/box/properties/field.kt");
@@ -41430,6 +41454,12 @@ public class K1WasmCodegenBoxTestGenerated extends AbstractK1WasmCodegenBoxTest 
     }
 
     @Test
+    @TestMetadata("callTypeAliasWithInnerRhsInStaticScope.kt")
+    public void testCallTypeAliasWithInnerRhsInStaticScope() {
+      runTest("compiler/testData/codegen/box/typealias/callTypeAliasWithInnerRhsInStaticScope.kt");
+    }
+
+    @Test
     @TestMetadata("deserializedAbbreviationWithRedundantArgument.kt")
     public void testDeserializedAbbreviationWithRedundantArgument() {
       runTest("compiler/testData/codegen/box/typealias/deserializedAbbreviationWithRedundantArgument.kt");
@@ -41499,6 +41529,18 @@ public class K1WasmCodegenBoxTestGenerated extends AbstractK1WasmCodegenBoxTest 
     @TestMetadata("kt45308.kt")
     public void testKt45308() {
       runTest("compiler/testData/codegen/box/typealias/kt45308.kt");
+    }
+
+    @Test
+    @TestMetadata("nestedTypeAliasesAndStaticScope.kt")
+    public void testNestedTypeAliasesAndStaticScope() {
+      runTest("compiler/testData/codegen/box/typealias/nestedTypeAliasesAndStaticScope.kt");
+    }
+
+    @Test
+    @TestMetadata("nestedTypeAliasesAndTypeArguments.kt")
+    public void testNestedTypeAliasesAndTypeArguments() {
+      runTest("compiler/testData/codegen/box/typealias/nestedTypeAliasesAndTypeArguments.kt");
     }
 
     @Test

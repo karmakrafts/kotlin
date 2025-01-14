@@ -42,6 +42,8 @@ internal class NativeInlineFunctionResolver(
 
         val doubleInliningEnabled = !context.config.configuration.getBoolean(KlibConfigurationKeys.NO_DOUBLE_INLINING)
 
+        UpgradeCallableReferences(context).lower(function)
+
         NativeAssertionWrapperLowering(context).lower(function)
 
         LateinitLowering(context).lower(body)
@@ -54,8 +56,6 @@ internal class NativeInlineFunctionResolver(
         // Do not extract local classes off of inline functions from cached libraries.
         // LocalClassesInInlineFunctionsLowering(context).lower(body, function)
         // LocalClassesExtractionFromInlineFunctionsLowering(context).lower(body, function)
-
-        UpgradeCallableReferences(context).lower(function)
 
         ArrayConstructorLowering(context).lower(body, function)
 

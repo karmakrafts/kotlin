@@ -36,7 +36,6 @@ object PlatformModuleProvider : ModuleStructureTransformer() {
         val dependency = DependencyDescription(module, DependencyKind.Source, DependencyRelation.DependsOnDependency)
         val platformModule = module.copy(
             name = "${module.name}-platform",
-            targetPlatform = defaultsProvider.defaultPlatform,
             allDependencies = listOf(dependency),
             files = emptyList()
         )

@@ -37,7 +37,7 @@ open class ObsoleteFirKapt4StubConverterTest : AbstractKotlinCompilerTest() {
         doOpenInternalPackagesIfRequired()
     }
 
-    override fun TestConfigurationBuilder.configuration() {
+    override fun configure(builder: TestConfigurationBuilder) = with(builder) {
         globalDefaults {
             frontend = FrontendKinds.FIR
             targetPlatform = JvmPlatforms.defaultJvmPlatform

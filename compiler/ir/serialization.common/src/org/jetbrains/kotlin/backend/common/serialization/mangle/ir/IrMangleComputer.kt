@@ -68,22 +68,20 @@ open class IrMangleComputer(
         realParent.acceptVoid(Visitor())
     }
 
-    override fun getContextReceiverTypes(function: IrFunction): List<IrType> =
+    override fun getContextParameters(function: IrFunction): List<IrValueParameter> =
         function
             .valueParameters
             .asSequence()
             .take(function.contextReceiverParametersCount)
             .filterNot { it.isHidden }
-            .map { it.type }
             .toList()
 
-    override fun getExtensionReceiverParameterType(function: IrFunction) =
+    override fun getExtensionReceiverParameter(function: IrFunction): IrValueParameter? =
         function
             .extensionReceiverParameter
             ?.takeUnless { it.isHidden }
-            ?.type
 
-    override fun getValueParameters(function: IrFunction): List<IrValueParameter> =
+    override fun getRegularParameters(function: IrFunction): List<IrValueParameter> =
         function
             .valueParameters
             .asSequence()
@@ -185,7 +183,14 @@ open class IrMangleComputer(
                 builder.appendSignature(MangleConstant.STATIC_MEMBER_MARK)
             }
 
-            accessor?.extensionReceiverParameter?.let {
+            val contextParameters = accessor?.parameters?.filter { it.kind == IrParameterKind.Context }.orEmpty()
+            if (contextParameters.isNotEmpty()) {
+                contextParameters.collectForMangler(builder, MangleConstant.VALUE_PARAMETERS) {
+                    mangleValueParameter(this, it, null)
+                }
+            }
+
+            accessor?.parameters?.firstOrNull { it.kind == IrParameterKind.ExtensionReceiver }?.let {
                 builder.appendSignature(MangleConstant.EXTENSION_RECEIVER_PREFIX)
                 mangleValueParameter(builder, it, null)
             }

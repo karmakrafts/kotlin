@@ -38,7 +38,6 @@ import org.jetbrains.kotlin.cli.jvm.modules.CliJavaModuleFinder
 import org.jetbrains.kotlin.cli.jvm.modules.CliJavaModuleResolver
 import org.jetbrains.kotlin.codegen.ClassBuilderFactories
 import org.jetbrains.kotlin.codegen.ClassBuilderMode
-import org.jetbrains.kotlin.codegen.CodegenFactory
 import org.jetbrains.kotlin.codegen.OriginCollectingClassBuilderFactory
 import org.jetbrains.kotlin.codegen.state.GenerationState
 import org.jetbrains.kotlin.config.*
@@ -146,7 +145,11 @@ fun generateCodeFromIr(
         builderFactory,
         targetId = input.targetId,
         moduleName = input.targetId.name,
-        onIndependentPartCompilationEnd = createOutputFilesFlushingCallbackIfPossible(input.configuration),
+        onIndependentPartCompilationEnd =
+            if (input.configuration.getBoolean(JVMConfigurationKeys.SKIP_BODIES)) {
+                // Do not output class file stubs to disk in the kapt mode.
+                {}
+            } else createOutputFilesFlushingCallbackIfPossible(input.configuration),
         jvmBackendClassResolver = FirJvmBackendClassResolver(input.components),
         diagnosticReporter = environment.diagnosticsReporter,
     )
@@ -154,9 +157,9 @@ fun generateCodeFromIr(
     val performanceManager = input.configuration[CLIConfigurationKeys.PERF_MANAGER]
     performanceManager?.notifyGenerationStarted()
     performanceManager?.notifyIRLoweringStarted()
-    JvmIrCodegenFactory(input.configuration).generateModuleInFrontendIRMode(
-        generationState,
+    val backendInput = JvmIrCodegenFactory.BackendInput(
         input.irModuleFragment,
+        input.pluginContext.irBuiltIns,
         input.symbolTable,
         input.components.irProviders,
         input.extensions,
@@ -164,15 +167,18 @@ fun generateCodeFromIr(
             input.components,
             input.irActualizedResult?.actualizedExpectDeclarations?.extractFirDeclarations()
         ),
-        input.pluginContext
-    ) {
-        performanceManager?.notifyIRLoweringFinished()
-        performanceManager?.notifyIRGenerationStarted()
-    }
-    CodegenFactory.doCheckCancelled(generationState)
-    generationState.factory.done()
-    performanceManager?.notifyIRGenerationFinished()
+        input.pluginContext,
+    )
 
+    val codegenFactory = JvmIrCodegenFactory(input.configuration)
+    val codegenInput = codegenFactory.invokeLowerings(generationState, backendInput)
+
+    performanceManager?.notifyIRLoweringFinished()
+    performanceManager?.notifyIRGenerationStarted()
+
+    codegenFactory.invokeCodegen(codegenInput)
+
+    performanceManager?.notifyIRGenerationFinished()
     performanceManager?.notifyGenerationFinished()
 
     return ModuleCompilerOutput(generationState, builderFactory)

@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.test.services
 
 import org.jetbrains.kotlin.platform.TargetPlatform
 import org.jetbrains.kotlin.test.TargetBackend
+import org.jetbrains.kotlin.test.TestInfrastructureInternals
 import org.jetbrains.kotlin.test.builders.LanguageVersionSettingsBuilder
 import org.jetbrains.kotlin.test.model.BackendKind
 import org.jetbrains.kotlin.test.model.ArtifactKind
@@ -17,7 +18,11 @@ class DefaultsProvider(
     val frontendKind: FrontendKind<*>,
     val backendKind: BackendKind<*>,
     private val defaultLanguageSettingsBuilder: LanguageVersionSettingsBuilder,
-    val defaultPlatform: TargetPlatform,
+    /**
+     * Prefer using [TargetPlatformProvider]
+     */
+    @property:TestInfrastructureInternals
+    val targetPlatform: TargetPlatform,
     val artifactKind: ArtifactKind<*>,
     val targetBackend: TargetBackend?,
     val defaultDependencyKind: DependencyKind

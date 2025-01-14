@@ -5,20 +5,11 @@
 
 package org.jetbrains.kotlin.test.services.impl
 
-import org.jetbrains.kotlin.config.JvmTarget
-import org.jetbrains.kotlin.platform.CommonPlatforms
-import org.jetbrains.kotlin.platform.TargetPlatform
-import org.jetbrains.kotlin.platform.js.JsPlatforms
-import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
-import org.jetbrains.kotlin.platform.jvm.isJvm
-import org.jetbrains.kotlin.platform.konan.NativePlatforms
-import org.jetbrains.kotlin.platform.wasm.WasmPlatforms
 import org.jetbrains.kotlin.test.Assertions
 import org.jetbrains.kotlin.test.TestInfrastructureInternals
 import org.jetbrains.kotlin.test.builders.LanguageVersionSettingsBuilder
 import org.jetbrains.kotlin.test.directives.AdditionalFilesDirectives
 import org.jetbrains.kotlin.test.directives.ModuleStructureDirectives
-import org.jetbrains.kotlin.test.directives.TargetPlatformEnum
 import org.jetbrains.kotlin.test.directives.model.ComposedRegisteredDirectives
 import org.jetbrains.kotlin.test.directives.model.Directive
 import org.jetbrains.kotlin.test.directives.model.DirectivesContainer
@@ -88,10 +79,10 @@ class ModuleStructureExtractorImpl(
             get() = currentTestDataFile.name
 
         private var currentModuleName: String? = null
-        private var currentModuleTargetPlatform: TargetPlatform? = null
         private var currentModuleLanguageVersionSettingsBuilder: LanguageVersionSettingsBuilder = initLanguageSettingsBuilder()
         private var dependenciesOfCurrentModule = mutableListOf<DependencyDescription>()
         private var filesOfCurrentModule = mutableListOf<TestFile>()
+        private val mutableFilesListPerModule = mutableMapOf<TestModule, MutableList<TestFile>>()
 
         private var currentFileName: String? = null
         private var currentSnippetNumber: Int = 1
@@ -128,7 +119,9 @@ class ModuleStructureExtractorImpl(
             finishModule(lineNumber = -1)
             val sortedModules = sortModules(modules)
             checkCycles(modules)
-            return TestModuleStructureImpl(sortedModules, testDataFiles)
+            return TestModuleStructureImpl(sortedModules, testDataFiles).also {
+                generateAdditionalFiles(it)
+            }
         }
 
         private fun sortModules(modules: List<TestModule>): List<TestModule> {
@@ -224,36 +217,6 @@ class ModuleStructureExtractorImpl(
                 ModuleStructureDirectives.ALLOW_FILES_WITH_SAME_NAMES -> {
                     allowFilesWithSameNames = true
                 }
-                ModuleStructureDirectives.TARGET_PLATFORM -> {
-                    if (currentModuleTargetPlatform != null) {
-                        assertions.fail { "Target platform already specified twice for module $currentModuleName" }
-                    }
-                    val platforms = values.map { (it as TargetPlatformEnum).targetPlatform }
-                    currentModuleTargetPlatform = when (platforms.size) {
-                        0 -> assertions.fail { "Target platform specified incorrectly\nUsage: ${directive.description}" }
-                        1 -> platforms.single()
-                        else -> {
-                            if (TargetPlatformEnum.Common in values) {
-                                assertions.fail { "You can't specify `Common` platform in combination with others" }
-                            }
-                            TargetPlatform(platforms.flatMapTo(mutableSetOf()) { it.componentPlatforms })
-                        }
-                    }
-                }
-                ModuleStructureDirectives.JVM_TARGET -> {
-                    if (!defaultsProvider.defaultPlatform.isJvm()) return false
-                    if (currentModuleTargetPlatform != null) {
-                        assertions.fail { "Target platform already specified twice for module $currentModuleName" }
-                    }
-                    currentModuleTargetPlatform = if (values.size != 1) {
-                        assertions.fail { "JVM target should be single" }
-                    } else {
-                        val jvmTarget = JvmTarget.fromString(values.single().toString())
-                            ?: assertions.fail { "Unknown JVM target: ${values.single()}" }
-                        JvmPlatforms.jvmPlatformByTargetVersion(jvmTarget)
-                    }
-                    return false // Workaround for FE and FIR
-                }
                 else -> return false
             }
 
@@ -336,41 +299,17 @@ class ModuleStructureExtractorImpl(
             val moduleName = currentModuleName
                 ?: testServices.defaultDirectives[ModuleStructureDirectives.MODULE].firstOrNull()
                 ?: DEFAULT_MODULE_NAME
-            val targetPlatform = currentModuleTargetPlatform ?: parseModulePlatformByName(moduleName) ?: defaultsProvider.defaultPlatform
             val testModule = TestModule(
                 name = moduleName,
-                targetPlatform = targetPlatform,
                 files = filesOfCurrentModule,
                 allDependencies = dependenciesOfCurrentModule,
                 directives = moduleDirectives,
                 languageVersionSettings = currentModuleLanguageVersionSettingsBuilder.build()
             )
-            additionalSourceProviders.flatMapTo(filesOfCurrentModule) { additionalSourceProvider ->
-                additionalSourceProvider.produceAdditionalFiles(
-                    globalDirectives ?: RegisteredDirectives.Empty,
-                    testModule
-                ).also { additionalFiles ->
-                    require(additionalFiles.all { it.isAdditional }) {
-                        "Files produced by ${additionalSourceProvider::class.qualifiedName} should have flag `isAdditional = true`"
-                    }
-                }
-            }
+            mutableFilesListPerModule[testModule] = filesOfCurrentModule
             modules += testModule
             firstFileInModule = true
             resetModuleCaches()
-        }
-
-        private fun parseModulePlatformByName(moduleName: String): TargetPlatform? {
-            val nameSuffix = moduleName.substringAfterLast("-", "").uppercase()
-            return when {
-                nameSuffix == "COMMON" -> CommonPlatforms.defaultCommonPlatform
-                nameSuffix == "JVM" -> JvmPlatforms.unspecifiedJvmPlatform // TODO(dsavvinov): determine JvmTarget precisely
-                nameSuffix == "JS" -> JsPlatforms.defaultJsPlatform
-                nameSuffix == "WASM" -> WasmPlatforms.wasmJs
-                nameSuffix == "NATIVE" -> NativePlatforms.unspecifiedNativePlatform
-                nameSuffix.isEmpty() -> null // TODO(dsavvinov): this leads to 'null'-platform in ModuleDescriptor
-                else -> throw IllegalStateException("Can't determine platform by name $nameSuffix")
-            }
         }
 
         private fun finishFile(lineNumber: Int) {
@@ -408,7 +347,6 @@ class ModuleStructureExtractorImpl(
         private fun resetModuleCaches() {
             firstFileInModule = true
             currentModuleName = null
-            currentModuleTargetPlatform = null
             currentModuleLanguageVersionSettingsBuilder = initLanguageSettingsBuilder()
             filesOfCurrentModule = mutableListOf()
             dependenciesOfCurrentModule = mutableListOf()
@@ -448,6 +386,22 @@ class ModuleStructureExtractorImpl(
 
         private fun initLanguageSettingsBuilder(): LanguageVersionSettingsBuilder {
             return defaultsProvider.newLanguageSettingsBuilder()
+        }
+
+        private fun generateAdditionalFiles(testModuleStructure: TestModuleStructure) {
+            for ((module, files) in mutableFilesListPerModule) {
+                additionalSourceProviders.flatMapTo(files) { additionalSourceProvider ->
+                    additionalSourceProvider.produceAdditionalFiles(
+                        globalDirectives ?: RegisteredDirectives.Empty,
+                        module,
+                        testModuleStructure
+                    ).also { additionalFiles ->
+                        require(additionalFiles.all { it.isAdditional }) {
+                            "Files produced by ${additionalSourceProvider::class.qualifiedName} should have flag `isAdditional = true`"
+                        }
+                    }
+                }
+            }
         }
     }
 

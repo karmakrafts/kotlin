@@ -10,10 +10,12 @@ import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.builder.buildConstructedClassTypeParameterRef
 import org.jetbrains.kotlin.fir.declarations.builder.buildConstructorCopy
+import org.jetbrains.kotlin.fir.declarations.builder.buildReceiverParameter
 import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameterCopy
 import org.jetbrains.kotlin.fir.languageVersionSettings
 import org.jetbrains.kotlin.fir.resolve.ScopeSession
 import org.jetbrains.kotlin.fir.resolve.defaultType
+import org.jetbrains.kotlin.fir.resolve.providers.firProvider
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
 import org.jetbrains.kotlin.fir.scopes.DelicateScopeAPI
 import org.jetbrains.kotlin.fir.scopes.FirScope
@@ -39,18 +41,12 @@ private object TypeAliasConstructorSubstitutorKey : FirDeclarationDataKey()
 
 var FirConstructor.typeAliasConstructorSubstitutor: ConeSubstitutor? by FirDeclarationDataRegistry.data(TypeAliasConstructorSubstitutorKey)
 
-private object TypeAliasOuterType : FirDeclarationDataKey()
-
-var FirConstructor.outerTypeIfTypeAlias: ConeClassLikeType? by FirDeclarationDataRegistry.data(TypeAliasOuterType)
-
 class TypeAliasConstructorsSubstitutingScope(
     private val typeAliasSymbol: FirTypeAliasSymbol,
     private val delegatingScope: FirScope,
-    private val outerType: ConeClassLikeType?,
+    private val session: FirSession,
 ) : FirScope() {
-    private val aliasedTypeExpansionGloballyEnabled: Boolean = typeAliasSymbol
-        .moduleData
-        .session
+    private val aliasedTypeExpansionGloballyEnabled: Boolean = session
         .languageVersionSettings
         .getFlag(AnalysisFlags.expandTypeAliasesInTypeResolution)
 
@@ -101,13 +97,46 @@ class TypeAliasConstructorsSubstitutingScope(
                             returnTypeRef.coneType.withAbbreviation(AbbreviatedTypeAttribute(typeAliasSymbol.defaultType()))
                         )
                     }
+
+                    val outerType = (typeAliasSymbol.resolvedExpandedTypeRef.coneType as? ConeClassLikeType)?.let {
+                        outerType(it, session) { session.firProvider.getContainingClass(it) }
+                    }
+                    if (outerType != null) {
+                        // If the matched symbol is a type alias, and the expanded type is a nested class, e.g.,
+                        //
+                        //   class Outer {
+                        //     inner class Inner
+                        //   }
+                        //   typealias OI = Outer.Inner
+                        //   fun foo() { Outer().OI() }
+                        //
+                        // the chances are that `processor` belongs to [ScopeTowerLevel] (to resolve type aliases at top-level), which treats
+                        // the explicit receiver (`Outer()`) as an extension receiver, whereas the constructor of the nested class may regard
+                        // the same explicit receiver as a dispatch receiver (hence inconsistent receiver).
+                        // Here, we add a copy of the nested class constructor, along with the outer type as an extension receiver, so that it
+                        // can be seen as if resolving:
+                        //
+                        //   fun Outer.OI(): OI = ...
+                        //
+                        //
+                        receiverParameter = originalConstructorSymbol.fir.returnTypeRef.withReplacedConeType(outerType).let {
+                            buildReceiverParameter {
+                                typeRef = it
+                                symbol = FirReceiverParameterSymbol()
+                                moduleData = typeAliasSymbol.moduleData
+                                origin = FirDeclarationOrigin.Synthetic.TypeAliasConstructor
+                                containingDeclarationSymbol = this@buildConstructorCopy.symbol
+                            }
+                        }
+                        // Never treat type aliases with inner RHS as class members, they are always extensions
+                        dispatchReceiverType = null
+                    }
                 }.apply {
                     originalConstructorIfTypeAlias = originalConstructorSymbol.fir
                     typeAliasForConstructor = typeAliasSymbol
                     if (delegatingScope is FirClassSubstitutionScope) {
                         typeAliasConstructorSubstitutor = delegatingScope.substitutor
                     }
-                    outerTypeIfTypeAlias = outerType
                 }.symbol
             )
         }
@@ -116,7 +145,7 @@ class TypeAliasConstructorsSubstitutingScope(
     @DelicateScopeAPI
     override fun withReplacedSessionOrNull(newSession: FirSession, newScopeSession: ScopeSession): TypeAliasConstructorsSubstitutingScope? {
         return delegatingScope.withReplacedSessionOrNull(newSession, newScopeSession)?.let {
-            TypeAliasConstructorsSubstitutingScope(typeAliasSymbol, it, outerType)
+            TypeAliasConstructorsSubstitutingScope(typeAliasSymbol, it, session)
         }
     }
 }

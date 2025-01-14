@@ -23,7 +23,7 @@ import org.jetbrains.kotlin.test.frontend.fir.handlers.*
 import org.jetbrains.kotlin.test.model.DependencyKind
 import org.jetbrains.kotlin.test.model.FrontendKinds
 import org.jetbrains.kotlin.test.runners.AbstractKotlinCompilerTest
-import org.jetbrains.kotlin.test.runners.configurationForClassicAndFirTestsAlongside
+import org.jetbrains.kotlin.test.configuration.configurationForClassicAndFirTestsAlongside
 import org.jetbrains.kotlin.test.services.LibraryProvider
 import org.jetbrains.kotlin.test.services.configuration.CommonEnvironmentConfigurator
 import org.jetbrains.kotlin.test.services.configuration.JsEnvironmentConfigurator
@@ -31,7 +31,7 @@ import org.jetbrains.kotlin.test.services.sourceProviders.AdditionalDiagnosticsS
 import org.jetbrains.kotlin.test.services.sourceProviders.CoroutineHelpersSourceFilesProvider
 
 abstract class AbstractFirJsDiagnosticTestBase(val parser: FirParser) : AbstractKotlinCompilerTest() {
-    protected open fun configureTestBuilder(builder: TestConfigurationBuilder) = builder.apply {
+    override fun configure(builder: TestConfigurationBuilder) = with(builder) {
         globalDefaults {
             frontend = FrontendKinds.FIR
             targetPlatform = JsPlatforms.defaultJsPlatform
@@ -76,15 +76,11 @@ abstract class AbstractFirJsDiagnosticTestBase(val parser: FirParser) : Abstract
             )
         }
     }
-
-    final override fun TestConfigurationBuilder.configuration() {
-        configureTestBuilder(this@configuration)
-    }
 }
 
 abstract class AbstractFirJsDiagnosticWithBackendTestBase(parser: FirParser) : AbstractFirJsDiagnosticTestBase(parser) {
-    override fun configureTestBuilder(builder: TestConfigurationBuilder) = builder.apply {
-        super.configureTestBuilder(builder)
+    override fun configure(builder: TestConfigurationBuilder) = with(builder) {
+        super.configure(builder)
 
         facadeStep(::Fir2IrResultsConverter)
         facadeStep(::FirJsKlibSerializerFacade)

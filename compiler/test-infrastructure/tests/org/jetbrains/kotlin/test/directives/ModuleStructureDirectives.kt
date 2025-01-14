@@ -34,12 +34,4 @@ object ModuleStructureDirectives : SimpleDirectivesContainer() {
         Allows specifying test files with the same names using the // FILE directive.
         """.trimIndent()
     )
-
-    val TARGET_PLATFORM by enumDirective<TargetPlatformEnum>(
-        "Declares target platform for current module"
-    )
-
-    val JVM_TARGET by stringDirective(
-        "Declares JVM target platform for current module"
-    )
 }

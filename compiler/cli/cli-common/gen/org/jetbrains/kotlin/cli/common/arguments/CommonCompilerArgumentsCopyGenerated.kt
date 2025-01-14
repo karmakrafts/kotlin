@@ -13,6 +13,7 @@ fun copyCommonCompilerArguments(from: CommonCompilerArguments, to: CommonCompile
     to.allowAnyScriptsInSourceRoots = from.allowAnyScriptsInSourceRoots
     to.allowKotlinPackage = from.allowKotlinPackage
     to.annotationDefaultTarget = from.annotationDefaultTarget
+    to.annotationTargetAll = from.annotationTargetAll
     to.apiVersion = from.apiVersion
     to.autoAdvanceApiVersion = from.autoAdvanceApiVersion
     to.autoAdvanceLanguageVersion = from.autoAdvanceLanguageVersion
@@ -52,6 +53,7 @@ fun copyCommonCompilerArguments(from: CommonCompilerArguments, to: CommonCompile
     to.metadataVersion = from.metadataVersion
     to.multiDollarInterpolation = from.multiDollarInterpolation
     to.multiPlatform = from.multiPlatform
+    to.nestedTypeAliases = from.nestedTypeAliases
     to.newInference = from.newInference
     to.noCheckActual = from.noCheckActual
     to.noInline = from.noInline

@@ -47,7 +47,7 @@ abstract class AbstractLibraryAbiReaderTest<FrontendOutput : ResultingArtifact.F
     abstract val converter: Constructor<Frontend2BackendConverter<FrontendOutput, IrBackendInput>>
     abstract val backendFacade: Constructor<BackendFacade<IrBackendInput, BinaryArtifacts.KLib>>
 
-    override fun TestConfigurationBuilder.configuration() {
+    override fun configure(builder: TestConfigurationBuilder) = with(builder) {
         globalDefaults {
             frontend = this@AbstractLibraryAbiReaderTest.frontend
             targetPlatform = this@AbstractLibraryAbiReaderTest.targetPlatform
@@ -106,9 +106,6 @@ open class AbstractFirJsLibraryAbiReaderTest : AbstractJsLibraryAbiReaderTest<Fi
         get() = ::FirJsKlibSerializerFacade
 
     override fun configure(builder: TestConfigurationBuilder) = with(builder) {
-        defaultDirectives {
-            LANGUAGE with "+ContextReceivers"
-        }
         configureFirParser(FirParser.LightTree)
         super.configure(builder)
     }

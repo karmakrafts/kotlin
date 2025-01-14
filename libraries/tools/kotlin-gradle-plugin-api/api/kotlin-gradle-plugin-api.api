@@ -212,7 +212,6 @@ public abstract interface class org/jetbrains/kotlin/gradle/dsl/KotlinCommonComp
 	public abstract fun getLanguageVersion ()Lorg/gradle/api/provider/Property;
 	public abstract fun getOptIn ()Lorg/gradle/api/provider/ListProperty;
 	public abstract fun getProgressiveMode ()Lorg/gradle/api/provider/Property;
-	public abstract fun getUseK2 ()Lorg/gradle/api/provider/Property;
 }
 
 public abstract interface class org/jetbrains/kotlin/gradle/dsl/KotlinCommonCompilerToolOptions {
@@ -227,10 +226,8 @@ public abstract interface class org/jetbrains/kotlin/gradle/dsl/KotlinCommonOpti
 	public abstract fun getApiVersion ()Ljava/lang/String;
 	public abstract fun getLanguageVersion ()Ljava/lang/String;
 	public abstract fun getOptions ()Lorg/jetbrains/kotlin/gradle/dsl/KotlinCommonCompilerOptions;
-	public abstract fun getUseK2 ()Z
 	public abstract fun setApiVersion (Ljava/lang/String;)V
 	public abstract fun setLanguageVersion (Ljava/lang/String;)V
-	public abstract fun setUseK2 (Z)V
 }
 
 public final class org/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions$DefaultImpls {
@@ -239,14 +236,12 @@ public final class org/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions$DefaultIm
 	public static fun getFreeCompilerArgs (Lorg/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions;)Ljava/util/List;
 	public static fun getLanguageVersion (Lorg/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions;)Ljava/lang/String;
 	public static fun getSuppressWarnings (Lorg/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions;)Z
-	public static fun getUseK2 (Lorg/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions;)Z
 	public static fun getVerbose (Lorg/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions;)Z
 	public static fun setAllWarningsAsErrors (Lorg/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions;Z)V
 	public static fun setApiVersion (Lorg/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions;Ljava/lang/String;)V
 	public static fun setFreeCompilerArgs (Lorg/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions;Ljava/util/List;)V
 	public static fun setLanguageVersion (Lorg/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions;Ljava/lang/String;)V
 	public static fun setSuppressWarnings (Lorg/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions;Z)V
-	public static fun setUseK2 (Lorg/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions;Z)V
 	public static fun setVerbose (Lorg/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions;Z)V
 }
 
@@ -381,7 +376,6 @@ public final class org/jetbrains/kotlin/gradle/dsl/KotlinJsOptions$DefaultImpls 
 	public static fun getTarget (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJsOptions;)Ljava/lang/String;
 	public static fun getTypedArrays (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJsOptions;)Z
 	public static fun getUseEsClasses (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJsOptions;)Ljava/lang/Boolean;
-	public static fun getUseK2 (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJsOptions;)Z
 	public static fun getVerbose (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJsOptions;)Z
 	public static fun setAllWarningsAsErrors (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJsOptions;Z)V
 	public static fun setApiVersion (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJsOptions;Ljava/lang/String;)V
@@ -401,7 +395,6 @@ public final class org/jetbrains/kotlin/gradle/dsl/KotlinJsOptions$DefaultImpls 
 	public static fun setTarget (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJsOptions;Ljava/lang/String;)V
 	public static fun setTypedArrays (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJsOptions;Z)V
 	public static fun setUseEsClasses (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJsOptions;Ljava/lang/Boolean;)V
-	public static fun setUseK2 (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJsOptions;Z)V
 	public static fun setVerbose (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJsOptions;Z)V
 }
 
@@ -412,13 +405,15 @@ public abstract interface class org/jetbrains/kotlin/gradle/dsl/KotlinJvmCompile
 	public abstract fun getNoJdk ()Lorg/gradle/api/provider/Property;
 }
 
-public abstract interface class org/jetbrains/kotlin/gradle/dsl/KotlinJvmExtension : org/jetbrains/kotlin/gradle/dsl/HasConfigurableKotlinCompilerOptions, org/jetbrains/kotlin/gradle/dsl/KotlinBaseExtension {
+public abstract interface class org/jetbrains/kotlin/gradle/dsl/KotlinJvmExtension : org/jetbrains/kotlin/gradle/dsl/HasConfigurableKotlinCompilerOptions, org/jetbrains/kotlin/gradle/dsl/KotlinBaseExtension, org/jetbrains/kotlin/gradle/dsl/KotlinPublishingDsl {
 	public abstract fun getTarget ()Lorg/jetbrains/kotlin/gradle/plugin/KotlinTarget;
 }
 
 public final class org/jetbrains/kotlin/gradle/dsl/KotlinJvmExtension$DefaultImpls {
 	public static fun compilerOptions (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmExtension;Lkotlin/jvm/functions/Function1;)V
 	public static fun compilerOptions (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmExtension;Lorg/gradle/api/Action;)V
+	public static fun publishing (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmExtension;Lkotlin/jvm/functions/Function1;)V
+	public static fun publishing (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmExtension;Lorg/gradle/api/Action;)V
 }
 
 public abstract interface class org/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions : org/jetbrains/kotlin/gradle/dsl/KotlinCommonOptions {
@@ -443,7 +438,6 @@ public final class org/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions$DefaultImpls
 	public static fun getModuleName (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions;)Ljava/lang/String;
 	public static fun getNoJdk (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions;)Z
 	public static fun getSuppressWarnings (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions;)Z
-	public static fun getUseK2 (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions;)Z
 	public static fun getVerbose (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions;)Z
 	public static fun setAllWarningsAsErrors (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions;Z)V
 	public static fun setApiVersion (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions;Ljava/lang/String;)V
@@ -454,7 +448,6 @@ public final class org/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions$DefaultImpls
 	public static fun setModuleName (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions;Ljava/lang/String;)V
 	public static fun setNoJdk (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions;Z)V
 	public static fun setSuppressWarnings (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions;Z)V
-	public static fun setUseK2 (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions;Z)V
 	public static fun setVerbose (Lorg/jetbrains/kotlin/gradle/dsl/KotlinJvmOptions;Z)V
 }
 
@@ -471,14 +464,12 @@ public final class org/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformCommonOpti
 	public static fun getFreeCompilerArgs (Lorg/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformCommonOptions;)Ljava/util/List;
 	public static fun getLanguageVersion (Lorg/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformCommonOptions;)Ljava/lang/String;
 	public static fun getSuppressWarnings (Lorg/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformCommonOptions;)Z
-	public static fun getUseK2 (Lorg/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformCommonOptions;)Z
 	public static fun getVerbose (Lorg/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformCommonOptions;)Z
 	public static fun setAllWarningsAsErrors (Lorg/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformCommonOptions;Z)V
 	public static fun setApiVersion (Lorg/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformCommonOptions;Ljava/lang/String;)V
 	public static fun setFreeCompilerArgs (Lorg/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformCommonOptions;Ljava/util/List;)V
 	public static fun setLanguageVersion (Lorg/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformCommonOptions;Ljava/lang/String;)V
 	public static fun setSuppressWarnings (Lorg/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformCommonOptions;Z)V
-	public static fun setUseK2 (Lorg/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformCommonOptions;Z)V
 	public static fun setVerbose (Lorg/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformCommonOptions;Z)V
 }
 
@@ -652,6 +643,17 @@ public abstract interface class org/jetbrains/kotlin/gradle/dsl/KotlinNativeXCFr
 	public abstract fun setEmbedBitcode (Lorg/jetbrains/kotlin/gradle/plugin/mpp/BitcodeEmbeddingMode;)V
 	public abstract fun setTargets (Ljava/util/Set;)V
 	public abstract fun targets ([Lorg/jetbrains/kotlin/konan/target/KonanTarget;)V
+}
+
+public abstract interface class org/jetbrains/kotlin/gradle/dsl/KotlinPublishingDsl {
+	public abstract fun getPublishing ()Lorg/jetbrains/kotlin/gradle/plugin/KotlinPublishing;
+	public abstract fun publishing (Lkotlin/jvm/functions/Function1;)V
+	public abstract fun publishing (Lorg/gradle/api/Action;)V
+}
+
+public final class org/jetbrains/kotlin/gradle/dsl/KotlinPublishingDsl$DefaultImpls {
+	public static fun publishing (Lorg/jetbrains/kotlin/gradle/dsl/KotlinPublishingDsl;Lkotlin/jvm/functions/Function1;)V
+	public static fun publishing (Lorg/jetbrains/kotlin/gradle/dsl/KotlinPublishingDsl;Lorg/gradle/api/Action;)V
 }
 
 public abstract interface class org/jetbrains/kotlin/gradle/dsl/KotlinTargetHierarchyDsl {
@@ -996,6 +998,7 @@ public abstract interface class org/jetbrains/kotlin/gradle/plugin/KotlinDepende
 	public abstract fun peerNpm (Ljava/lang/String;Ljava/lang/String;)Lorg/gradle/api/artifacts/Dependency;
 	public abstract fun platform (Ljava/lang/Object;)Lorg/gradle/api/artifacts/Dependency;
 	public abstract fun platform (Ljava/lang/Object;Lorg/gradle/api/Action;)Lorg/gradle/api/artifacts/Dependency;
+	public abstract fun project (Ljava/lang/String;)Lorg/gradle/api/artifacts/ProjectDependency;
 	public abstract fun project (Ljava/lang/String;Ljava/lang/String;)Lorg/gradle/api/artifacts/ProjectDependency;
 	public abstract fun project (Ljava/util/Map;)Lorg/gradle/api/artifacts/ProjectDependency;
 	public abstract fun runtimeOnly (Ljava/lang/Object;)Lorg/gradle/api/artifacts/Dependency;
@@ -1023,6 +1026,7 @@ public final class org/jetbrains/kotlin/gradle/plugin/KotlinDependencyHandler$De
 	public static fun optionalNpm (Lorg/jetbrains/kotlin/gradle/plugin/KotlinDependencyHandler;Ljava/lang/String;Ljava/lang/String;Z)Lorg/gradle/api/artifacts/Dependency;
 	public static fun platform (Lorg/jetbrains/kotlin/gradle/plugin/KotlinDependencyHandler;Ljava/lang/Object;)Lorg/gradle/api/artifacts/Dependency;
 	public static fun platform (Lorg/jetbrains/kotlin/gradle/plugin/KotlinDependencyHandler;Ljava/lang/Object;Lorg/gradle/api/Action;)Lorg/gradle/api/artifacts/Dependency;
+	public static fun project (Lorg/jetbrains/kotlin/gradle/plugin/KotlinDependencyHandler;Ljava/lang/String;)Lorg/gradle/api/artifacts/ProjectDependency;
 	public static fun project (Lorg/jetbrains/kotlin/gradle/plugin/KotlinDependencyHandler;Ljava/lang/String;Ljava/lang/String;)Lorg/gradle/api/artifacts/ProjectDependency;
 	public static synthetic fun project$default (Lorg/jetbrains/kotlin/gradle/plugin/KotlinDependencyHandler;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lorg/gradle/api/artifacts/ProjectDependency;
 	public static fun runtimeOnly (Lorg/jetbrains/kotlin/gradle/plugin/KotlinDependencyHandler;Ljava/lang/String;Lorg/gradle/api/Action;)Lorg/gradle/api/artifacts/ExternalModuleDependency;
@@ -1216,6 +1220,17 @@ public final class org/jetbrains/kotlin/gradle/plugin/KotlinPlatformType$Disambi
 	public fun <init> ()V
 	public synthetic fun execute (Ljava/lang/Object;)V
 	public fun execute (Lorg/gradle/api/attributes/MultipleCandidatesDetails;)V
+}
+
+public abstract interface class org/jetbrains/kotlin/gradle/plugin/KotlinPublishing {
+	public abstract fun adhocSoftwareComponent (Lkotlin/jvm/functions/Function1;)V
+	public abstract fun adhocSoftwareComponent (Lorg/gradle/api/Action;)V
+	public abstract fun getAdhocSoftwareComponent ()Lorg/gradle/api/component/AdhocComponentWithVariants;
+}
+
+public final class org/jetbrains/kotlin/gradle/plugin/KotlinPublishing$DefaultImpls {
+	public static fun adhocSoftwareComponent (Lorg/jetbrains/kotlin/gradle/plugin/KotlinPublishing;Lkotlin/jvm/functions/Function1;)V
+	public static fun adhocSoftwareComponent (Lorg/jetbrains/kotlin/gradle/plugin/KotlinPublishing;Lorg/gradle/api/Action;)V
 }
 
 public abstract interface class org/jetbrains/kotlin/gradle/plugin/KotlinSourceSet : org/gradle/api/Named, org/jetbrains/kotlin/gradle/plugin/HasKotlinDependencies, org/jetbrains/kotlin/gradle/plugin/HasProject, org/jetbrains/kotlin/tooling/core/HasMutableExtras {

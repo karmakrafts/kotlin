@@ -1972,6 +1972,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
     }
 
     @Test
+    @TestMetadata("typeMismatchSameShortName.kt")
+    public void testTypeMismatchSameShortName() {
+      runTest("compiler/testData/diagnostics/tests/typeMismatchSameShortName.kt");
+    }
+
+    @Test
     @TestMetadata("typealiasAnnotationWithFixedTypeArgument.kt")
     public void testTypealiasAnnotationWithFixedTypeArgument() {
       runTest("compiler/testData/diagnostics/tests/typealiasAnnotationWithFixedTypeArgument.kt");
@@ -4574,12 +4580,6 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       @TestMetadata("deprecatedCompanionReceiverInParentheses.kt")
       public void testDeprecatedCompanionReceiverInParentheses() {
         runTest("compiler/testData/diagnostics/tests/callableReference/deprecatedCompanionReceiverInParentheses.kt");
-      }
-
-      @Test
-      @TestMetadata("ea81649_errorPropertyLHS.kt")
-      public void testEa81649_errorPropertyLHS() {
-        runTest("compiler/testData/diagnostics/tests/callableReference/ea81649_errorPropertyLHS.kt");
       }
 
       @Test
@@ -13449,6 +13449,18 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       }
 
       @Test
+      @TestMetadata("implictlyExposed.kt")
+      public void testImplictlyExposed() {
+        runTest("compiler/testData/diagnostics/tests/exposed/implictlyExposed.kt");
+      }
+
+      @Test
+      @TestMetadata("implictlyExposedAndSuppressed.kt")
+      public void testImplictlyExposedAndSuppressed() {
+        runTest("compiler/testData/diagnostics/tests/exposed/implictlyExposedAndSuppressed.kt");
+      }
+
+      @Test
       @TestMetadata("inaccessibleType.kt")
       public void testInaccessibleType() {
         runTest("compiler/testData/diagnostics/tests/exposed/inaccessibleType.kt");
@@ -16163,9 +16175,15 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       }
 
       @Test
-      @TestMetadata("CheckVisibility.kt")
-      public void testCheckVisibility() {
-        runTest("compiler/testData/diagnostics/tests/imports/CheckVisibility.kt");
+      @TestMetadata("CheckVisibility_differentModule.kt")
+      public void testCheckVisibility_differentModule() {
+        runTest("compiler/testData/diagnostics/tests/imports/CheckVisibility_differentModule.kt");
+      }
+
+      @Test
+      @TestMetadata("CheckVisibility_sameModule.kt")
+      public void testCheckVisibility_sameModule() {
+        runTest("compiler/testData/diagnostics/tests/imports/CheckVisibility_sameModule.kt");
       }
 
       @Test
@@ -16178,6 +16196,18 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       @TestMetadata("ClassClashStarImport.kt")
       public void testClassClashStarImport() {
         runTest("compiler/testData/diagnostics/tests/imports/ClassClashStarImport.kt");
+      }
+
+      @Test
+      @TestMetadata("ClassClashStarImport_topLevel.kt")
+      public void testClassClashStarImport_topLevel() {
+        runTest("compiler/testData/diagnostics/tests/imports/ClassClashStarImport_topLevel.kt");
+      }
+
+      @Test
+      @TestMetadata("ClassClash_topLevel.kt")
+      public void testClassClash_topLevel() {
+        runTest("compiler/testData/diagnostics/tests/imports/ClassClash_topLevel.kt");
       }
 
       @Test
@@ -16511,9 +16541,15 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       }
 
       @Test
-      @TestMetadata("RootPackageNoImports.kt")
-      public void testRootPackageNoImports() {
-        runTest("compiler/testData/diagnostics/tests/imports/RootPackageNoImports.kt");
+      @TestMetadata("RootPackageNoImports_differentModule.kt")
+      public void testRootPackageNoImports_differentModule() {
+        runTest("compiler/testData/diagnostics/tests/imports/RootPackageNoImports_differentModule.kt");
+      }
+
+      @Test
+      @TestMetadata("RootPackageNoImports_sameModule.kt")
+      public void testRootPackageNoImports_sameModule() {
+        runTest("compiler/testData/diagnostics/tests/imports/RootPackageNoImports_sameModule.kt");
       }
 
       @Test
@@ -27416,12 +27452,6 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
         }
 
         @Test
-        @TestMetadata("genericArgumentNumberMismatch.kt")
-        public void testGenericArgumentNumberMismatch() {
-          runTest("compiler/testData/diagnostics/tests/multimodule/duplicateClass/genericArgumentNumberMismatch.kt");
-        }
-
-        @Test
         @TestMetadata("genericSuperClass.kt")
         public void testGenericSuperClass() {
           runTest("compiler/testData/diagnostics/tests/multimodule/duplicateClass/genericSuperClass.kt");
@@ -27991,12 +28021,6 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       }
 
       @Test
-      @TestMetadata("expectsWithJsExport.kt")
-      public void testExpectsWithJsExport() {
-        runTest("compiler/testData/diagnostics/tests/multiplatform/expectsWithJsExport.kt");
-      }
-
-      @Test
       @TestMetadata("extraNestedClassOnActualViaActualTypealias.kt")
       public void testExtraNestedClassOnActualViaActualTypealias() {
         runTest("compiler/testData/diagnostics/tests/multiplatform/extraNestedClassOnActualViaActualTypealias.kt");
@@ -28090,12 +28114,6 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       @TestMetadata("kt64166.kt")
       public void testKt64166() {
         runTest("compiler/testData/diagnostics/tests/multiplatform/kt64166.kt");
-      }
-
-      @Test
-      @TestMetadata("kt72704.kt")
-      public void testKt72704() {
-        runTest("compiler/testData/diagnostics/tests/multiplatform/kt72704.kt");
       }
 
       @Test
@@ -32133,6 +32151,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       }
 
       @Test
+      @TestMetadata("dnnOverridesFlexibleOff.kt")
+      public void testDnnOverridesFlexibleOff() {
+        runTest("compiler/testData/diagnostics/tests/override/dnnOverridesFlexibleOff.kt");
+      }
+
+      @Test
       @TestMetadata("DuplicateMethod.kt")
       public void testDuplicateMethod() {
         runTest("compiler/testData/diagnostics/tests/override/DuplicateMethod.kt");
@@ -32421,6 +32445,54 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       }
 
       @Test
+      @TestMetadata("overridesWithFlexibleBase.kt")
+      public void testOverridesWithFlexibleBase() {
+        runTest("compiler/testData/diagnostics/tests/override/overridesWithFlexibleBase.kt");
+      }
+
+      @Test
+      @TestMetadata("overridesWithFlexibleBase2.kt")
+      public void testOverridesWithFlexibleBase2() {
+        runTest("compiler/testData/diagnostics/tests/override/overridesWithFlexibleBase2.kt");
+      }
+
+      @Test
+      @TestMetadata("overridesWithFlexibleBase3.kt")
+      public void testOverridesWithFlexibleBase3() {
+        runTest("compiler/testData/diagnostics/tests/override/overridesWithFlexibleBase3.kt");
+      }
+
+      @Test
+      @TestMetadata("overridesWithFlexibleBase4.kt")
+      public void testOverridesWithFlexibleBase4() {
+        runTest("compiler/testData/diagnostics/tests/override/overridesWithFlexibleBase4.kt");
+      }
+
+      @Test
+      @TestMetadata("overridesWithFlexibleBaseOff.kt")
+      public void testOverridesWithFlexibleBaseOff() {
+        runTest("compiler/testData/diagnostics/tests/override/overridesWithFlexibleBaseOff.kt");
+      }
+
+      @Test
+      @TestMetadata("overridesWithFlexibleBaseOff2.kt")
+      public void testOverridesWithFlexibleBaseOff2() {
+        runTest("compiler/testData/diagnostics/tests/override/overridesWithFlexibleBaseOff2.kt");
+      }
+
+      @Test
+      @TestMetadata("overridesWithFlexibleBaseOff3.kt")
+      public void testOverridesWithFlexibleBaseOff3() {
+        runTest("compiler/testData/diagnostics/tests/override/overridesWithFlexibleBaseOff3.kt");
+      }
+
+      @Test
+      @TestMetadata("overridesWithFlexibleBaseOff4.kt")
+      public void testOverridesWithFlexibleBaseOff4() {
+        runTest("compiler/testData/diagnostics/tests/override/overridesWithFlexibleBaseOff4.kt");
+      }
+
+      @Test
       @TestMetadata("OverridingFinalMember.kt")
       public void testOverridingFinalMember() {
         runTest("compiler/testData/diagnostics/tests/override/OverridingFinalMember.kt");
@@ -32517,6 +32589,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
         @TestMetadata("genericWithUpperBound.kt")
         public void testGenericWithUpperBound() {
           runTest("compiler/testData/diagnostics/tests/override/clashesOnInheritance/genericWithUpperBound.kt");
+        }
+
+        @Test
+        @TestMetadata("inconsistentTypeParameterValuesHandleAllSupertypes.kt")
+        public void testInconsistentTypeParameterValuesHandleAllSupertypes() {
+          runTest("compiler/testData/diagnostics/tests/override/clashesOnInheritance/inconsistentTypeParameterValuesHandleAllSupertypes.kt");
         }
 
         @Test
@@ -34027,6 +34105,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       }
 
       @Test
+      @TestMetadata("GenericClassVsPackage_topLevel.kt")
+      public void testGenericClassVsPackage_topLevel() {
+        runTest("compiler/testData/diagnostics/tests/qualifiedExpression/GenericClassVsPackage_topLevel.kt");
+      }
+
+      @Test
       @TestMetadata("JavaQualifier.kt")
       public void testJavaQualifier() {
         runTest("compiler/testData/diagnostics/tests/qualifiedExpression/JavaQualifier.kt");
@@ -34048,6 +34132,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       @TestMetadata("PackageVsClass2.kt")
       public void testPackageVsClass2() {
         runTest("compiler/testData/diagnostics/tests/qualifiedExpression/PackageVsClass2.kt");
+      }
+
+      @Test
+      @TestMetadata("PackageVsClass_differentOrder.kt")
+      public void testPackageVsClass_differentOrder() {
+        runTest("compiler/testData/diagnostics/tests/qualifiedExpression/PackageVsClass_differentOrder.kt");
       }
 
       @Test
@@ -37043,15 +37133,27 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       }
 
       @Test
-      @TestMetadata("invisibleInternalSetterAccessFromDeriviedClass.kt")
-      public void testInvisibleInternalSetterAccessFromDeriviedClass() {
-        runTest("compiler/testData/diagnostics/tests/scopes/invisibleInternalSetterAccessFromDeriviedClass.kt");
+      @TestMetadata("invisibleInternalSetterAccessFromDeriviedClassOn_direct.kt")
+      public void testInvisibleInternalSetterAccessFromDeriviedClassOn_direct() {
+        runTest("compiler/testData/diagnostics/tests/scopes/invisibleInternalSetterAccessFromDeriviedClassOn_direct.kt");
       }
 
       @Test
-      @TestMetadata("invisibleInternalSetterAccessFromDeriviedClassOn.kt")
-      public void testInvisibleInternalSetterAccessFromDeriviedClassOn() {
-        runTest("compiler/testData/diagnostics/tests/scopes/invisibleInternalSetterAccessFromDeriviedClassOn.kt");
+      @TestMetadata("invisibleInternalSetterAccessFromDeriviedClassOn_inherited.kt")
+      public void testInvisibleInternalSetterAccessFromDeriviedClassOn_inherited() {
+        runTest("compiler/testData/diagnostics/tests/scopes/invisibleInternalSetterAccessFromDeriviedClassOn_inherited.kt");
+      }
+
+      @Test
+      @TestMetadata("invisibleInternalSetterAccessFromDeriviedClass_direct.kt")
+      public void testInvisibleInternalSetterAccessFromDeriviedClass_direct() {
+        runTest("compiler/testData/diagnostics/tests/scopes/invisibleInternalSetterAccessFromDeriviedClass_direct.kt");
+      }
+
+      @Test
+      @TestMetadata("invisibleInternalSetterAccessFromDeriviedClass_inherited.kt")
+      public void testInvisibleInternalSetterAccessFromDeriviedClass_inherited() {
+        runTest("compiler/testData/diagnostics/tests/scopes/invisibleInternalSetterAccessFromDeriviedClass_inherited.kt");
       }
 
       @Test
@@ -43551,6 +43653,18 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       }
 
       @Test
+      @TestMetadata("callableReferenceWithTypeAliasToObjectLHS.kt")
+      public void testCallableReferenceWithTypeAliasToObjectLHS() {
+        runTest("compiler/testData/diagnostics/tests/typealias/callableReferenceWithTypeAliasToObjectLHS.kt");
+      }
+
+      @Test
+      @TestMetadata("callableReferenceWithTypeAliasToObjectLHSOriginal.kt")
+      public void testCallableReferenceWithTypeAliasToObjectLHSOriginal() {
+        runTest("compiler/testData/diagnostics/tests/typealias/callableReferenceWithTypeAliasToObjectLHSOriginal.kt");
+      }
+
+      @Test
       @TestMetadata("capturingTypeParametersFromOuterClass.kt")
       public void testCapturingTypeParametersFromOuterClass() {
         runTest("compiler/testData/diagnostics/tests/typealias/capturingTypeParametersFromOuterClass.kt");
@@ -46476,6 +46590,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       @Test
       public void testAllFilesPresentInAnnotations() {
         KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/diagnostics/testsWithStdLib/annotations"), Pattern.compile("^(.+)\\.kt$"), Pattern.compile("^(.+)\\.(reversed|fir|ll|latestLV)\\.kts?$"), true);
+      }
+
+      @Test
+      @TestMetadata("annotationAllUseSiteTargetOff.kt")
+      public void testAnnotationAllUseSiteTargetOff() {
+        runTest("compiler/testData/diagnostics/testsWithStdLib/annotations/annotationAllUseSiteTargetOff.kt");
       }
 
       @Test
@@ -51198,72 +51318,6 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
       @TestMetadata("blackListed.kt")
       public void testBlackListed() {
         runTest("compiler/testData/diagnostics/testsWithStdLib/targetedBuiltIns/blackListed.kt");
-      }
-    }
-
-    @Nested
-    @TestMetadata("compiler/testData/diagnostics/testsWithStdLib/tieredFailures")
-    @TestDataPath("$PROJECT_ROOT")
-    public class TieredFailures {
-      @Test
-      public void testAllFilesPresentInTieredFailures() {
-        KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/diagnostics/testsWithStdLib/tieredFailures"), Pattern.compile("^(.+)\\.kt$"), Pattern.compile("^(.+)\\.(reversed|fir|ll|latestLV)\\.kts?$"), true);
-      }
-
-      @Nested
-      @TestMetadata("compiler/testData/diagnostics/testsWithStdLib/tieredFailures/fail")
-      @TestDataPath("$PROJECT_ROOT")
-      public class Fail {
-        @Test
-        public void testAllFilesPresentInFail() {
-          KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/diagnostics/testsWithStdLib/tieredFailures/fail"), Pattern.compile("^(.+)\\.kt$"), Pattern.compile("^(.+)\\.(reversed|fir|ll|latestLV)\\.kts?$"), true);
-        }
-
-        @Test
-        @TestMetadata("isBackendButFir2IrRunner.kt")
-        public void testIsBackendButFir2IrRunner() {
-          runTest("compiler/testData/diagnostics/testsWithStdLib/tieredFailures/fail/isBackendButFir2IrRunner.kt");
-        }
-
-        @Test
-        @TestMetadata("isFir2IrButFir2IrPasses.kt")
-        public void testIsFir2IrButFir2IrPasses() {
-          runTest("compiler/testData/diagnostics/testsWithStdLib/tieredFailures/fail/isFir2IrButFir2IrPasses.kt");
-        }
-
-        @Test
-        @TestMetadata("isFirButFirPasses.kt")
-        public void testIsFirButFirPasses() {
-          runTest("compiler/testData/diagnostics/testsWithStdLib/tieredFailures/fail/isFirButFirPasses.kt");
-        }
-      }
-
-      @Nested
-      @TestMetadata("compiler/testData/diagnostics/testsWithStdLib/tieredFailures/good")
-      @TestDataPath("$PROJECT_ROOT")
-      public class Good {
-        @Test
-        public void testAllFilesPresentInGood() {
-          KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/diagnostics/testsWithStdLib/tieredFailures/good"), Pattern.compile("^(.+)\\.kt$"), Pattern.compile("^(.+)\\.(reversed|fir|ll|latestLV)\\.kts?$"), true);
-        }
-
-        @Test
-        @TestMetadata("isFir2IrButBackendFails.kt")
-        public void testIsFir2IrButBackendFails() {
-          runTest("compiler/testData/diagnostics/testsWithStdLib/tieredFailures/good/isFir2IrButBackendFails.kt");
-        }
-
-        @Test
-        @TestMetadata("isFirButFir2IrFails.kt")
-        public void testIsFirButFir2IrFails() {
-          runTest("compiler/testData/diagnostics/testsWithStdLib/tieredFailures/good/isFirButFir2IrFails.kt");
-        }
-
-        @Test
-        @TestMetadata("isFirButFirFails.kt")
-        public void testIsFirButFirFails() {
-          runTest("compiler/testData/diagnostics/testsWithStdLib/tieredFailures/good/isFirButFirFails.kt");
-        }
       }
     }
 

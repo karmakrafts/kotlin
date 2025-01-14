@@ -28,7 +28,7 @@ import org.jetbrains.kotlin.test.frontend.classic.handlers.ClassicDiagnosticsHan
 import org.jetbrains.kotlin.test.frontend.fir.handlers.FirDiagnosticsHandler
 import org.jetbrains.kotlin.test.model.*
 import org.jetbrains.kotlin.test.runners.AbstractKotlinCompilerWithTargetBackendTest
-import org.jetbrains.kotlin.test.runners.codegen.commonClassicFrontendHandlersForCodegenTest
+import org.jetbrains.kotlin.test.configuration.commonClassicFrontendHandlersForCodegenTest
 import org.jetbrains.kotlin.test.services.LibraryProvider
 import org.jetbrains.kotlin.test.services.configuration.CommonEnvironmentConfigurator
 import org.jetbrains.kotlin.test.services.configuration.JsEnvironmentConfigurator
@@ -87,18 +87,26 @@ abstract class AbstractJsBlackBoxCodegenTestBase<FO : ResultingArtifact.Frontend
     abstract val serializerFacade: Constructor<BackendFacade<IrBackendInput, BinaryArtifacts.KLib>>
     abstract val backendFacades: JsBackendFacades
 
-    override fun TestConfigurationBuilder.configuration() {
+    protected open val customIgnoreDirective: ValueDirective<TargetBackend>?
+        get() = null
+
+    protected open val enableBoxHandlers: Boolean
+        get() = true
+
+    override fun configure(builder: TestConfigurationBuilder) = with(builder) {
         commonConfigurationForJsBlackBoxCodegenTest()
-        jsArtifactsHandlersStep {
-            useHandlers(
-                ::NodeJsGeneratorHandler,
-                ::JsBoxRunner,
-                ::JsAstHandler
-            )
+        if (enableBoxHandlers) {
+            configureJsArtifactsHandlersStep {
+                useHandlers(
+                    ::NodeJsGeneratorHandler,
+                    ::JsBoxRunner,
+                    ::JsAstHandler
+                )
+            }
         }
     }
 
-    protected fun TestConfigurationBuilder.commonConfigurationForJsBlackBoxCodegenTest(customIgnoreDirective: ValueDirective<TargetBackend>? = null) {
+    protected fun TestConfigurationBuilder.commonConfigurationForJsBlackBoxCodegenTest() {
         commonConfigurationForJsCodegenTest(
             targetFrontend = targetFrontend,
             frontendFacade = frontendFacade,

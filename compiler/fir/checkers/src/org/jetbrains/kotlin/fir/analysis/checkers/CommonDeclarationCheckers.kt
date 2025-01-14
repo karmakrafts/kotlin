@@ -197,11 +197,8 @@ object CommonDeclarationCheckers : DeclarationCheckers() {
 
     override val typeAliasCheckers: Set<FirTypeAliasChecker>
         get() = setOf(
-            FirTopLevelTypeAliasChecker,
+            FirAnyTypeAliasChecker,
             FirActualTypeAliasChecker,
-            FirActualTypealiasToSpecialAnnotationChecker,
-            FirDefaultArgumentsInExpectWithActualTypealiasChecker,
-            FirTypeAliasExpandsToArrayOfNothingsChecker,
         )
 
     override val anonymousFunctionCheckers: Set<FirAnonymousFunctionChecker>

@@ -24,7 +24,6 @@ import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.common.messages.toLogger
 import org.jetbrains.kotlin.cli.jvm.config.*
 import org.jetbrains.kotlin.cli.jvm.config.ClassicFrontendSpecificJvmConfigurationKeys.JAVA_CLASSES_TRACKER
-import org.jetbrains.kotlin.codegen.CodegenFactory
 import org.jetbrains.kotlin.codegen.JvmBackendClassResolverForModuleWithDependencies
 import org.jetbrains.kotlin.codegen.state.GenerationState
 import org.jetbrains.kotlin.config.*
@@ -96,7 +95,7 @@ object KotlinToJVMBytecodeCompiler {
         allSourceFiles: List<KtFile>?,
     ): Boolean {
         val localFileSystem = VirtualFileManager.getInstance().getFileSystem(StandardFileSystems.FILE_PROTOCOL)
-        val codegenInputs = ArrayList<CodegenFactory.CodegenInput>(chunk.size)
+        val codegenInputs = ArrayList<JvmIrCodegenFactory.CodegenInput>(chunk.size)
         for (module in chunk) {
             ProgressIndicatorAndCompilationCanceledStatus.checkCanceled()
 
@@ -110,15 +109,14 @@ object KotlinToJVMBytecodeCompiler {
             val backendInput = (if (ktFiles != null) {
                 codegenFactory.getModuleChunkBackendInput(backendInput, ktFiles)
             } else {
-                // K2/LT only, backend is always JVM-based
-                val wholeModule = (backendInput as JvmIrCodegenFactory.JvmIrBackendInput).irModuleFragment
+                val wholeModule = backendInput.irModuleFragment
                 val moduleCopy = IrModuleFragmentImpl(wholeModule.descriptor)
                 wholeModule.files.filterTo(moduleCopy.files) { file ->
                     file.fileEntry.name in module.getSourceFiles()
                 }
                 backendInput.copy(moduleCopy)
             }).let {
-                if (it is JvmIrCodegenFactory.JvmIrBackendInput && firJvmBackendExtension != null) {
+                if (firJvmBackendExtension != null) {
                     it.copy(backendExtension = firJvmBackendExtension)
                 } else it
             }
@@ -172,8 +170,8 @@ object KotlinToJVMBytecodeCompiler {
     }
 
     internal data class BackendInputForMultiModuleChunk(
-        val codegenFactory: CodegenFactory,
-        val backendInput: CodegenFactory.BackendInput,
+        val codegenFactory: JvmIrCodegenFactory,
+        val backendInput: JvmIrCodegenFactory.BackendInput,
         val moduleDescriptor: ModuleDescriptor,
         val firJvmBackendClassResolver: FirJvmBackendClassResolver? = null,
         val firJvmBackendExtension: FirJvmBackendExtension? = null,
@@ -264,11 +262,12 @@ object KotlinToJVMBytecodeCompiler {
         environment: KotlinCoreEnvironment,
         result: AnalysisResult,
         diagnosticsReporter: DiagnosticReporter
-    ): Pair<CodegenFactory, CodegenFactory.BackendInput> {
+    ): Pair<JvmIrCodegenFactory, JvmIrCodegenFactory.BackendInput> {
         val configuration = environment.configuration
         val codegenFactory = JvmIrCodegenFactory(configuration)
-
-        val input = CodegenFactory.IrConversionInput(
+        val performanceManager = environment.configuration[CLIConfigurationKeys.PERF_MANAGER]
+        performanceManager?.notifyIRTranslationStarted()
+        val backendInput = codegenFactory.convertToIr(
             environment.project,
             environment.getSourceFiles(),
             configuration,
@@ -279,20 +278,15 @@ object KotlinToJVMBytecodeCompiler {
             ignoreErrors = false,
             skipBodies = false,
         )
-
-        val performanceManager = environment.configuration[CLIConfigurationKeys.PERF_MANAGER]
-        performanceManager?.notifyIRTranslationStarted()
-        val backendInput = codegenFactory.convertToIr(input)
         performanceManager?.notifyIRTranslationFinished()
-
         return Pair(codegenFactory, backendInput)
     }
 
     internal fun Fir2IrActualizedResult.toBackendInput(
         configuration: CompilerConfiguration,
         jvmBackendExtension: JvmBackendExtension?
-    ): JvmIrCodegenFactory.JvmIrBackendInput {
-        return JvmIrCodegenFactory.JvmIrBackendInput(
+    ): JvmIrCodegenFactory.BackendInput {
+        return JvmIrCodegenFactory.BackendInput(
             irModuleFragment,
             irBuiltIns,
             symbolTable,
@@ -300,7 +294,7 @@ object KotlinToJVMBytecodeCompiler {
             JvmGeneratorExtensionsImpl(configuration),
             jvmBackendExtension ?: JvmBackendExtension.Default,
             pluginContext,
-        ) {}
+        )
     }
 
     fun analyze(environment: KotlinCoreEnvironment): AnalysisResult? {
@@ -374,12 +368,12 @@ object KotlinToJVMBytecodeCompiler {
         configuration: CompilerConfiguration,
         moduleDescriptor: ModuleDescriptor,
         module: Module?,
-        codegenFactory: CodegenFactory,
-        backendInput: CodegenFactory.BackendInput,
+        codegenFactory: JvmIrCodegenFactory,
+        backendInput: JvmIrCodegenFactory.BackendInput,
         diagnosticsReporter: BaseDiagnosticsCollector,
         firJvmBackendClassResolver: FirJvmBackendClassResolver? = null,
         reportGenerationStarted: Boolean
-    ): CodegenFactory.CodegenInput {
+    ): JvmIrCodegenFactory.CodegenInput {
         val performanceManager = configuration[CLIConfigurationKeys.PERF_MANAGER]
 
         val state = GenerationState(
@@ -404,9 +398,9 @@ object KotlinToJVMBytecodeCompiler {
     }
 
     internal fun runCodegen(
-        codegenInput: CodegenFactory.CodegenInput,
+        codegenInput: JvmIrCodegenFactory.CodegenInput,
         state: GenerationState,
-        codegenFactory: CodegenFactory,
+        codegenFactory: JvmIrCodegenFactory,
         diagnosticsReporter: BaseDiagnosticsCollector,
         configuration: CompilerConfiguration,
         reportGenerationFinished: Boolean
@@ -418,8 +412,6 @@ object KotlinToJVMBytecodeCompiler {
         performanceManager?.notifyIRGenerationStarted()
         codegenFactory.invokeCodegen(codegenInput)
 
-        CodegenFactory.doCheckCancelled(state)
-        state.factory.done()
         if (reportGenerationFinished) {
             performanceManager?.notifyIRGenerationFinished()
             performanceManager?.notifyGenerationFinished()

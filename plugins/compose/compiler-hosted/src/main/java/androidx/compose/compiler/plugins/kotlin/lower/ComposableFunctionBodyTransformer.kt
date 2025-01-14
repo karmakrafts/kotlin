@@ -117,14 +117,13 @@ fun defaultsBitIndex(index: Int): Int = index.rem(BITS_PER_INT)
 
 /**
  * The number of implicit ('this') parameters the function has.
- *
- * Note that extension and dispatch receiver params will not show up in [IrFunction.valueParameters]
- * but context receiver parameter ([IrFunction.contextReceiverParametersCount]) will.
  */
 val IrFunction.thisParamCount
-    get() = contextReceiverParametersCount +
-            (if (dispatchReceiverParameter != null) 1 else 0) +
-            (if (extensionReceiverParameter != null) 1 else 0)
+    get() = parameters.count {
+        it.kind == IrParameterKind.DispatchReceiver ||
+                it.kind == IrParameterKind.ExtensionReceiver ||
+                it.kind == IrParameterKind.Context
+    }
 
 /**
  * Calculates the number of 'changed' params needed based on the function's parameters.
@@ -630,9 +629,9 @@ class ComposableFunctionBodyTransformer(
         val scope = currentFunctionScope
         // if the function isn't composable, there's nothing to do
         if (!scope.isComposable) return super.visitFunction(declaration)
-        if (declaration.isDefaultValueStub) {
-            // this is a synthetic function stub, don't touch the body
-            return declaration
+        if (declaration.isDefaultParamStub) {
+            // don't transform the body of the stub normally
+            return visitComposableFunctionStub(declaration)
         }
 
         val restartable = declaration.shouldBeRestartable()
@@ -760,20 +759,8 @@ class ComposableFunctionBodyTransformer(
 
     private fun IrFunction.isVirtualFunctionWithDefaultParam(): Boolean =
         this is IrSimpleFunction &&
-                (context.irTrace[ComposeWritableSlices.IS_VIRTUAL_WITH_DEFAULT_PARAM, this] == true ||
+                (isVirtualFunctionWithDefaultParam != null ||
                         overriddenSymbols.any { it.owner.isVirtualFunctionWithDefaultParam() })
-
-    private val IrFunction.hasNonRestartableAnnotation: Boolean
-        get() = hasAnnotation(ComposeFqNames.NonRestartableComposable)
-
-    private val IrFunction.hasReadOnlyAnnotation: Boolean
-        get() = hasAnnotation(ComposeFqNames.ReadOnlyComposable)
-
-    private val IrFunction.hasExplicitGroups: Boolean
-        get() = hasAnnotation(ComposeFqNames.ExplicitGroupsComposable)
-
-    private val IrFunction.hasNonSkippableAnnotation: Boolean
-        get() = hasAnnotation(ComposeFqNames.NonSkippableComposable)
 
     // At a high level, without useNonSkippingGroupOptimization, a non-restartable composable
     // function
@@ -1279,6 +1266,28 @@ class ComposableFunctionBodyTransformer(
         )
 
         scope.metrics.recordGroup()
+
+        return declaration
+    }
+
+    private fun visitComposableFunctionStub(declaration: IrFunction): IrStatement {
+        // remove default parameters as the transform below would
+        declaration.parameters.fastForEach { it.defaultValue = null }
+
+        // patch $changed and $default parameters to be the same as passed to the stub
+        // stub should always have the form of return Call(...), so we can just match this structure
+        val body = declaration.body ?: error("Expected body for composable function stub")
+        val call = (body.statements[0] as? IrReturn)?.value as? IrCall ?: error("Expected a single return statement with a call")
+        call.symbol.owner.parameters.fastForEach { param ->
+            val paramName = param.name.asString()
+            if (
+                paramName.startsWith(ComposeNames.CHANGED_PARAMETER.asString()) ||
+                paramName.startsWith(ComposeNames.DEFAULT_PARAMETER.asString())
+            ) {
+                val parameter = declaration.valueParameters.find { it.name == param.name } ?: error("Expected parameter for ${param.name}")
+                call.arguments[param.indexInParameters] = irGet(parameter)
+            }
+        }
 
         return declaration
     }
@@ -3494,8 +3503,8 @@ class ComposableFunctionBodyTransformer(
         extensionArg: CallArgumentMeta?,
         dispatchArg: CallArgumentMeta?,
     ): List<IrExpression> {
-        val allArgs = listOfNotNull(extensionArg) +
-                contextArgs +
+        val allArgs = contextArgs +
+                listOfNotNull(extensionArg) +
                 valueArgs +
                 listOfNotNull(dispatchArg)
         // passing in 0 for thisParams since they should be included in the params list
@@ -4096,7 +4105,11 @@ class ComposableFunctionBodyTransformer(
             init {
                 val defaultParams = mutableListOf<IrValueParameter>()
                 val changedParams = mutableListOf<IrValueParameter>()
-                for (param in function.valueParameters) {
+                for (param in function.parameters) {
+                    if (param.kind != IrParameterKind.Regular) {
+                        continue
+                    }
+
                     val paramName = param.name.asString()
                     when {
                         paramName == ComposeNames.COMPOSER_PARAMETER.identifier ->
@@ -4140,14 +4153,34 @@ class ComposableFunctionBodyTransformer(
 
             val isComposable = composerParameter != null
 
-            val allTrackedParams = listOfNotNull(function.extensionReceiverParameter) +
-                    function.valueParameters.take(
-                        function.contextReceiverParametersCount + realValueParamCount
-                    ) +
-                    listOfNotNull(function.dispatchReceiverParameter)
+            val allTrackedParams = buildList {
+                function.parameters.fastForEach {
+                    if (it.kind == IrParameterKind.Context) {
+                        add(it)
+                    }
+                }
+                function.parameters.fastForEach {
+                    if (it.kind == IrParameterKind.ExtensionReceiver) {
+                        add(it)
+                    }
+                }
+                var parameterCount = realValueParamCount
+                function.parameters.fastForEach {
+                    if (parameterCount > 0 && it.kind == IrParameterKind.Regular) {
+                        parameterCount--
+                        add(it)
+                    }
+                }
+                function.parameters.fastForEach {
+                    if (it.kind == IrParameterKind.DispatchReceiver) {
+                        add(it)
+                    }
+                }
+            }
 
+            private val hasExtensionReceiver = function.parameters.any { it.kind == IrParameterKind.ExtensionReceiver }
             fun defaultIndexForSlotIndex(index: Int): Int {
-                return if (function.extensionReceiverParameter != null) index - 1 else index
+                return if (hasExtensionReceiver) index - 1 else index
             }
 
             val usedParams = BooleanArray(slotCount) { false }

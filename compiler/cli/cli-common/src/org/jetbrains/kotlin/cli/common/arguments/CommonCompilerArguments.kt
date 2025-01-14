@@ -830,6 +830,17 @@ The corresponding calls' declarations may not be marked with @BuilderInference."
         }
 
     @Argument(
+        value = "-Xnested-type-aliases",
+        description = "Enable experimental language support for nested type aliases."
+    )
+    @Enables(LanguageFeature.NestedTypeAliases)
+    var nestedTypeAliases = false
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Argument(
         value = "-Xsuppress-warning",
         valueDescription = "<WARNING_NAME>",
         description = "Suppress specified warning module-wide."
@@ -860,6 +871,17 @@ default: 'first-only-warn' in language version 2.2+, 'first-only' in version 2.1
         description = "Enable debug level compiler checks. ATTENTION: these checks can slow compiler down or even crash it."
     )
     var debugLevelCompilerChecks = false
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Argument(
+        value = "-Xannotation-target-all",
+        description = "Enable experimental language support for @all: annotation use-site target."
+    )
+    @Enables(LanguageFeature.AnnotationAllUseSiteTarget)
+    var annotationTargetAll = false
         set(value) {
             checkFrozen()
             field = value

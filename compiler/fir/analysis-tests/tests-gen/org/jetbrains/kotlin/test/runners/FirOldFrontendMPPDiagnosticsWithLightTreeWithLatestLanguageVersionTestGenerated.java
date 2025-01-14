@@ -320,12 +320,6 @@ public class FirOldFrontendMPPDiagnosticsWithLightTreeWithLatestLanguageVersionT
   }
 
   @Test
-  @TestMetadata("expectsWithJsExport.kt")
-  public void testExpectsWithJsExport() {
-    runTest("compiler/testData/diagnostics/tests/multiplatform/expectsWithJsExport.kt");
-  }
-
-  @Test
   @TestMetadata("extraNestedClassOnActualViaActualTypealias.kt")
   public void testExtraNestedClassOnActualViaActualTypealias() {
     runTest("compiler/testData/diagnostics/tests/multiplatform/extraNestedClassOnActualViaActualTypealias.kt");
@@ -419,12 +413,6 @@ public class FirOldFrontendMPPDiagnosticsWithLightTreeWithLatestLanguageVersionT
   @TestMetadata("kt64166.kt")
   public void testKt64166() {
     runTest("compiler/testData/diagnostics/tests/multiplatform/kt64166.kt");
-  }
-
-  @Test
-  @TestMetadata("kt72704.kt")
-  public void testKt72704() {
-    runTest("compiler/testData/diagnostics/tests/multiplatform/kt72704.kt");
   }
 
   @Test

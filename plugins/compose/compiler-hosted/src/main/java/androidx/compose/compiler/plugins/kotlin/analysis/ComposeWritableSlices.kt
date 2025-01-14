@@ -22,14 +22,10 @@ object ComposeWritableSlices {
         BasicWritableSlice(RewritePolicy.DO_NOTHING)
     val DURABLE_FUNCTION_KEY: WritableSlice<IrElement, KeyInfo> =
         BasicWritableSlice(RewritePolicy.DO_NOTHING)
-    val DURABLE_FUNCTION_KEYS: WritableSlice<IrElement, List<KeyInfo>> =
-        BasicWritableSlice(RewritePolicy.DO_NOTHING)
     val HAS_TRANSFORMED_LAMBDA: WritableSlice<IrElement, Boolean> =
         BasicWritableSlice(RewritePolicy.DO_NOTHING)
     val IS_TRANSFORMED_LAMBDA: WritableSlice<IrElement, Boolean> =
         BasicWritableSlice(RewritePolicy.DO_NOTHING)
     val FUNCTION_METRICS: WritableSlice<IrElement, FunctionMetrics> =
-        BasicWritableSlice(RewritePolicy.DO_NOTHING)
-    val IS_VIRTUAL_WITH_DEFAULT_PARAM: WritableSlice<IrElement, Boolean> =
         BasicWritableSlice(RewritePolicy.DO_NOTHING)
 }

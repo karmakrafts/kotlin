@@ -6,6 +6,7 @@
 package org.jetbrains.kotlin.generators.tests.analysis.api
 
 import org.jetbrains.kotlin.analysis.low.level.api.fir.*
+import org.jetbrains.kotlin.analysis.low.level.api.fir.api.AbstractResolveToFirSymbolTest
 import org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostic.*
 import org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostic.compiler.based.*
 import org.jetbrains.kotlin.analysis.low.level.api.fir.file.structure.*
@@ -297,6 +298,10 @@ internal fun TestGroupSuite.generateFirLowLevelApiTests() {
             model("resolveExtensionDisposal")
         }
 
+        testClass<AbstractResolveToFirSymbolTest> {
+            model("resolveToFirSymbol")
+        }
+
         testClass<AbstractFirClassByPsiClassProviderTest> {
             model("firClassByPsiClass")
         }
@@ -332,6 +337,18 @@ internal fun TestGroupSuite.generateFirLowLevelApiTests() {
         testClass<AbstractLLFirPreresolvedReversedDiagnosticCompilerTestDataTest>(suiteTestClassName = "LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated") {
             modelInit()
         }
+    }
+    testGroup(
+        "analysis/low-level-api-fir/tests",
+        "analysis/low-level-api-fir/testData",
+    ) {
+        testClass<AbstractDiagnosticCompilerTestDataTest>(suiteTestClassName = "DiagnosticCompilerTestAATestdataTestGenerated") {
+            model("compilerLikeAnalysis", pattern = TestGeneratorUtil.KT_WITHOUT_DOTS_IN_NAME)
+        }
+        testClass<AbstractLLFirPreresolvedReversedDiagnosticCompilerTestDataTest>(suiteTestClassName = "LLFirPreresolvedReversedDiagnosticCompilerAATestDataTestGenerated") {
+            model("compilerLikeAnalysis", pattern = TestGeneratorUtil.KT_WITHOUT_DOTS_IN_NAME)
+        }
+
     }
 
     testGroup(
