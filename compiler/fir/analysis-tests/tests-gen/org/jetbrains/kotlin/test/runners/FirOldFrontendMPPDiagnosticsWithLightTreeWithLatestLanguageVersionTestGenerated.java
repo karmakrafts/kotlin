@@ -218,6 +218,12 @@ public class FirOldFrontendMPPDiagnosticsWithLightTreeWithLatestLanguageVersionT
   }
 
   @Test
+  @TestMetadata("errorProneAtomicReferencePrimitivesInKMP.kt")
+  public void testErrorProneAtomicReferencePrimitivesInKMP() {
+    runTest("compiler/testData/diagnostics/tests/multiplatform/errorProneAtomicReferencePrimitivesInKMP.kt");
+  }
+
+  @Test
   @TestMetadata("expectAbstractToString.kt")
   public void testExpectAbstractToString() {
     runTest("compiler/testData/diagnostics/tests/multiplatform/expectAbstractToString.kt");
@@ -2358,6 +2364,12 @@ public class FirOldFrontendMPPDiagnosticsWithLightTreeWithLatestLanguageVersionT
     @Test
     public void testAllFilesPresentInJava() {
       KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/diagnostics/tests/multiplatform/java"), Pattern.compile("^(.*)\\.kts?$"), Pattern.compile("^(.+)\\.(reversed|fir|ll|latestLV)\\.kts?$"), TargetBackend.JVM_IR, true);
+    }
+
+    @Test
+    @TestMetadata("atomicTypes.kt")
+    public void testAtomicTypes() {
+      runTest("compiler/testData/diagnostics/tests/multiplatform/java/atomicTypes.kt");
     }
 
     @Test

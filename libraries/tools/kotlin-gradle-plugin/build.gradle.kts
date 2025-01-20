@@ -102,13 +102,6 @@ val unpublishedCompilerRuntimeDependencies = listOf( // TODO: remove in KT-70247
     ":wasm:wasm.config", // for k/js task
 )
 
-val intellijRuntimeDependencies = listOf( // TODO: remove in KT-70252
-    intellijUtilRt(), // for kapt (PathUtil.getJdkClassesRoots)
-    intellijPlatformUtil(), // for kapt (JavaVersion), KotlinToolRunner (escapeStringCharacters)
-    intellijPlatformUtilBase(), // for kapt (PathUtil.getJdkClassesRoots)
-    commonDependency("org.jetbrains.intellij.deps.fastutil:intellij-deps-fastutil") // for kapt (PathUtil.getJdkClassesRoots)
-)
-
 dependencies {
     commonApi(platform(project(":kotlin-gradle-plugins-bom")))
     commonApi(project(":kotlin-gradle-plugin-api"))
@@ -178,9 +171,6 @@ dependencies {
     }
     for (compilerRuntimeDependency in unpublishedCompilerRuntimeDependencies) {
         embedded(project(compilerRuntimeDependency)) { isTransitive = false }
-    }
-    for (compilerRuntimeDependency in intellijRuntimeDependencies) {
-        embedded(compilerRuntimeDependency) { isTransitive = false }
     }
 
     embedded(project(":kotlin-gradle-build-metrics"))

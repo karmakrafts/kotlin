@@ -27,7 +27,7 @@ import org.jetbrains.kotlin.fir.declarations.utils.hasStableParameterNames
 import org.jetbrains.kotlin.fir.declarations.utils.isActual
 import org.jetbrains.kotlin.fir.declarations.utils.isExpect
 import org.jetbrains.kotlin.fir.declarations.utils.visibility
-import org.jetbrains.kotlin.fir.scopes.impl.typeAliasForConstructor
+import org.jetbrains.kotlin.fir.scopes.impl.typeAliasConstructorInfo
 import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.ClassId
@@ -52,7 +52,7 @@ internal class KaFirConstructorSymbol private constructor(
         analysisSession = session,
     )
 
-    override val psi: PsiElement? get() = withValidityAssertion { backingPsi ?: firSymbol.findPsi() }
+    override val psi: PsiElement? get() = withValidityAssertion { backingPsi ?: findPsi() }
 
     override val returnType: KaType get() = withValidityAssertion { firSymbol.returnType(builder) }
 
@@ -81,7 +81,7 @@ internal class KaFirConstructorSymbol private constructor(
     override val containingClassId: ClassId?
         get() = withValidityAssertion {
             backingPsi?.getContainingClassOrObject()?.getClassId()
-                ?: firSymbol.typeAliasForConstructor?.classId?.takeUnless { it.isLocal }
+                ?: firSymbol.typeAliasConstructorInfo?.typeAliasSymbol?.classId?.takeUnless { it.isLocal }
                 ?: firSymbol.containingClassLookupTag()?.classId?.takeUnless { it.isLocal }
         }
 
@@ -127,24 +127,10 @@ internal class KaFirConstructorSymbol private constructor(
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other === this) return true
-
-        if (!lazyFirSymbol.isInitialized() || !firSymbol.isTypeAliasedConstructor) {
-            return psiOrSymbolEquals(other)
-        }
-
-        if (other !is KaFirConstructorSymbol) return false
-
-        // TODO remove manual comparison when KT-72929 is fixed
-        return typeAliasedConstructorsEqual(firSymbol, other.firSymbol)
+        return psiOrSymbolEquals(other)
     }
 
     override fun hashCode(): Int {
-        if (!lazyFirSymbol.isInitialized() || !firSymbol.isTypeAliasedConstructor) {
-            return psiOrSymbolHashCode()
-        }
-
-        // TODO remove explicit hashing when KT-72929 is fixed
-        return firSymbol.hashCodeForTypeAliasedConstructor()
+        return psiOrSymbolHashCode()
     }
 }

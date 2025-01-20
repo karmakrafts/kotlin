@@ -1432,11 +1432,6 @@ public final class org/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingD
 	public final fun invoke (Ljava/lang/String;)Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnostic;
 }
 
-public final class org/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingDiagnostics$UnsupportedTargetShortcutError : org/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnosticFactory {
-	public static final field INSTANCE Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingDiagnostics$UnsupportedTargetShortcutError;
-	public final fun invoke (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnostic;
-}
-
 public final class org/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingDiagnostics$UnusedSourceSetsWarning : org/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnosticFactory {
 	public static final field INSTANCE Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingDiagnostics$UnusedSourceSetsWarning;
 	public final fun invoke (Ljava/util/Collection;)Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnostic;
@@ -5912,10 +5907,12 @@ public final class org/jetbrains/kotlin/gradle/targets/jvm/KotlinJvmBinariesDsl$
 
 public abstract interface class org/jetbrains/kotlin/gradle/targets/jvm/KotlinJvmBinaryDsl {
 	public abstract fun getApplicationDefaultJvmArgs ()Lorg/gradle/api/provider/ListProperty;
+	public abstract fun getApplicationDistribution ()Lorg/gradle/api/file/CopySpec;
 	public abstract fun getApplicationName ()Lorg/gradle/api/provider/Property;
-	public abstract fun getExecutableDir ()Lorg/gradle/api/file/DirectoryProperty;
+	public abstract fun getExecutableDir ()Lorg/gradle/api/provider/Property;
 	public abstract fun getMainClass ()Lorg/gradle/api/provider/Property;
 	public abstract fun getMainModule ()Lorg/gradle/api/provider/Property;
+	public abstract fun setApplicationDistribution (Lorg/gradle/api/file/CopySpec;)V
 }
 
 public abstract class org/jetbrains/kotlin/gradle/targets/jvm/KotlinJvmTarget : org/jetbrains/kotlin/gradle/plugin/mpp/KotlinOnlyTarget, org/jetbrains/kotlin/gradle/dsl/HasConfigurableKotlinCompilerOptions, org/jetbrains/kotlin/gradle/plugin/KotlinTargetWithTests {

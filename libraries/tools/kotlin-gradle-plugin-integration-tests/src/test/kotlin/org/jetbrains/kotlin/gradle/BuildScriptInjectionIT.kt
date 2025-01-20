@@ -17,9 +17,7 @@ import org.jetbrains.kotlin.gradle.testbase.*
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
 import org.jetbrains.kotlin.gradle.uklibs.*
 import java.io.File
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.fail
+import kotlin.test.*
 
 @MppGradlePluginTests
 class BuildScriptInjectionIT : KGPBaseTest() {
@@ -27,7 +25,7 @@ class BuildScriptInjectionIT : KGPBaseTest() {
     @GradleTest
     fun publishAndConsumeKtsTemplate(version: GradleVersion) {
         publishAndConsumeProject(
-            "buildScriptInjection",
+            "emptyKts",
             version,
         )
     }
@@ -35,7 +33,7 @@ class BuildScriptInjectionIT : KGPBaseTest() {
     @GradleTest
     fun publishAndConsumeGroovyTemplate(version: GradleVersion) {
         publishAndConsumeProject(
-            "buildScriptInjectionGroovy",
+            "empty",
             version,
         )
     }
@@ -43,9 +41,9 @@ class BuildScriptInjectionIT : KGPBaseTest() {
     @GradleTest
     fun consumeProjectDependencyViaSettingsInjection(version: GradleVersion) {
         // Use Groovy because it loads faster
-        project("buildScriptInjectionGroovy", version) {
+        project("empty", version) {
             addKgpToBuildScriptCompilationClasspath()
-            val producer = project("buildScriptInjectionGroovy", version) {
+            val producer = project("empty", version) {
                 buildScriptInjection {
                     project.applyMultiplatform {
                         linuxArm64()
@@ -55,7 +53,7 @@ class BuildScriptInjectionIT : KGPBaseTest() {
                     }
                 }
             }
-            val consumer = project("buildScriptInjectionGroovy", version) {
+            val consumer = project("empty", version) {
                 buildScriptInjection {
                     project.applyMultiplatform {
                         linuxArm64()
@@ -117,7 +115,7 @@ class BuildScriptInjectionIT : KGPBaseTest() {
     @GradleTest
     fun buildScriptReturnIsCCFriendly(version: GradleVersion) {
         // Sanity check that enabling CC produces CC serialization errors with inappropriately constructed providers in providerBuildScriptReturn
-        project("buildScriptInjectionGroovy", version) {
+        project("empty", version) {
             val returnValue = providerBuildScriptReturn {
                 project.provider { project }
             }
@@ -130,7 +128,7 @@ class BuildScriptInjectionIT : KGPBaseTest() {
         }
 
         // Check that in the simple case we don't fail to return value with CC
-        project("buildScriptInjectionGroovy", version) {
+        project("empty", version) {
             buildScriptReturn {
                 project.layout.projectDirectory.file("foo").asFile
             }.buildAndReturn(
@@ -143,7 +141,7 @@ class BuildScriptInjectionIT : KGPBaseTest() {
             @get:OutputFile
             abstract val out: RegularFileProperty
         }
-        project("buildScriptInjectionGroovy", version) {
+        project("empty", version) {
             val taskName = "foo"
             val produceCCSerializationError = "produceCCSerializationError"
             val mappedTaskOutputProvider: GradleProjectBuildScriptInjectionContext.() -> Provider<File> = {
@@ -187,7 +185,7 @@ class BuildScriptInjectionIT : KGPBaseTest() {
         val a2 = A("2")
 
         // Catch exceptions emitted by tasks at execution
-        project("buildScriptInjectionGroovy", version) {
+        project("empty", version) {
             buildScriptInjection {
                 project.tasks.register("throwA1") {
                     it.doLast { throw a1 }
@@ -223,7 +221,7 @@ class BuildScriptInjectionIT : KGPBaseTest() {
         }
 
         // Build failures caused by configuration errors are also catchable
-        project("buildScriptInjectionGroovy", version) {
+        project("empty", version) {
             buildScriptInjection {
                 throw A()
             }
@@ -233,7 +231,7 @@ class BuildScriptInjectionIT : KGPBaseTest() {
             )
         }
 
-        project("buildScriptInjectionGroovy", version) {
+        project("empty", version) {
             buildScriptInjection {
                 throw B()
             }
@@ -248,7 +246,7 @@ class BuildScriptInjectionIT : KGPBaseTest() {
     @GradleTest
     fun buildscriptBlockInjection(version: GradleVersion) {
         testBuildscriptBlockInjection(
-            "buildScriptInjection",
+            "emptyKts",
             version,
         )
     }
@@ -256,8 +254,36 @@ class BuildScriptInjectionIT : KGPBaseTest() {
     @GradleTest
     fun buildscriptBlockInjectionGroovy(version: GradleVersion) {
         testBuildscriptBlockInjection(
-            "buildScriptInjectionGroovy",
+            "empty",
             version,
+        )
+    }
+
+    @Test
+    fun testPrependToOrCreateBuildscriptBlock() {
+        assertEquals(
+            """
+            buildscript {
+            foo
+            
+            }
+            
+            """.trimIndent(),
+            """
+            buildscript {
+            }
+            
+            """.trimIndent().prependToOrCreateBuildscriptBlock("foo")
+        )
+        assertEquals(
+            """
+            buildscript {
+            foo
+            }
+            
+            """.trimIndent(),
+            """
+            """.trimIndent().prependToOrCreateBuildscriptBlock("foo")
         )
     }
 

@@ -7430,6 +7430,12 @@ public class FirNativeSerializationTestGenerated extends AbstractFirNativeSerial
       }
 
       @Test
+      @TestMetadata("classMemberAndTopLevelWithContext.kt")
+      public void testClassMemberAndTopLevelWithContext() {
+        runTest("compiler/testData/codegen/box/contextParameters/classMemberAndTopLevelWithContext.kt");
+      }
+
+      @Test
       @TestMetadata("contextParameterToDefaultArgument.kt")
       public void testContextParameterToDefaultArgument() {
         runTest("compiler/testData/codegen/box/contextParameters/contextParameterToDefaultArgument.kt");
@@ -7469,6 +7475,24 @@ public class FirNativeSerializationTestGenerated extends AbstractFirNativeSerial
       @TestMetadata("sameNameWithPropertyName.kt")
       public void testSameNameWithPropertyName() {
         runTest("compiler/testData/codegen/box/contextParameters/sameNameWithPropertyName.kt");
+      }
+
+      @Test
+      @TestMetadata("withExtensionReceiverAndThis.kt")
+      public void testWithExtensionReceiverAndThis() {
+        runTest("compiler/testData/codegen/box/contextParameters/withExtensionReceiverAndThis.kt");
+      }
+
+      @Test
+      @TestMetadata("withExtensionReceiverInSupertype.kt")
+      public void testWithExtensionReceiverInSupertype() {
+        runTest("compiler/testData/codegen/box/contextParameters/withExtensionReceiverInSupertype.kt");
+      }
+
+      @Test
+      @TestMetadata("withExtensionReceiverInType.kt")
+      public void testWithExtensionReceiverInType() {
+        runTest("compiler/testData/codegen/box/contextParameters/withExtensionReceiverInType.kt");
       }
     }
 
@@ -20524,6 +20548,24 @@ public class FirNativeSerializationTestGenerated extends AbstractFirNativeSerial
       }
 
       @Test
+      @TestMetadata("kt67024.kt")
+      public void testKt67024() {
+        runTest("compiler/testData/codegen/box/inline/kt67024.kt");
+      }
+
+      @Test
+      @TestMetadata("kt67866.kt")
+      public void testKt67866() {
+        runTest("compiler/testData/codegen/box/inline/kt67866.kt");
+      }
+
+      @Test
+      @TestMetadata("kt69041.kt")
+      public void testKt69041() {
+        runTest("compiler/testData/codegen/box/inline/kt69041.kt");
+      }
+
+      @Test
       @TestMetadata("lambdaAsAny.kt")
       public void testLambdaAsAny() {
         runTest("compiler/testData/codegen/box/inline/lambdaAsAny.kt");
@@ -27028,6 +27070,16 @@ public class FirNativeSerializationTestGenerated extends AbstractFirNativeSerial
       }
 
       @Nested
+      @TestMetadata("compiler/testData/codegen/box/javaInterop/commonAtomicTypes")
+      @TestDataPath("$PROJECT_ROOT")
+      public class CommonAtomicTypes {
+        @Test
+        public void testAllFilesPresentInCommonAtomicTypes() {
+          KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/box/javaInterop/commonAtomicTypes"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.NATIVE, true);
+        }
+      }
+
+      @Nested
       @TestMetadata("compiler/testData/codegen/box/javaInterop/foreignAnnotationsTests")
       @TestDataPath("$PROJECT_ROOT")
       public class ForeignAnnotationsTests {
@@ -29207,6 +29259,24 @@ public class FirNativeSerializationTestGenerated extends AbstractFirNativeSerial
           @TestMetadata("anyMethodInExpect.kt")
           public void testAnyMethodInExpect() {
             runTest("compiler/testData/codegen/box/multiplatform/k2/basic/anyMethodInExpect.kt");
+          }
+
+          @Test
+          @TestMetadata("contextInFakeOverride.kt")
+          public void testContextInFakeOverride() {
+            runTest("compiler/testData/codegen/box/multiplatform/k2/basic/contextInFakeOverride.kt");
+          }
+
+          @Test
+          @TestMetadata("contextOnExpect.kt")
+          public void testContextOnExpect() {
+            runTest("compiler/testData/codegen/box/multiplatform/k2/basic/contextOnExpect.kt");
+          }
+
+          @Test
+          @TestMetadata("contextOnExpectActual.kt")
+          public void testContextOnExpectActual() {
+            runTest("compiler/testData/codegen/box/multiplatform/k2/basic/contextOnExpectActual.kt");
           }
 
           @Test
@@ -41454,6 +41524,18 @@ public class FirNativeSerializationTestGenerated extends AbstractFirNativeSerial
       }
 
       @Test
+      @TestMetadata("diamondWithCovariantOverride.kt")
+      public void testDiamondWithCovariantOverride() {
+        runTest("compiler/testData/codegen/box/super/diamondWithCovariantOverride.kt");
+      }
+
+      @Test
+      @TestMetadata("diamondWithGenericSpecialization.kt")
+      public void testDiamondWithGenericSpecialization() {
+        runTest("compiler/testData/codegen/box/super/diamondWithGenericSpecialization.kt");
+      }
+
+      @Test
       @TestMetadata("enclosedFun.kt")
       public void testEnclosedFun() {
         runTest("compiler/testData/codegen/box/super/enclosedFun.kt");
@@ -43212,9 +43294,9 @@ public class FirNativeSerializationTestGenerated extends AbstractFirNativeSerial
       }
 
       @Test
-      @TestMetadata("uLongInValueClass.kt")
-      public void testULongInValueClass() {
-        runTest("compiler/testData/codegen/box/valueClasses/uLongInValueClass.kt");
+      @TestMetadata("valueClassInValueClass.kt")
+      public void testValueClassInValueClass() {
+        runTest("compiler/testData/codegen/box/valueClasses/valueClassInValueClass.kt");
       }
 
       @Nested
