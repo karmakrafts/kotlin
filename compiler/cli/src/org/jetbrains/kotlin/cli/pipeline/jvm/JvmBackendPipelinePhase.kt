@@ -40,6 +40,10 @@ object JvmBackendPipelinePhase : PipelinePhase<JvmFir2IrPipelineArtifact, JvmBin
     )
 ) {
     override fun executePhase(input: JvmFir2IrPipelineArtifact): JvmBinaryPipelineArtifact? {
+        return executePhase(input, ignoreErrors = false)
+    }
+
+    fun executePhase(input: JvmFir2IrPipelineArtifact, ignoreErrors: Boolean): JvmBinaryPipelineArtifact? {
         val (fir2IrResult, configuration, environment, diagnosticCollector, allSourceFiles, mainClassFqName) = input
         val moduleDescriptor = fir2IrResult.irModuleFragment.descriptor
         val project = environment.project
@@ -102,14 +106,20 @@ object JvmBackendPipelinePhase : PipelinePhase<JvmFir2IrPipelineArtifact, JvmBin
                 diagnosticCollector,
                 input.state.configuration,
                 reportGenerationFinished = false,
+                reportDiagnosticsToMessageCollector = false, // diagnostics will be reported in CheckCompilationErrors.CheckDiagnosticCollector
             )
         }
 
         ProgressIndicatorAndCompilationCanceledStatus.checkCanceled()
-        val success = writeOutputsIfNeeded(project, configuration, configuration.messageCollector, outputs, mainClassFqName)
+        val success = writeOutputsIfNeeded(
+            project,
+            configuration,
+            configuration.messageCollector,
+            hasPendingErrors = diagnosticCollector.hasErrors,
+            outputs,
+            mainClassFqName
+        )
 
-        if (!success) return null
-
-        return JvmBinaryPipelineArtifact(outputs)
+        return JvmBinaryPipelineArtifact(outputs).takeIf { success || ignoreErrors }
     }
 }

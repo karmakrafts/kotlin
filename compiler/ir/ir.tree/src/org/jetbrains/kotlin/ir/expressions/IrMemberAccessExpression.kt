@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.ir.symbols.IrBindableSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
 import org.jetbrains.kotlin.ir.symbols.impl.IrFakeOverrideSymbolBase
 import org.jetbrains.kotlin.ir.types.IrType
+import org.jetbrains.kotlin.ir.util.getShapeOfParameters
 import org.jetbrains.kotlin.ir.util.render
 import org.jetbrains.kotlin.ir.util.resolveFakeOverrideMaybeAbstractOrFail
 import org.jetbrains.kotlin.ir.util.transformInPlace
@@ -118,24 +119,12 @@ abstract class IrMemberAccessExpression<S : IrSymbol> : IrDeclarationReference()
         val target = (symbol as IrBindableSymbol<*, IrSymbolOwner>).getRealOwner()
         when (target) {
             is IrFunction -> {
-                var hasDispatchReceiver = false
-                var hasExtensionReceiver = false
-                var contextParameterCount = 0
-                var regularParameterCount = 0
-                for (param in target.parameters) {
-                    when (param.kind) {
-                        IrParameterKind.DispatchReceiver -> hasDispatchReceiver = true
-                        IrParameterKind.ExtensionReceiver -> hasExtensionReceiver = true
-                        IrParameterKind.Context -> contextParameterCount++
-                        IrParameterKind.Regular -> regularParameterCount++
-                    }
-                }
-
+                val targetShape = target.getShapeOfParameters()
                 initializeTargetShapeExplicitly(
-                    hasDispatchReceiver,
-                    hasExtensionReceiver,
-                    contextParameterCount,
-                    regularParameterCount,
+                    targetShape.hasDispatchReceiver,
+                    targetShape.hasExtensionReceiver,
+                    targetShape.contextParameterCount,
+                    targetShape.regularParameterCount,
                     isFromTargetUpdate = isFromTargetUpdate,
                 )
             }
@@ -449,6 +438,13 @@ abstract class IrMemberAccessExpression<S : IrSymbol> : IrDeclarationReference()
         (if (targetHasDispatchReceiver) 1 else 0) +
                 (if (targetHasExtensionReceiver && index >= targetContextParameterCount) 1 else 0) +
                 index
+
+    @DeprecatedCompilerApi(
+        CompilerVersionOfApiDeprecation._2_2_0,
+        "This is an old-API way hack to complement getting function's shape without a bound symbol."
+    )
+    val contextArgumentsCount: Int
+        get() = targetContextParameterCount
 
 
     abstract val typeArguments: MutableList<IrType?>

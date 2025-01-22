@@ -25,19 +25,13 @@ import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.declarations.*
 import org.jetbrains.kotlin.ir.declarations.*
-import org.jetbrains.kotlin.ir.declarations.impl.IrExternalPackageFragmentImpl
-import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImpl
-import org.jetbrains.kotlin.ir.declarations.impl.IrFileImpl
-import org.jetbrains.kotlin.ir.declarations.impl.IrModuleFragmentImpl
+import org.jetbrains.kotlin.ir.declarations.impl.*
 import org.jetbrains.kotlin.ir.expressions.impl.*
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrClassifierSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
-import org.jetbrains.kotlin.ir.symbols.impl.IrConstructorSymbolImpl
-import org.jetbrains.kotlin.ir.symbols.impl.IrExternalPackageFragmentSymbolImpl
-import org.jetbrains.kotlin.ir.symbols.impl.IrFileSymbolImpl
+import org.jetbrains.kotlin.ir.symbols.impl.*
 import org.jetbrains.kotlin.ir.types.IrDynamicType
-import org.jetbrains.kotlin.ir.symbols.impl.IrValueParameterSymbolImpl
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.IrTypeArgument
 import org.jetbrains.kotlin.ir.types.SimpleTypeNullability
@@ -78,16 +72,23 @@ class IrValidatorTest {
         val function1 = IrFactoryImpl.buildFun {
             name = Name.identifier("foo")
             returnType = TestIrBuiltins.anyType
+        }.apply {
+            parameters = listOf(
+                createExtensionReceiver(TestIrBuiltins.stringType),
+                buildValueParameter(this) {
+                    name = Name.identifier("p0")
+                    type = TestIrBuiltins.anyType
+                    kind = IrParameterKind.Regular
+                }
+            )
         }
-        function1.parameters += function1.createExtensionReceiver(TestIrBuiltins.stringType)
-        function1.addValueParameter(Name.identifier("p0"), TestIrBuiltins.anyType)
         val functionCall =
             IrCallImpl(
                 UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.anyType, function1.symbol,
                 typeArgumentsCount = 0,
             ).apply {
-                extensionReceiver = stringConcatenationWithWrongType
-                putValueArgument(0, stringConcatenationWithWrongType)
+                arguments[0] = stringConcatenationWithWrongType
+                arguments[1] = stringConcatenationWithWrongType
             }
         val function2 = IrFactoryImpl.buildFun {
             name = Name.identifier("bar")
@@ -111,18 +112,25 @@ class IrValidatorTest {
         val function = IrFactoryImpl.buildFun {
             name = Name.identifier("foo")
             returnType = TestIrBuiltins.unitType
+        }.apply {
+            parameters = listOf(
+                createExtensionReceiver(TestIrBuiltins.stringType),
+                buildValueParameter(this) {
+                    name = Name.identifier("p0")
+                    type = TestIrBuiltins.anyType
+                    kind = IrParameterKind.Regular
+                }
+            )
         }
-        function.parameters += function.createExtensionReceiver(TestIrBuiltins.stringType)
-        function.addValueParameter(Name.identifier("p0"), TestIrBuiltins.anyType)
         val body = IrFactoryImpl.createBlockBody(5, 24)
         val stringConcatenationWithWrongType = IrStringConcatenationImpl(9, 20, TestIrBuiltins.anyType)
         val functionCall =
             IrCallImpl(
                 6, 23, TestIrBuiltins.anyType, function.symbol,
                 typeArgumentsCount = 0,
-           ).apply {
-                extensionReceiver = stringConcatenationWithWrongType
-                putValueArgument(0, stringConcatenationWithWrongType)
+            ).apply {
+                arguments[0] = stringConcatenationWithWrongType
+                arguments[1] = stringConcatenationWithWrongType
             }
         body.statements.add(functionCall)
         function.body = body
@@ -147,6 +155,7 @@ class IrValidatorTest {
                     phaseName = "IrValidatorTest",
                     IrValidatorConfig(
                         checkTypes = true,
+                        checkProperties = true,
                         checkValueScopes = true,
                         checkTypeParameterScopes = true,
                         checkCrossFileFieldUsage = true,
@@ -1008,7 +1017,7 @@ class IrValidatorTest {
                 6, 23, TestIrBuiltins.anyType, function.symbol,
                 typeArgumentsCount = 0,
             ).apply {
-                putValueArgument(0, vararg)
+                arguments[0] = vararg
             }
         body.statements.add(functionCall)
         function.body = body
@@ -1052,7 +1061,7 @@ class IrValidatorTest {
                 6, 23, TestIrBuiltins.anyType, function.symbol,
                 typeArgumentsCount = 0,
             ).apply {
-                putValueArgument(0, vararg)
+                arguments[0] = vararg
             }
         body.statements.add(functionCall)
         function.body = body
@@ -1264,6 +1273,236 @@ class IrValidatorTest {
         )
     }
 
+    @OptIn(DelicateIrParameterIndexSetter::class)
+    @Test
+    fun `functions with incorrect parameter index are reported`() {
+        val file = createIrFile()
+        val function = IrFactoryImpl.buildFun {
+            name = Name.identifier("foo")
+            returnType = TestIrBuiltins.anyType
+        }
+        function.addValueParameter {
+            name = Name.identifier("x")
+            type = TestIrBuiltins.anyType
+        }
+        function.addTypeParameter {
+            name = Name.identifier("T")
+        }
+        function.parameters[0].indexInOldValueParameters = 1
+        function.parameters[0].indexInParameters = 1
+        function.typeParameters[0].index = 1
+        file.addChild(function)
+        testValidation(
+            IrVerificationMode.WARNING,
+            file,
+            listOf(
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: Inconsistent index (old API) of value parameter 1 != 0
+                    FUN name:foo visibility:public modality:FINAL <T> (x:kotlin.Any) returnType:kotlin.Any
+                      inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null)
+                ),
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: Inconsistent index (new API) of value parameter 1 != 0
+                    FUN name:foo visibility:public modality:FINAL <T> (x:kotlin.Any) returnType:kotlin.Any
+                      inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null)
+                ),
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: Inconsistent index of type parameter 1 != 0
+                    FUN name:foo visibility:public modality:FINAL <T> (x:kotlin.Any) returnType:kotlin.Any
+                      inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null)
+                ),
+            )
+        )
+    }
+
+    @Test
+    fun `functions with incorrect parameters order are reported`() {
+        val file = createIrFile()
+        val function = IrFactoryImpl.buildFun {
+            name = Name.identifier("foo")
+            returnType = TestIrBuiltins.anyType
+        }
+        repeat(4) { i ->
+            function.addValueParameter {
+                name = Name.identifier("x$i")
+                type = TestIrBuiltins.anyType
+            }
+        }
+        function.parameters[0].kind = IrParameterKind.Regular
+        function.parameters[1].kind = IrParameterKind.ExtensionReceiver
+        function.parameters[2].kind = IrParameterKind.Context
+        function.parameters[3].kind = IrParameterKind.DispatchReceiver
+        file.addChild(function)
+        testValidation(
+            IrVerificationMode.WARNING,
+            file,
+            listOf(
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: Invalid order of function parameters: ExtensionReceiver is placed after Regular.
+                    Parameters must follow a strict order: [dispatch receiver, context parameters, extension receiver, regular parameters].
+                    FUN name:foo visibility:public modality:FINAL <> (${'$'}this:kotlin.Any, ${'$'}receiver:kotlin.Any, x0:kotlin.Any, x2:kotlin.Any) returnType:kotlin.Any
+                      inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null)
+                ),
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: Invalid order of function parameters: Context is placed after ExtensionReceiver.
+                    Parameters must follow a strict order: [dispatch receiver, context parameters, extension receiver, regular parameters].
+                    FUN name:foo visibility:public modality:FINAL <> (${'$'}this:kotlin.Any, ${'$'}receiver:kotlin.Any, x0:kotlin.Any, x2:kotlin.Any) returnType:kotlin.Any
+                      inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null)
+                ),
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: Invalid order of function parameters: DispatchReceiver is placed after Context.
+                    Parameters must follow a strict order: [dispatch receiver, context parameters, extension receiver, regular parameters].
+                    FUN name:foo visibility:public modality:FINAL <> (${'$'}this:kotlin.Any, ${'$'}receiver:kotlin.Any, x0:kotlin.Any, x2:kotlin.Any) returnType:kotlin.Any
+                      inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null)
+                ),
+            )
+        )
+    }
+
+    @Test
+    fun `functions with multiple receiver parameters are reported`() {
+        val file = createIrFile()
+        val function = IrFactoryImpl.buildFun {
+            name = Name.identifier("foo")
+            returnType = TestIrBuiltins.anyType
+        }
+        repeat(4) { i ->
+            function.addValueParameter {
+                name = Name.identifier("x$i")
+                type = TestIrBuiltins.anyType
+            }
+        }
+        function.parameters[0].kind = IrParameterKind.DispatchReceiver
+        function.parameters[1].kind = IrParameterKind.DispatchReceiver
+        function.parameters[2].kind = IrParameterKind.ExtensionReceiver
+        function.parameters[3].kind = IrParameterKind.ExtensionReceiver
+        file.addChild(function)
+        testValidation(
+            IrVerificationMode.WARNING,
+            file,
+            listOf(
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: Function may have only one DispatchReceiver parameter
+                    FUN name:foo visibility:public modality:FINAL <> (${'$'}this:kotlin.Any, ${'$'}receiver:kotlin.Any) returnType:kotlin.Any
+                      inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null)
+                ),
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: Function may have only one ExtensionReceiver parameter
+                    FUN name:foo visibility:public modality:FINAL <> (${'$'}this:kotlin.Any, ${'$'}receiver:kotlin.Any) returnType:kotlin.Any
+                      inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null)
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `Orphaned property getter or setter are reported`() {
+        val file = createIrFile()
+        val property = IrFactoryImpl.buildProperty {
+            name = Name.identifier("p")
+        }
+
+        val correctPropertyGetter = IrFactoryImpl.buildFun {
+            name = Name.identifier("bar")
+            returnType = TestIrBuiltins.anyType
+        }
+        correctPropertyGetter.correspondingPropertySymbol = property.symbol
+        property.getter = correctPropertyGetter
+
+        val orphanedPropertyFunction = IrFactoryImpl.buildFun {
+            name = Name.identifier("foo")
+            returnType = TestIrBuiltins.anyType
+        }
+        orphanedPropertyFunction.correspondingPropertySymbol = property.symbol
+
+        val orphanedPropertyFunctionCall = IrCallImpl(
+            UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.anyType, orphanedPropertyFunction.symbol,
+            typeArgumentsCount = 0,
+        )
+
+        val orphanedPropertyFunctionReference = IrFunctionReferenceImpl(
+            UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.anyType, orphanedPropertyFunction.symbol,
+            typeArgumentsCount = 0
+        )
+
+        val body = IrFactoryImpl.createBlockBody(UNDEFINED_OFFSET, UNDEFINED_OFFSET)
+        body.statements.add(orphanedPropertyFunctionCall)
+        body.statements.add(orphanedPropertyFunctionReference)
+        orphanedPropertyFunction.body = body
+
+        file.addChild(property)
+        file.addChild(orphanedPropertyFunction)
+        testValidation(
+            IrVerificationMode.WARNING,
+            file,
+            listOf(
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: Orphaned property getter/setter FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Any
+                    CALL 'public final fun foo (): kotlin.Any declared in org.sample' type=kotlin.Any origin=null
+                      inside BLOCK_BODY
+                        inside FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Any
+                          inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null)
+                ),
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: Orphaned property getter/setter FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Any
+                    FUNCTION_REFERENCE 'public final fun foo (): kotlin.Any declared in org.sample' type=kotlin.Any origin=null reflectionTarget=<same>
+                      inside BLOCK_BODY
+                        inside FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Any
+                          inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null)
+                ),
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: Orphaned property getter/setter FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Any
+                    FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Any
+                      inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null)
+                )
+            )
+        )
+    }
+
     @Test
     fun `assignments to value parameters not marked assignable are reported`() {
         val file = createIrFile("test.kt")
@@ -1321,6 +1560,228 @@ class IrValidatorTest {
                     SET_VAR 'p1: kotlin.Any declared in org.sample.foo' type=kotlin.Unit origin=null
                       inside BLOCK_BODY
                         inside FUN name:foo visibility:public modality:FINAL <> (p1:kotlin.Any, p2:kotlin.Any) returnType:kotlin.Unit
+                          inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `loops, breaks and continues with incorrect type are reported`() {
+        val file = createIrFile("test.kt")
+        val function = IrFactoryImpl.buildFun {
+            name = Name.identifier("foo")
+            returnType = TestIrBuiltins.unitType
+        }
+        val body = IrFactoryImpl.createBlockBody(
+            startOffset = UNDEFINED_OFFSET,
+            endOffset = UNDEFINED_OFFSET,
+            statements = listOf()
+        )
+
+        val incorrectLoop = IrWhileLoopImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.anyType, null).apply {
+            condition = IrConstImpl.boolean(UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.booleanType, true)
+        }
+        val correctLoop = IrWhileLoopImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.unitType, null).apply {
+            condition = IrConstImpl.boolean(UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.booleanType, true)
+        }
+        val incorrectBreak = IrBreakImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.anyType, incorrectLoop)
+        val incorrectContinue = IrContinueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.anyType, incorrectLoop)
+        val correctBreak = IrBreakImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.nothingType, incorrectLoop)
+        val correctContinue = IrContinueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.nothingType, incorrectLoop)
+
+        incorrectLoop.body = IrBlockImpl(
+            startOffset = UNDEFINED_OFFSET,
+            endOffset = UNDEFINED_OFFSET,
+            type = TestIrBuiltins.unitType,
+            origin = null,
+            statements = listOf(incorrectBreak, incorrectContinue)
+        )
+        correctLoop.body = IrBlockImpl(
+            startOffset = UNDEFINED_OFFSET,
+            endOffset = UNDEFINED_OFFSET,
+            type = TestIrBuiltins.unitType,
+            origin = null,
+            statements = listOf(correctBreak, correctContinue)
+        )
+
+        body.statements.addAll(listOf(incorrectLoop, correctLoop))
+        function.body = body
+        file.addChild(function)
+        testValidation(
+            IrVerificationMode.WARNING,
+            file,
+            listOf(
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: unexpected type: expected kotlin.Nothing, got kotlin.Any
+                    BREAK label=null loop.label=null
+                      inside BLOCK type=kotlin.Unit origin=null
+                        inside WHILE label=null origin=null
+                          inside BLOCK_BODY
+                            inside FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Unit
+                              inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null),
+                ),
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: unexpected type: expected kotlin.Nothing, got kotlin.Any
+                    CONTINUE label=null loop.label=null
+                      inside BLOCK type=kotlin.Unit origin=null
+                        inside WHILE label=null origin=null
+                          inside BLOCK_BODY
+                            inside FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Unit
+                              inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null),
+                ),
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: unexpected type: expected kotlin.Unit, got kotlin.Any
+                    WHILE label=null origin=null
+                      inside BLOCK_BODY
+                        inside FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Unit
+                          inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `getters and setters for values and fields with incorrect type are reported`() {
+        val file = createIrFile("test.kt")
+        val function = IrFactoryImpl.buildFun {
+            name = Name.identifier("foo")
+            returnType = TestIrBuiltins.unitType
+        }
+        val body = IrFactoryImpl.createBlockBody(
+            startOffset = UNDEFINED_OFFSET,
+            endOffset = UNDEFINED_OFFSET,
+        )
+        val field = IrFactoryImpl.buildField {
+            name = Name.identifier("field")
+            type = TestIrBuiltins.intType
+            visibility = DescriptorVisibilities.PRIVATE
+        }
+        val variable = IrVariableImpl(
+            startOffset = UNDEFINED_OFFSET,
+            endOffset = UNDEFINED_OFFSET,
+            origin = IrDeclarationOrigin.DEFINED,
+            symbol = IrVariableSymbolImpl(),
+            name = Name.identifier("b"),
+            type = TestIrBuiltins.booleanType,
+            isVar = true,
+            isConst = false,
+            isLateinit = true,
+        ).apply {
+            parent = function
+        }
+
+        val incorrectGetField = IrGetFieldImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, field.symbol, TestIrBuiltins.booleanType)
+        val incorrectSetField = IrSetFieldImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, field.symbol, TestIrBuiltins.booleanType).apply {
+            value = IrConstImpl.boolean(UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.booleanType, true)
+        }
+        val correctGetField = IrGetFieldImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, field.symbol, TestIrBuiltins.intType)
+        val correctSetField = IrSetFieldImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, field.symbol, TestIrBuiltins.unitType).apply {
+            value = IrConstImpl.boolean(UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.booleanType, true)
+        }
+        val incorrectSetValue = IrSetValueImpl(
+            startOffset = UNDEFINED_OFFSET,
+            endOffset = UNDEFINED_OFFSET,
+            type = TestIrBuiltins.anyType,
+            symbol = variable.symbol,
+            value = IrConstImpl.boolean(UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.booleanType, true),
+            origin = null,
+        )
+        val incorrectGetValue = IrGetValueImpl(
+            startOffset = UNDEFINED_OFFSET,
+            endOffset = UNDEFINED_OFFSET,
+            type = TestIrBuiltins.intType,
+            symbol = variable.symbol,
+        )
+        val correctSetValue = IrSetValueImpl(
+            startOffset = UNDEFINED_OFFSET,
+            endOffset = UNDEFINED_OFFSET,
+            type = TestIrBuiltins.unitType,
+            symbol = variable.symbol,
+            value = IrConstImpl.boolean(UNDEFINED_OFFSET, UNDEFINED_OFFSET, TestIrBuiltins.booleanType, true),
+            origin = null,
+        )
+        val correctGetValue = IrGetValueImpl(
+            startOffset = UNDEFINED_OFFSET,
+            endOffset = UNDEFINED_OFFSET,
+            type = TestIrBuiltins.booleanType,
+            symbol = variable.symbol,
+        )
+
+        body.statements.addAll(
+            listOf(
+                variable,
+                incorrectGetField,
+                incorrectSetField,
+                correctGetField,
+                correctSetField,
+                incorrectSetValue,
+                incorrectGetValue,
+                correctSetValue,
+                correctGetValue
+            )
+        )
+        function.body = body
+        file.addChild(field)
+        file.addChild(function)
+        testValidation(
+            IrVerificationMode.WARNING,
+            file,
+            listOf(
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: unexpected type: expected kotlin.Int, got kotlin.Boolean
+                    GET_FIELD 'FIELD name:field type:kotlin.Int visibility:private declared in org.sample' type=kotlin.Boolean origin=null
+                      inside BLOCK_BODY
+                        inside FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Unit
+                          inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null),
+                ),
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: unexpected type: expected kotlin.Unit, got kotlin.Boolean
+                    SET_FIELD 'FIELD name:field type:kotlin.Int visibility:private declared in org.sample' type=kotlin.Boolean origin=null
+                      inside BLOCK_BODY
+                        inside FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Unit
+                          inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null),
+                ),
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: unexpected type: expected kotlin.Unit, got kotlin.Any
+                    SET_VAR 'var b: kotlin.Boolean [lateinit,var] declared in org.sample.foo' type=kotlin.Any origin=null
+                      inside BLOCK_BODY
+                        inside FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Unit
+                          inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null),
+                ),
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: unexpected type: expected kotlin.Boolean, got kotlin.Int
+                    GET_VAR 'var b: kotlin.Boolean [lateinit,var] declared in org.sample.foo' type=kotlin.Int origin=null
+                      inside BLOCK_BODY
+                        inside FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Unit
                           inside FILE fqName:org.sample fileName:test.kt
                     """.trimIndent(),
                     CompilerMessageLocation.create("test.kt", 0, 0, null),

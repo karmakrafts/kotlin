@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.analysis.low.level.api.fir.compile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.KtFakeSourceElementKind
+import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
 import org.jetbrains.kotlin.analysis.api.compile.CodeFragmentCapturedValue
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.LLFirResolveSession
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.resolveToFirSymbol
@@ -43,14 +44,17 @@ import org.jetbrains.kotlin.psi
 import org.jetbrains.kotlin.psi.*
 import java.util.*
 
+@KaImplementationDetail
 class CodeFragmentCapturedSymbol(
     val value: CodeFragmentCapturedValue,
     val symbol: FirBasedSymbol<*>,
     val typeRef: FirTypeRef,
 )
 
+@KaImplementationDetail
 data class CodeFragmentCapturedId(val symbol: FirBasedSymbol<*>)
 
+@KaImplementationDetail
 object CodeFragmentCapturedValueAnalyzer {
     fun analyze(resolveSession: LLFirResolveSession, codeFragment: FirCodeFragment): CodeFragmentCapturedValueData {
         val selfSymbols = CodeFragmentDeclarationCollector().apply { codeFragment.accept(this) }.symbols.toSet()
@@ -60,6 +64,7 @@ object CodeFragmentCapturedValueAnalyzer {
     }
 }
 
+@KaImplementationDetail
 class CodeFragmentCapturedValueData(val symbols: List<CodeFragmentCapturedSymbol>, val files: List<KtFile>)
 
 private class CodeFragmentDeclarationCollector : FirDefaultVisitorVoid() {
@@ -274,9 +279,11 @@ private class CodeFragmentCapturedValueVisitor(
     private val FirFunctionSymbol<*>.isAnnotatedWithNonLiteralJvmName: Boolean
         get() {
             val jvmNameAnnotation = annotations.getAnnotationByClassId(StandardClassIds.Annotations.jvmName, session) ?: return false
+
+            lazyResolveToPhase(FirResolvePhase.ANNOTATION_ARGUMENTS)
+
             val argument = jvmNameAnnotation.argumentMapping.mapping[Name.identifier("name")]
-                ?: error("`name` must be specified for @JvmName annotation")
-            return argument !is FirLiteralExpression
+            return argument != null && argument !is FirLiteralExpression
         }
 
     private val FirFunctionSymbol<*>.hasAnnotationArgumentShouldBeEvaluated: Boolean

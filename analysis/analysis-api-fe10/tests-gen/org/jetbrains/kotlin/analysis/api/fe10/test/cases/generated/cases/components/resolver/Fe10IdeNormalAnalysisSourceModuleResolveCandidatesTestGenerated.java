@@ -353,6 +353,12 @@ public class Fe10IdeNormalAnalysisSourceModuleResolveCandidatesTestGenerated ext
   }
 
   @Test
+  @TestMetadata("dataClassCopy.kt")
+  public void testDataClassCopy() {
+    runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/dataClassCopy.kt");
+  }
+
+  @Test
   @TestMetadata("DefaultObjectAsExtensionReceiverForFunction.kt")
   public void testDefaultObjectAsExtensionReceiverForFunction() {
     runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/DefaultObjectAsExtensionReceiverForFunction.kt");
@@ -1337,6 +1343,12 @@ public class Fe10IdeNormalAnalysisSourceModuleResolveCandidatesTestGenerated ext
   }
 
   @Test
+  @TestMetadata("stringBuilderLength.kt")
+  public void testStringBuilderLength() {
+    runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/stringBuilderLength.kt");
+  }
+
+  @Test
   @TestMetadata("SuperTypePrimaryConstructor.kt")
   public void testSuperTypePrimaryConstructor() {
     runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/SuperTypePrimaryConstructor.kt");
@@ -2061,6 +2073,64 @@ public class Fe10IdeNormalAnalysisSourceModuleResolveCandidatesTestGenerated ext
     @TestMetadata("toSecondary.kt")
     public void testToSecondary() {
       runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/constructorDelegatingReference/toSecondary.kt");
+    }
+  }
+
+  @Nested
+  @TestMetadata("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters")
+  @TestDataPath("$PROJECT_ROOT")
+  public class ContextParameters {
+    @Test
+    public void testAllFilesPresentInContextParameters() {
+      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters"), Pattern.compile("^(.+)\\.kt$"), null, true, "withTestCompilerPluginEnabled");
+    }
+
+    @Test
+    @TestMetadata("functionFromFunctionExplicitly.kt")
+    public void testFunctionFromFunctionExplicitly() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionFromFunctionExplicitly.kt");
+    }
+
+    @Test
+    @TestMetadata("functionFromPropertyExplicitly.kt")
+    public void testFunctionFromPropertyExplicitly() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionFromPropertyExplicitly.kt");
+    }
+
+    @Test
+    @TestMetadata("functionOutsideClass.kt")
+    public void testFunctionOutsideClass() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionOutsideClass.kt");
+    }
+
+    @Test
+    @TestMetadata("functionParameter.kt")
+    public void testFunctionParameter() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("functionUsageInsideClass.kt")
+    public void testFunctionUsageInsideClass() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionUsageInsideClass.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyOutsideClass.kt")
+    public void testPropertyOutsideClass() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyOutsideClass.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyParameter.kt")
+    public void testPropertyParameter() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyUsageInsideClass.kt")
+    public void testPropertyUsageInsideClass() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyUsageInsideClass.kt");
     }
   }
 
