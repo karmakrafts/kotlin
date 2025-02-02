@@ -107,13 +107,17 @@ class FirPCLAInferenceSession(
         outerCandidate.system.replaceContentWith(currentCommonSystem.currentStorage())
     }
 
+    // Currently used only from FirDelegatedPropertyInferenceSession.completeSessionOrPostponeIfNonRoot
     fun integrateChildSession(
         childCalls: Collection<ConeResolutionAtom>,
         childStorage: ConstraintStorage,
         onCompletionResultsWriting: (ConeSubstitutor) -> Unit,
     ) {
         outerCandidate.postponedPCLACalls += childCalls
-        currentCommonSystem.addOtherSystem(childStorage)
+        // When a delegated property belongs to a PCLA lambda, the delegate session is guaranteed either use
+        // - either a delegate call which is always a nested PCLA call with an outer CS
+        // - or it literally uses `currentCommonSystem` (see the definition of FirDelegatedPropertyInferenceSession.parentConstraintSystem)
+        currentCommonSystem.replaceContentWith(childStorage)
         outerCandidate.onPCLACompletionResultsWritingCallbacks += onCompletionResultsWriting
     }
 
@@ -230,7 +234,7 @@ class FirPCLAInferenceSession(
                 // We should integrate even simple calls into the PCLA tree, too
                 callInfo.resolutionMode.expectedType.containsNotFixedTypeVariables() -> return false
             }
-            is ResolutionMode.WithStatus, is ResolutionMode.LambdaResolution ->
+            is ResolutionMode.WithStatus ->
                 error("$this call should not be analyzed in ${callInfo.resolutionMode}")
 
             is ResolutionMode.AssignmentLValue,

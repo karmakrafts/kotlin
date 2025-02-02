@@ -9,6 +9,7 @@ import org.gradle.api.logging.LogLevel
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.plugin.mpp.KmpIsolatedProjectsSupport
 import org.jetbrains.kotlin.gradle.util.isTeamCityRun
+import java.io.PrintWriter
 import java.nio.file.Paths
 import java.nio.file.attribute.PosixFilePermission
 import kotlin.io.path.*
@@ -268,3 +269,17 @@ internal val TestProject.kmpIsolatedProjectsSupportEnabled: Boolean
             KmpIsolatedProjectsSupport.AUTO, null -> buildOptions.isolatedProjects.toBooleanFlag(gradleVersion)
         }
     }
+
+val Throwable.fullMessage
+    get(): String = java.io.StringWriter().use {
+        PrintWriter(it).use {
+            this.printStackTrace(it)
+        }
+        it
+    }.toString()
+
+/**
+ * @return `true` if 'withJava()' method should not produce a configuration error.
+ */
+internal val TestProject.isWithJavaSupported: Boolean
+    get() = gradleVersion < GradleVersion.version(TestVersions.Gradle.G_8_7)

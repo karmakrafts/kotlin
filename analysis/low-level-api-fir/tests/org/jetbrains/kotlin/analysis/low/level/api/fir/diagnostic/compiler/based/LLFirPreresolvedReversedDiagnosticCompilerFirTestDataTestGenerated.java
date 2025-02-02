@@ -1718,6 +1718,12 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
       }
 
       @Test
+      @TestMetadata("ambiguityBetweenReceiverAndContext.kt")
+      public void testAmbiguityBetweenReceiverAndContext() {
+        runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/ambiguityBetweenReceiverAndContext.kt");
+      }
+
+      @Test
       @TestMetadata("callableReference.kt")
       public void testCallableReference() {
         runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/callableReference.kt");
@@ -1763,9 +1769,21 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
         }
 
         @Test
+        @TestMetadata("contextParameterSyntaxWithReceiversLanguageFeature.kt")
+        public void testContextParameterSyntaxWithReceiversLanguageFeature() {
+          runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/contextParameterSyntaxWithReceiversLanguageFeature.kt");
+        }
+
+        @Test
         @TestMetadata("contextParameterSyntaxWithoutLanguageFeature.kt")
         public void testContextParameterSyntaxWithoutLanguageFeature() {
           runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/contextParameterSyntaxWithoutLanguageFeature.kt");
+        }
+
+        @Test
+        @TestMetadata("multipleContextParameterLists.kt")
+        public void testMultipleContextParameterLists() {
+          runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/multipleContextParameterLists.kt");
         }
 
         @Test
@@ -1808,6 +1826,12 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
           }
 
           @Test
+          @TestMetadata("contextInCompanionObject.kt")
+          public void testContextInCompanionObject() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/declarationAndUsages/contextInCompanionObject.kt");
+          }
+
+          @Test
           @TestMetadata("contextOnGetterSetter.kt")
           public void testContextOnGetterSetter() {
             runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/declarationAndUsages/contextOnGetterSetter.kt");
@@ -1835,6 +1859,12 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
           @TestMetadata("contextWithAnnotation.kt")
           public void testContextWithAnnotation() {
             runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/declarationAndUsages/contextWithAnnotation.kt");
+          }
+
+          @Test
+          @TestMetadata("dslMarkerOnContextType.kt")
+          public void testDslMarkerOnContextType() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/declarationAndUsages/dslMarkerOnContextType.kt");
           }
 
           @Test
@@ -1898,6 +1928,12 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
           }
 
           @Test
+          @TestMetadata("multipleDslMarkers.kt")
+          public void testMultipleDslMarkers() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/declarationAndUsages/multipleDslMarkers.kt");
+          }
+
+          @Test
           @TestMetadata("nameClashes.kt")
           public void testNameClashes() {
             runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/declarationAndUsages/nameClashes.kt");
@@ -1949,6 +1985,12 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
           @TestMetadata("theSameContextAndDispatchReceiver.kt")
           public void testTheSameContextAndDispatchReceiver() {
             runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/declarationAndUsages/theSameContextAndDispatchReceiver.kt");
+          }
+
+          @Test
+          @TestMetadata("usageOfTypeWithContext.kt")
+          public void testUsageOfTypeWithContext() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/declarationAndUsages/usageOfTypeWithContext.kt");
           }
 
           @Test
@@ -2084,6 +2126,18 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
           }
 
           @Test
+          @TestMetadata("baseKotlinJavaOverride.kt")
+          public void testBaseKotlinJavaOverride() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/overrides/baseKotlinJavaOverride.kt");
+          }
+
+          @Test
+          @TestMetadata("baseKotlinJavaOverrideWithExtension.kt")
+          public void testBaseKotlinJavaOverrideWithExtension() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/overrides/baseKotlinJavaOverrideWithExtension.kt");
+          }
+
+          @Test
           @TestMetadata("baseOverride.kt")
           public void testBaseOverride() {
             runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/overrides/baseOverride.kt");
@@ -2096,9 +2150,33 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
           }
 
           @Test
+          @TestMetadata("intersectionOverrideWithContextTypeAndJava.kt")
+          public void testIntersectionOverrideWithContextTypeAndJava() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/overrides/intersectionOverrideWithContextTypeAndJava.kt");
+          }
+
+          @Test
+          @TestMetadata("intersectionOverrideWithExtensionAndValue.kt")
+          public void testIntersectionOverrideWithExtensionAndValue() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/overrides/intersectionOverrideWithExtensionAndValue.kt");
+          }
+
+          @Test
+          @TestMetadata("intersectionOverrideWithJava.kt")
+          public void testIntersectionOverrideWithJava() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/overrides/intersectionOverrideWithJava.kt");
+          }
+
+          @Test
           @TestMetadata("intersectionWithTypeParameter.kt")
           public void testIntersectionWithTypeParameter() {
             runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/overrides/intersectionWithTypeParameter.kt");
+          }
+
+          @Test
+          @TestMetadata("KJKHierarchyWithOverride.kt")
+          public void testKJKHierarchyWithOverride() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/overrides/KJKHierarchyWithOverride.kt");
           }
 
           @Test
@@ -2123,6 +2201,46 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
           @TestMetadata("withContextInType.kt")
           public void testWithContextInType() {
             runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/overrides/withContextInType.kt");
+          }
+        }
+
+        @Nested
+        @TestMetadata("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/smartcast")
+        @TestDataPath("$PROJECT_ROOT")
+        public class Smartcast {
+          @Test
+          public void testAllFilesPresentInSmartcast() {
+            KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/smartcast"), Pattern.compile("^([^.]+)\\.kt$"), null, true, "lightTree");
+          }
+
+          @Test
+          @TestMetadata("onContextParameters.kt")
+          public void testOnContextParameters() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/smartcast/onContextParameters.kt");
+          }
+
+          @Test
+          @TestMetadata("onPropertyWithContext.kt")
+          public void testOnPropertyWithContext() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/smartcast/onPropertyWithContext.kt");
+          }
+
+          @Test
+          @TestMetadata("onTypeWithContext.kt")
+          public void testOnTypeWithContext() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/smartcast/onTypeWithContext.kt");
+          }
+
+          @Test
+          @TestMetadata("withCallInPlaceContract.kt")
+          public void testWithCallInPlaceContract() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/smartcast/withCallInPlaceContract.kt");
+          }
+
+          @Test
+          @TestMetadata("withImpliesContract.kt")
+          public void testWithImpliesContract() {
+            runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/diagnostics/smartcast/withImpliesContract.kt");
           }
         }
       }
@@ -6170,6 +6288,18 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
     @TestMetadata("fillInStackTrace.kt")
     public void testFillInStackTrace() {
       runTest("compiler/fir/analysis-tests/testData/resolveWithStdlib/fillInStackTrace.kt");
+    }
+
+    @Test
+    @TestMetadata("flatMapWithReverseOrder.kt")
+    public void testFlatMapWithReverseOrder() {
+      runTest("compiler/fir/analysis-tests/testData/resolveWithStdlib/flatMapWithReverseOrder.kt");
+    }
+
+    @Test
+    @TestMetadata("flatMapWithReverseOrderLegacy.kt")
+    public void testFlatMapWithReverseOrderLegacy() {
+      runTest("compiler/fir/analysis-tests/testData/resolveWithStdlib/flatMapWithReverseOrderLegacy.kt");
     }
 
     @Test

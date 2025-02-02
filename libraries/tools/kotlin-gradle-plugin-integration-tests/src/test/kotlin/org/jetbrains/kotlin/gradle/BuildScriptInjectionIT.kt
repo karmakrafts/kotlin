@@ -16,6 +16,8 @@ import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.testbase.*
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
 import org.jetbrains.kotlin.gradle.uklibs.*
+import org.jetbrains.kotlin.gradle.testbase.useAsZipFile
+import org.junit.jupiter.api.Disabled
 import java.io.File
 import kotlin.test.*
 
@@ -259,6 +261,78 @@ class BuildScriptInjectionIT : KGPBaseTest() {
         )
     }
 
+    @GradleTest
+    fun publishGeneratedJavaSource(version: GradleVersion) {
+        project("empty", version) {
+            buildScriptInjection {
+                project.plugins.apply("java")
+                java.sourceSets.getByName("main").compileJavaSource(
+                    project,
+                    className = "Generated",
+                    """
+                        public class Generated { }
+                    """.trimIndent()
+                )
+            }
+
+            assertEquals(
+                setOf(
+                    "META-INF/MANIFEST.MF",
+                    "Generated.class",
+                ),
+                publishJava(PublisherConfiguration()).rootComponent.jar.useAsZipFile {
+                    it.entries().asSequence().filter { !it.isDirectory }.map { it.name }.toSet()
+                }
+            )
+        }
+    }
+
+    @Disabled("Yahor: Failing after merge")
+    @GradleTest
+    fun compositeBuild(version: GradleVersion) {
+        val parent = "Parent"
+        val child = "Child"
+        val parentGroup = "foo"
+        val parentId = "includeme"
+
+        // Declare a Parent class in a project
+        val parentClassProducer = project("empty", version) {
+            settingsBuildScriptInjection {
+                settings.rootProject.name = parentId
+            }
+            addKgpToBuildScriptCompilationClasspath()
+            buildScriptInjection {
+                project.group = parentGroup
+                project.applyMultiplatform {
+                    jvm()
+                    sourceSets.getByName("commonMain").compileSource("open class ${parent}")
+                }
+            }
+        }
+
+        // Inherit from Parent in Child and consumer the project above as a modular dependency
+        val consumer = project("empty", version) {
+            includeBuild(parentClassProducer)
+            addKgpToBuildScriptCompilationClasspath()
+            buildScriptInjection {
+                project.applyMultiplatform {
+                    jvm()
+                    sourceSets.getByName("commonMain").compileSource("class ${child} : ${parent}()")
+                    sourceSets.getByName("commonMain").dependencies {
+                        implementation("${parentGroup}:${parentId}:1.0")
+                    }
+                }
+            }
+        }
+
+        // Check we managed to compile the Child class
+        assertFileExists(
+            consumer.buildScriptReturn {
+                kotlinMultiplatform.jvm().compilations.getByName("main").output.classesDirs.singleFile.resolve("${child}.class")
+            }.buildAndReturn("compileKotlinJvm")
+        )
+    }
+
     @Test
     fun testPrependToOrCreateBuildscriptBlock() {
         assertEquals(
@@ -321,10 +395,14 @@ class BuildScriptInjectionIT : KGPBaseTest() {
         targetProject: String,
         version: GradleVersion,
     ) {
+        val producerName = "producer"
         val publishedProject = project(
             targetProject,
             version,
         ) {
+            settingsBuildScriptInjection {
+                settings.rootProject.name = producerName
+            }
             addKgpToBuildScriptCompilationClasspath()
             buildScriptInjection {
                 project.applyMultiplatform {
@@ -354,7 +432,7 @@ class BuildScriptInjectionIT : KGPBaseTest() {
                     }
 
                     sourceSets.commonMain.dependencies {
-                        implementation(publishedProject.coordinate)
+                        implementation(publishedProject.rootCoordinate)
                     }
                 }
             }
@@ -377,9 +455,9 @@ class BuildScriptInjectionIT : KGPBaseTest() {
 
             assertEquals(
                 listOf(
-                    listOf("foo", "producer", "1.0", "linuxMain"),
-                    listOf("foo", "producer", "1.0", "nativeMain"),
-                    listOf("foo", "producer", "1.0", "commonMain"),
+                    listOf("foo", producerName, "1.0", "linuxMain"),
+                    listOf("foo", producerName, "1.0", "nativeMain"),
+                    listOf("foo", producerName, "1.0", "commonMain"),
                 ),
                 transformedFiles.map { it.nameWithoutExtension.split("-").take(4) },
             )

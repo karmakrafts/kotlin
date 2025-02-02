@@ -45,6 +45,9 @@ import org.jetbrains.kotlin.util.OperatorNameConventions
 import org.jetbrains.kotlin.utils.exceptions.ExceptionAttachmentBuilder
 import org.jetbrains.kotlin.utils.exceptions.errorWithAttachment
 import org.jetbrains.kotlin.utils.exceptions.withPsiEntry
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 //T can be either PsiElement, or LighterASTNode
 abstract class AbstractRawFirBuilder<T>(val baseSession: FirSession, val context: Context<T> = Context()) {
@@ -157,11 +160,16 @@ abstract class AbstractRawFirBuilder<T>(val baseSession: FirSession, val context
      * @see Context.pushContainerSymbol
      * @see Context.popContainerSymbol
      */
+    @OptIn(ExperimentalContracts::class)
     inline fun <T> withContainerSymbol(
         symbol: FirBasedSymbol<*>,
         isLocal: Boolean = false,
         block: () -> T,
     ): T {
+        contract {
+            callsInPlace(block, InvocationKind.EXACTLY_ONCE)
+        }
+
         if (!isLocal) {
             context.pushContainerSymbol(symbol)
         }
@@ -1242,14 +1250,14 @@ abstract class AbstractRawFirBuilder<T>(val baseSession: FirSession, val context
         return status.isActual && (status.isInline || status.isValue || classKind == ClassKind.ANNOTATION_CLASS)
     }
 
-    enum class ValueParameterDeclaration(val shouldExplicitParameterTypeBePresent: Boolean) {
-        FUNCTION(shouldExplicitParameterTypeBePresent = true),
-        CATCH(shouldExplicitParameterTypeBePresent = true),
-        PRIMARY_CONSTRUCTOR(shouldExplicitParameterTypeBePresent = true),
-        SETTER(shouldExplicitParameterTypeBePresent = false),
-        LAMBDA(shouldExplicitParameterTypeBePresent = false),
-        FOR_LOOP(shouldExplicitParameterTypeBePresent = false),
-        CONTEXT_PARAMETER(shouldExplicitParameterTypeBePresent = true),
+    enum class ValueParameterDeclaration(val shouldExplicitParameterTypeBePresent: Boolean, val isAnnotationOwner: Boolean) {
+        FUNCTION(shouldExplicitParameterTypeBePresent = true, isAnnotationOwner = true),
+        CATCH(shouldExplicitParameterTypeBePresent = true, isAnnotationOwner = false),
+        PRIMARY_CONSTRUCTOR(shouldExplicitParameterTypeBePresent = true, isAnnotationOwner = false),
+        SETTER(shouldExplicitParameterTypeBePresent = false, isAnnotationOwner = false),
+        LAMBDA(shouldExplicitParameterTypeBePresent = false, isAnnotationOwner = false),
+        FOR_LOOP(shouldExplicitParameterTypeBePresent = false, isAnnotationOwner = false),
+        CONTEXT_PARAMETER(shouldExplicitParameterTypeBePresent = true, isAnnotationOwner = true),
     }
 }
 

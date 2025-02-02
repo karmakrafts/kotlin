@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.konan.test.blackbox.support.compilation.TestCompilat
 import org.jetbrains.kotlin.konan.test.blackbox.support.swiftExportConfigMap
 import org.jetbrains.kotlin.konan.test.blackbox.support.util.flatMapToSet
 import org.jetbrains.kotlin.test.KotlinTestUtils
+import org.junit.jupiter.api.assertAll
 import java.io.File
 import kotlin.io.path.*
 
@@ -29,7 +30,7 @@ abstract class AbstractKlibBasedSwiftRunnerTest : AbstractSwiftExportTest() {
     ) {
         val flattenModules = swiftExportOutputs.flatMapToSet { it.dependencies.toSet() + it }
 
-        flattenModules.forEach {
+        assertAll(flattenModules.flatMap {
             when (it) {
                 is SwiftExportModule.BridgesToKotlin -> {
                     val files = it.files
@@ -39,18 +40,30 @@ abstract class AbstractKlibBasedSwiftRunnerTest : AbstractSwiftExportTest() {
                     val expectedCHeader = expectedFiles / it.name / "${it.name}.h"
                     val expectedKotlinBridge = expectedFiles / it.name / "${it.name}.kt"
 
-                    KotlinTestUtils.assertEqualsToFile(expectedSwift, files.swiftApi.readText())
-                    KotlinTestUtils.assertEqualsToFile(expectedCHeader, files.cHeaderBridges.readText())
-                    KotlinTestUtils.assertEqualsToFile(expectedKotlinBridge, files.kotlinBridges.readText())
+                    listOf(
+                        { KotlinTestUtils.assertEqualsToFile(expectedSwift, files.swiftApi.readText()) },
+                        { KotlinTestUtils.assertEqualsToFile(expectedCHeader, files.cHeaderBridges.readText()) },
+                        { KotlinTestUtils.assertEqualsToFile(expectedKotlinBridge, files.kotlinBridges.readText()) }
+                    )
                 }
                 is SwiftExportModule.SwiftOnly -> {
-                    val expectedFiles = testPathFull.toPath() / "golden_result/"
-                    val expectedSwift = expectedFiles / it.name / "${it.name}.swift"
+                    when (it.kind) {
+                        SwiftExportModule.SwiftOnly.Kind.KotlinPackages -> {
+                            val expectedFiles = testPathFull.toPath() / "golden_result/"
+                            val expectedSwift = expectedFiles / it.name / "${it.name}.swift"
 
-                    KotlinTestUtils.assertEqualsToFile(expectedSwift, it.swiftApi.readText())
+                            listOf { KotlinTestUtils.assertEqualsToFile(expectedSwift, it.swiftApi.readText()) }
+                        }
+                        SwiftExportModule.SwiftOnly.Kind.KotlinRuntimeSupport -> {
+                            // No need to verify predefined files.
+                            emptyList()
+                        }
+                    }
+
                 }
+                else -> emptyList()
             }
-        }
+        })
     }
 
     override fun constructSwiftExportConfig(module: TestModule.Exclusive): SwiftExportConfig {
@@ -65,7 +78,6 @@ abstract class AbstractKlibBasedSwiftRunnerTest : AbstractSwiftExportTest() {
         )
 
         var unsupportedDeclarationReporterKind = UnsupportedDeclarationReporterKind.Silent
-        var multipleModulesHandlingStrategy = MultipleModulesHandlingStrategy.OneToOneModuleMapping
 
         val discoveredConfig: Map<String, String> = module
             .swiftExportConfigMap()
@@ -75,12 +87,6 @@ abstract class AbstractKlibBasedSwiftRunnerTest : AbstractSwiftExportTest() {
                         UnsupportedDeclarationReporterKind.entries
                             .singleOrNull { it.name.lowercase() == value.lowercase() }
                             ?.let { unsupportedDeclarationReporterKind = it }
-                        false
-                    }
-                    "multipleModulesHandlingStrategy" -> {
-                        MultipleModulesHandlingStrategy.entries
-                            .singleOrNull { it.name.lowercase() == value.lowercase() }
-                            ?.let { multipleModulesHandlingStrategy = it }
                         false
                     }
                     else -> true
@@ -98,7 +104,6 @@ abstract class AbstractKlibBasedSwiftRunnerTest : AbstractSwiftExportTest() {
             unsupportedTypeStrategy = unsupportedTypeStrategy,
             outputPath = tmpdir.toPath().resolve(module.name),
             unsupportedDeclarationReporterKind = unsupportedDeclarationReporterKind,
-            multipleModulesHandlingStrategy = multipleModulesHandlingStrategy,
         )
     }
 

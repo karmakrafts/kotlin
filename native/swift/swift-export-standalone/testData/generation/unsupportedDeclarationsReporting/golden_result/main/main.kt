@@ -1,7 +1,7 @@
 @file:kotlin.Suppress("DEPRECATION_ERROR")
+@file:kotlin.native.internal.objc.BindClassToObjCName(a.b.c.E::class, "22ExportedKotlinPackages1aO1bO1cO4mainE1EC")
 @file:kotlin.native.internal.objc.BindClassToObjCName(Foo::class, "4main3FooC")
 @file:kotlin.native.internal.objc.BindClassToObjCName(Foo.Nested::class, "4main3FooC6NestedC")
-@file:kotlin.native.internal.objc.BindClassToObjCName(a.b.c.E::class, "4main1aO1bO1cO4mainE1EC")
 
 import kotlin.native.internal.ExportedBridge
 import kotlinx.cinterop.*
@@ -14,7 +14,7 @@ public fun Foo_Nested_init_allocate(): kotlin.native.internal.NativePtr {
 
 @ExportedBridge("Foo_Nested_init_initialize__TypesOfArguments__Swift_UInt__")
 public fun Foo_Nested_init_initialize__TypesOfArguments__Swift_UInt__(__kt: kotlin.native.internal.NativePtr): Unit {
-    val ____kt = kotlin.native.internal.ref.dereferenceExternalRCRef(__kt)
+    val ____kt = kotlin.native.internal.ref.dereferenceExternalRCRef(__kt)!!
     kotlin.native.internal.initInstance(____kt, Foo.Nested())
 }
 
@@ -26,7 +26,7 @@ public fun __root___Foo_init_allocate(): kotlin.native.internal.NativePtr {
 
 @ExportedBridge("__root___Foo_init_initialize__TypesOfArguments__Swift_UInt__")
 public fun __root___Foo_init_initialize__TypesOfArguments__Swift_UInt__(__kt: kotlin.native.internal.NativePtr): Unit {
-    val ____kt = kotlin.native.internal.ref.dereferenceExternalRCRef(__kt)
+    val ____kt = kotlin.native.internal.ref.dereferenceExternalRCRef(__kt)!!
     kotlin.native.internal.initInstance(____kt, Foo())
 }
 

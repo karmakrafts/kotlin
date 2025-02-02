@@ -306,7 +306,6 @@ class JvmBinariesDslIT : KGPBaseTest() {
 
             subProject("multiplatform").buildScriptInjection {
                 kotlinMultiplatform.jvm {
-                    withJava()
                     binaries {
                         executable {
                             mainClass.set("org.example.JvmMainKt")

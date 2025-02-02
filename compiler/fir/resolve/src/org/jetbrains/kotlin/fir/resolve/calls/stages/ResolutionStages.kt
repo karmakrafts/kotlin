@@ -77,7 +77,7 @@ object CheckExtensionReceiver : ResolutionStage() {
         if (candidate.givenExtensionReceiverOptions.isEmpty()) return
 
         val preparedReceivers = candidate.givenExtensionReceiverOptions.map {
-            prepareReceivers(it, expectedType, context.session)
+            prepareImplicitArgument(it, expectedType, context.session)
         }
 
         if (preparedReceivers.size == 1) {
@@ -97,7 +97,7 @@ object CheckExtensionReceiver : ResolutionStage() {
     }
 
     private suspend fun resolveExtensionReceiver(
-        receivers: List<ReceiverDescription>,
+        receivers: List<ImplicitArgumentDescription>,
         candidate: Candidate,
         expectedType: ConeKotlinType,
         sink: CheckerSink,
@@ -128,11 +128,11 @@ object CheckExtensionReceiver : ResolutionStage() {
     }
 }
 
-private fun prepareReceivers(
+private fun prepareImplicitArgument(
     argumentExtensionReceiver: ConeResolutionAtom,
     expectedType: ConeKotlinType,
     session: FirSession,
-): ReceiverDescription {
+): ImplicitArgumentDescription {
     val argumentType = captureFromTypeParameterUpperBoundIfNeeded(
         argumentType = argumentExtensionReceiver.expression.resolvedType,
         expectedType = expectedType,
@@ -145,10 +145,10 @@ private fun prepareReceivers(
             }
         }
 
-    return ReceiverDescription(argumentExtensionReceiver, argumentType)
+    return ImplicitArgumentDescription(argumentExtensionReceiver, argumentType)
 }
 
-private data class ReceiverDescription(
+private data class ImplicitArgumentDescription(
     val atom: ConeResolutionAtom,
     val type: ConeKotlinType,
 )
@@ -242,6 +242,74 @@ object CheckContextArguments : ResolutionStage() {
         (symbol as? FirCallableSymbol<*>)?.fir?.contextParameters?.map { it.returnTypeRef.coneType }
             ?.takeUnless { it.isEmpty() }
 
+    /**
+     * If any diagnostics are reported to [sink], `null` is returned.
+     */
+    private fun Candidate.mapContextArgumentsOrNull(
+        contextReceiverExpectedTypes: List<ConeKotlinType>,
+        towerDataContext: FirTowerDataContext,
+        sink: CheckerSink,
+    ): List<ConeResolutionAtom>? {
+        val implicitsGroupedByScope: List<List<FirExpression>> =
+            if (callInfo.session.languageVersionSettings.supportsFeature(LanguageFeature.ContextParameters)) {
+                // With context parameters enabled, implicits are grouped by containing symbol,
+                // meaning that extension receivers and context parameters from the same declaration are in one group.
+                // See KT-74081.
+                towerDataContext.implicitValueStorage.implicitValues
+                    .groupBy(
+                        keySelector = { it.boundSymbol.containingDeclarationIfParameter() },
+                        valueTransform = { it.computeExpression() })
+                    .values
+                    .reversed()
+            } else {
+                // Old logic from context receivers where extension receivers are in a separate group from context receivers.
+                // TODO(KT-72994) Remove when context receivers are removed
+                towerDataContext.towerDataElements.asReversed().mapNotNull { towerDataElement ->
+                    towerDataElement.implicitReceiver?.receiverExpression?.let(::listOf)
+                        ?: towerDataElement.implicitContextGroup?.map { it.computeExpression() }
+                }
+            }
+
+        val resultingContextArguments = mutableListOf<ConeResolutionAtom>()
+
+        for (expectedType in contextReceiverExpectedTypes) {
+            val potentialContextArguments = findClosestMatchingContextArguments(expectedType, implicitsGroupedByScope)
+            when (potentialContextArguments.size) {
+                0 -> {
+                    sink.reportDiagnostic(NoContextArgument(expectedType))
+                    return null
+                }
+                1 -> {
+                    val matchingReceiver = potentialContextArguments.single()
+                    resultingContextArguments.add(matchingReceiver.atom)
+                    system.addSubtypeConstraint(matchingReceiver.type, expectedType, SimpleConstraintSystemConstraintPosition)
+                }
+                else -> {
+                    sink.reportDiagnostic(AmbiguousContextArgument(expectedType))
+                    return null
+                }
+            }
+        }
+
+        return resultingContextArguments
+    }
+
+    private fun Candidate.findClosestMatchingContextArguments(
+        expectedType: ConeKotlinType,
+        implicitGroups: List<List<FirExpression>>,
+    ): List<ImplicitArgumentDescription> {
+        for (receiverGroup in implicitGroups) {
+            val currentResult =
+                receiverGroup
+                    .map { prepareImplicitArgument(ConeResolutionAtom.createRawAtom(it), expectedType, callInfo.session) }
+                    .filter { system.isSubtypeConstraintCompatible(it.type, expectedType, SimpleConstraintSystemConstraintPosition) }
+
+            if (currentResult.isNotEmpty()) return currentResult
+        }
+
+        return emptyList()
+    }
+
     private fun Candidate.replaceArgumentPrefixForInvokeWithImplicitlyMappedContextValues(
         contextExpectedTypes: List<ConeKotlinType>,
         resultingContextArguments: List<ConeResolutionAtom>?,
@@ -269,44 +337,6 @@ object CheckContextArguments : ResolutionStage() {
         @OptIn(Candidate.UpdatingCandidateInvariants::class)
         replaceArgumentPrefix(newArgumentPrefix)
     }
-}
-
-/**
- * If any diagnostics are reported to [sink], `null` is returned.
- */
-fun Candidate.mapContextArgumentsOrNull(
-    contextReceiverExpectedTypes: List<ConeKotlinType>,
-    towerDataContext: FirTowerDataContext,
-    sink: CheckerSink,
-): List<ConeResolutionAtom>? {
-    val receiverGroups: List<List<FirExpression>> =
-        towerDataContext.towerDataElements.asReversed().mapNotNull { towerDataElement ->
-            towerDataElement.implicitReceiver?.receiverExpression?.let(::listOf)
-                ?: towerDataElement.implicitContextGroup?.map { it.computeExpression() }
-        }
-
-    val resultingContextArguments = mutableListOf<ConeResolutionAtom>()
-
-    for (expectedType in contextReceiverExpectedTypes) {
-        val matchingReceivers = findClosestMatchingReceivers(expectedType, receiverGroups)
-        when (matchingReceivers.size) {
-            0 -> {
-                sink.reportDiagnostic(NoContextArgument(expectedType))
-                return null
-            }
-            1 -> {
-                val matchingReceiver = matchingReceivers.single()
-                resultingContextArguments.add(matchingReceiver.atom)
-                system.addSubtypeConstraint(matchingReceiver.type, expectedType, SimpleConstraintSystemConstraintPosition)
-            }
-            else -> {
-                sink.reportDiagnostic(AmbiguousContextArgument(expectedType))
-                return null
-            }
-        }
-    }
-
-    return resultingContextArguments
 }
 
 object TypeVariablesInExplicitReceivers : ResolutionStage() {
@@ -340,22 +370,6 @@ object TypeVariablesInExplicitReceivers : ResolutionStage() {
         is ConeIntersectionType -> intersectedTypes.firstNotNullOfOrNull { it.obtainTypeVariable() }
         else -> null
     }
-}
-
-private fun Candidate.findClosestMatchingReceivers(
-    expectedType: ConeKotlinType,
-    receiverGroups: List<List<FirExpression>>,
-): List<ReceiverDescription> {
-    for (receiverGroup in receiverGroups) {
-        val currentResult =
-            receiverGroup
-                .map { prepareReceivers(ConeResolutionAtom.createRawAtom(it), expectedType, callInfo.session) }
-                .filter { system.isSubtypeConstraintCompatible(it.type, expectedType, SimpleConstraintSystemConstraintPosition) }
-
-        if (currentResult.isNotEmpty()) return currentResult
-    }
-
-    return emptyList()
 }
 
 /**
@@ -429,7 +443,6 @@ object CheckDslScopeViolation : ResolutionStage() {
     /**
      * Checks whether the implicit receiver (represented as an object of type `T`) violates DSL scope rules.
      */
-    @OptIn(ImplicitValue.ImplicitValueInternals::class)
     private fun checkImpl(
         receiverValueToCheck: ConeResolutionAtom,
         candidate: Candidate,
@@ -465,19 +478,11 @@ object CheckDslScopeViolation : ResolutionStage() {
         }
     }
 
-    private fun ImplicitValue.containsAnyOfGivenDslMarkers(
+    private fun ImplicitValue<*>.containsAnyOfGivenDslMarkers(
         otherDslMarkers: Set<ClassId>,
         context: ResolutionContext,
     ): Boolean {
         return getDslMarkersOfImplicitValue(boundSymbol, type, context).any { it in otherDslMarkers }
-    }
-
-    private fun FirBasedSymbol<*>.containingDeclarationIfParameter(): FirBasedSymbol<*> {
-        return when (this) {
-            is FirReceiverParameterSymbol -> containingDeclarationSymbol
-            is FirValueParameterSymbol -> containingDeclarationSymbol
-            else -> this
-        }
     }
 
     private fun getDslMarkersOfImplicitValue(
@@ -555,6 +560,14 @@ object CheckDslScopeViolation : ResolutionStage() {
                 add(annotationClass.classId)
             }
         }
+    }
+}
+
+private fun FirBasedSymbol<*>.containingDeclarationIfParameter(): FirBasedSymbol<*> {
+    return when (this) {
+        is FirReceiverParameterSymbol -> containingDeclarationSymbol
+        is FirValueParameterSymbol -> containingDeclarationSymbol
+        else -> this
     }
 }
 
@@ -1018,7 +1031,8 @@ internal object CheckLambdaAgainstTypeVariableContradiction : ResolutionStage() 
                     expectedType,
                     lambdaType,
                     expression,
-                    context.session.typeContext.isTypeMismatchDueToNullability(lambdaType, expectedType)
+                    // `lambdaType` is created as not nullable
+                    isMismatchDueToNullability = false,
                 )
             )
         }

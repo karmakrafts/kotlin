@@ -17,7 +17,6 @@ import org.jetbrains.kotlin.sir.providers.SirModuleProvider
 import org.jetbrains.kotlin.sir.providers.SirTypeProvider
 import org.jetbrains.kotlin.sir.providers.impl.SirEnumGeneratorImpl
 import org.jetbrains.kotlin.sir.providers.impl.SirOneToOneModuleProvider
-import org.jetbrains.kotlin.sir.providers.impl.SirSingleModuleProvider
 import org.jetbrains.kotlin.sir.providers.source.KotlinSource
 import org.jetbrains.kotlin.sir.providers.utils.*
 import org.jetbrains.kotlin.sir.util.SirSwiftModule
@@ -41,9 +40,9 @@ public data class SwiftExportConfig(
     val distribution: Distribution = Distribution(KotlinNativePaths.homePath.absolutePath),
     val errorTypeStrategy: ErrorTypeStrategy = ErrorTypeStrategy.Fail,
     val unsupportedTypeStrategy: ErrorTypeStrategy = ErrorTypeStrategy.SpecialType,
-    val multipleModulesHandlingStrategy: MultipleModulesHandlingStrategy = MultipleModulesHandlingStrategy.OneToOneModuleMapping,
     val unsupportedDeclarationReporterKind: UnsupportedDeclarationReporterKind = UnsupportedDeclarationReporterKind.Silent,
     val moduleForPackagesName: String = "ExportedKotlinPackages",
+    val runtimeSupportModuleName: String = "KotlinRuntimeSupport",
 ) {
     public companion object {
         /**
@@ -88,10 +87,6 @@ public data class SwiftExportConfig(
     }
 }
 
-public enum class MultipleModulesHandlingStrategy {
-    OneToOneModuleMapping, IntoSingleModule;
-}
-
 public enum class UnsupportedDeclarationReporterKind {
     Silent, Inline;
 
@@ -126,11 +121,16 @@ public sealed class SwiftExportModule(
         public val name: String
     )
 
-    // used by packages module only
     public class SwiftOnly(
         public val swiftApi: Path,
+        public val kind: Kind,
         name: String,
     ) : SwiftExportModule(name, emptyList()) {
+        public enum class Kind {
+            KotlinPackages,
+            KotlinRuntimeSupport,
+        }
+
         override fun equals(other: Any?): Boolean =
             other is SwiftOnly && swiftApi == other.swiftApi && name == other.name
 
@@ -195,24 +195,27 @@ public fun runSwiftExport(
             val dependencies = input - rootModule
             translateModule(rootModule, dependencies)
         }
-
-    val packagesModule = writeSwiftModule(
+    // we don't have "general" config, so we have to calculate this from nearest module KT-70205
+    val config = input.first().config
+    val packagesModule = writeKotlinPackagesModule(
         sirModule = translatedModules.createModuleForPackages(),
-        outputPath = input.first().config.let { // we don't have "general" config, so we have to calculate this from nearest module KT-70205
-            it.outputPath.parent / it.moduleForPackagesName / "${it.moduleForPackagesName}.swift"
-        }
+        outputPath = config.outputPath.parent / config.moduleForPackagesName / "${config.moduleForPackagesName}.swift"
     )
-
-    return@runCatching setOf(packagesModule) + translatedModules.map(TranslationResult::writeModule)
+    val runtimeSupportModule = writeRuntimeSupportModule(
+        config = config,
+        outputPath = config.outputPath.parent / config.runtimeSupportModuleName / "${config.runtimeSupportModuleName}.swift",
+    )
+    return@runCatching setOf(packagesModule, runtimeSupportModule) + translatedModules.map(TranslationResult::writeModule)
 }
 
 private fun translateModule(module: InputModule, dependencies: Set<InputModule>): TranslationResult {
-    val moduleProvider: SirModuleProvider = when (module.config.multipleModulesHandlingStrategy) {
-        MultipleModulesHandlingStrategy.OneToOneModuleMapping -> SirOneToOneModuleProvider()
-        MultipleModulesHandlingStrategy.IntoSingleModule -> SirSingleModuleProvider(swiftModuleName = module.name)
-    }
+    val moduleProvider: SirModuleProvider = SirOneToOneModuleProvider()
     val buildResult = createModuleWithScopeProviderFromBinary(module, dependencies)
         .initializeSirModule(module.config, moduleProvider)
+
+    // Assume that parts of the KotlinRuntimeSupport module are used.
+    // It might not be the case, but precise tracking seems like an overkill at the moment.
+    buildResult.module.updateImport(SirImport(module.config.runtimeSupportModuleName))
 
     // KT-68253: bridge generation could be better
     val bridgeRequests = buildBridgeRequests(module.config.bridgeGenerator, buildResult.module)
@@ -220,7 +223,7 @@ private fun translateModule(module: InputModule, dependencies: Set<InputModule>)
         buildResult.module.updateImport(
             SirImport(
                 moduleName = module.bridgesModuleName,
-                mode = org.jetbrains.kotlin.sir.SirImport.Mode.ImplementationOnly
+                mode = SirImport.Mode.ImplementationOnly
             )
         )
     }
@@ -255,7 +258,7 @@ private fun Collection<TranslationResult>.createModuleForPackages(): SirModule =
         .forEach { with(enumGenerator) { it.sirPackageEnum() } }
 }
 
-private fun writeSwiftModule(
+private fun writeKotlinPackagesModule(
     sirModule: SirModule,
     outputPath: Path,
 ): SwiftExportModule.SwiftOnly {
@@ -272,6 +275,23 @@ private fun writeSwiftModule(
     return SwiftExportModule.SwiftOnly(
         name = sirModule.name,
         swiftApi = outputPath,
+        kind = SwiftExportModule.SwiftOnly.Kind.KotlinPackages,
+    )
+}
+
+private fun writeRuntimeSupportModule(
+    config: SwiftExportConfig,
+    outputPath: Path
+): SwiftExportModule.SwiftOnly {
+
+    val runtimeSupportContent = config.javaClass.getResource("/swift/KotlinRuntimeSupport.swift")?.readText()
+        ?: error("Can't find runtime support module")
+    dumpTextAtFile(sequenceOf(runtimeSupportContent), outputPath.toFile())
+
+    return SwiftExportModule.SwiftOnly(
+        swiftApi = outputPath,
+        name = config.runtimeSupportModuleName,
+        kind = SwiftExportModule.SwiftOnly.Kind.KotlinRuntimeSupport,
     )
 }
 

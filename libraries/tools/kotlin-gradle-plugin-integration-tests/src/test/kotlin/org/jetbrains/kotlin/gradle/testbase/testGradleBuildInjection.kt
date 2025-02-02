@@ -24,7 +24,6 @@ import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import java.io.File
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
-import java.io.PrintWriter
 import java.io.Serializable
 import java.nio.file.Path
 import kotlin.io.path.*
@@ -123,14 +122,7 @@ class FindMatchingBuildFailureInjection<ExpectedException : Exception>(
                 if (matchingExceptions.isNotEmpty()) {
                     CaughtBuildFailure.Expected(matchingExceptions)
                 } else {
-                    CaughtBuildFailure.Unexpected(
-                        java.io.StringWriter().use {
-                            PrintWriter(it).use {
-                                topLevelException.printStackTrace(it)
-                            }
-                            it
-                        }.toString()
-                    )
+                    CaughtBuildFailure.Unexpected(topLevelException.fullMessage)
                 }
             }
 
@@ -567,7 +559,7 @@ fun GradleProject.buildScriptBuildscriptBlockInjection(
  * build.gradle.kts
  */
 private const val transferPluginRepositoriesIntoProjectRepositories = "transferPluginRepositoriesIntoProjectRepositories"
-private fun GradleProject.transferPluginRepositoriesIntoBuildScript() {
+fun GradleProject.transferPluginRepositoriesIntoBuildScript() {
     markAsUsingInjections()
     settingsBuildScriptInjection {
         if (!settings.extraProperties.has(transferPluginRepositoriesIntoProjectRepositories)) {
@@ -575,6 +567,24 @@ private fun GradleProject.transferPluginRepositoriesIntoBuildScript() {
             settings.pluginManagement.repositories.all { rep ->
                 settings.gradle.beforeProject { project ->
                     project.buildscript.repositories.add(rep)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Transfer dependencyResolutionManagement into project for compatibility with Gradle <8.1 because we emit repositories in the
+ * build script there
+ */
+private const val transferDependencyResolutionRepositoriesIntoProjectRepositories = "transferDependencyResolutionRepositoriesIntoProjectRepositories"
+fun GradleProject.transferDependencyResolutionRepositoriesIntoProjectRepositories() {
+    settingsBuildScriptInjection {
+        if (!settings.extraProperties.has(transferDependencyResolutionRepositoriesIntoProjectRepositories)) {
+            settings.extraProperties.set(transferDependencyResolutionRepositoriesIntoProjectRepositories, true)
+            settings.gradle.beforeProject { project ->
+                settings.dependencyResolutionManagement.repositories.all { rep ->
+                    project.repositories.add(rep)
                 }
             }
         }

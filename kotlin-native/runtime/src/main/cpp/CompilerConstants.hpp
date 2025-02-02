@@ -29,6 +29,7 @@ extern "C" const int32_t Kotlin_runtimeLogs[];
 extern "C" const int32_t Kotlin_concurrentWeakSweep;
 extern "C" const int32_t Kotlin_gcMarkSingleThreaded;
 extern "C" const int32_t Kotlin_fixedBlockPageSize;
+extern "C" const int32_t Kotlin_pagedAllocator;
 
 class SourceInfo;
 
@@ -79,6 +80,10 @@ ALWAYS_INLINE inline bool gcMarkSingleThreaded() noexcept {
 ALWAYS_INLINE inline constexpr int32_t fixedBlockPageSize() noexcept {
     return Kotlin_fixedBlockPageSize;
 }
+ALWAYS_INLINE inline bool pagedAllocator() noexcept {
+    return Kotlin_pagedAllocator != 0;
+}
+
 
 bool gcMutatorsCooperate() noexcept;
 uint32_t auxGCThreads() noexcept;
@@ -93,6 +98,7 @@ bool objcDisposeWithRunLoop() noexcept;
 bool enableSafepointSignposts() noexcept;
 bool globalDataLazyInit() noexcept;
 bool swiftExport() noexcept;
+bool latin1Strings() noexcept;
 
 #ifdef KONAN_ANDROID
 bool printToAndroidLogcat() noexcept;

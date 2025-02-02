@@ -57,7 +57,7 @@ internal sealed class Lifetime(val slotType: SlotType) {
     }
 
     // If reference is frame-local (only obtained from some call and never leaves).
-    object LOCAL : Lifetime(SlotType.ARENA) {
+    object LOCAL : Lifetime(SlotType.ANONYMOUS) {
         override fun toString(): String {
             return "LOCAL"
         }
@@ -649,4 +649,10 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
     }
 }
 
-class IrStaticInitializer(val konanLibrary: KotlinLibrary?, val initializer: LlvmCallable)
+class IrStaticInitializer(val konanLibrary: KotlinLibrary?, val runtimeInitializer: RuntimeInitializer)
+
+/**
+ * Function of the [CodeGeneratorVisitor.kInitFuncType] type (aka `Initializer` in `Runtime.h`).
+ */
+@JvmInline
+value class RuntimeInitializer(val llvmCallable: LlvmCallable)

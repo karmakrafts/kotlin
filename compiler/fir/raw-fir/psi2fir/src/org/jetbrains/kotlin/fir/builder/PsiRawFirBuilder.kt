@@ -669,7 +669,7 @@ open class PsiRawFirBuilder(
                 isVararg = isVarArg
                 this.name = name
                 symbol = FirValueParameterSymbol(name)
-                withContainerSymbol(symbol, isLocal = valueParameterDeclaration != ValueParameterDeclaration.FUNCTION) {
+                withContainerSymbol(symbol, isLocal = !valueParameterDeclaration.isAnnotationOwner) {
                     returnTypeRef = when {
                         typeReference != null -> typeReference.toFirOrErrorType()
                         defaultTypeRef != null -> defaultTypeRef
@@ -1190,7 +1190,7 @@ open class PsiRawFirBuilder(
                     symbol = constructorSymbol
                     delegatedConstructor = firDelegatedCall
                     typeParameters += constructorTypeParametersFromConstructedClass(ownerTypeParameters)
-                    this.contextParameters.addContextReceivers(owner.contextReceiverList, constructorSymbol)
+                    this.contextParameters.addContextParameters(owner.contextReceiverList, constructorSymbol)
                     this@toFirConstructor?.extractAnnotationsTo(this)
                     this@toFirConstructor?.extractValueParametersTo(this, symbol, ValueParameterDeclaration.PRIMARY_CONSTRUCTOR)
                     this.body = null
@@ -1645,7 +1645,7 @@ open class PsiRawFirBuilder(
             }
         }
 
-        private fun MutableList<FirValueParameter>.addContextReceivers(
+        private fun MutableList<FirValueParameter>.addContextParameters(
             contextList: KtContextReceiverList?,
             containingDeclarationSymbol: FirBasedSymbol<*>,
         ) {
@@ -1823,7 +1823,7 @@ open class PsiRawFirBuilder(
                             initCompanionObjectSymbolAttr()
 
                             context.popFirTypeParameters()
-                            contextParameters.addContextReceivers(classOrObject.contextReceiverList, classSymbol)
+                            contextParameters.addContextParameters(classOrObject.contextReceiverList, classSymbol)
                         }.also {
                             it.delegateFieldsMap = delegatedFieldsMap
                         }
@@ -1981,7 +1981,7 @@ open class PsiRawFirBuilder(
                             isSuspend = function.hasModifier(SUSPEND_KEYWORD)
                         }
 
-                        contextParameters.addContextReceivers(function.contextReceiverList, functionSymbol)
+                        contextParameters.addContextParameters(function.contextReceiverList, functionSymbol)
                     }
                 }
 
@@ -2186,9 +2186,9 @@ open class PsiRawFirBuilder(
                         isFromEnumClass = owner.hasModifier(ENUM_KEYWORD)
                     }
                     dispatchReceiverType = owner.obtainDispatchReceiverForConstructor()
-                    contextParameters.addContextReceivers(owner.contextReceiverList, symbol)
+                    contextParameters.addContextParameters(owner.contextReceiverList, symbol)
                     if (contextParameterEnabled) {
-                        contextParameters.addContextReceivers(this@toFirConstructor.getChildOfType(), symbol)
+                        contextParameters.addContextParameters(this@toFirConstructor.modifierList?.getChildOfType(), symbol)
                     }
                     if (!owner.hasModifier(EXTERNAL_KEYWORD) && !status.isExpect || isExplicitDelegationCall()) {
                         delegatedConstructor = buildOrLazyDelegatedConstructorCall(
@@ -2423,7 +2423,7 @@ open class PsiRawFirBuilder(
                         else -> propertyAnnotations.filterStandalonePropertyRelevantAnnotations(isVar)
                     }
 
-                    contextParameters.addContextReceivers(this@toFirProperty.contextReceiverList, propertySymbol)
+                    contextParameters.addContextParameters(this@toFirProperty.contextReceiverList, propertySymbol)
                 }.also {
                     if (!isLocal) {
                         fillDanglingConstraintsTo(it)
@@ -2497,7 +2497,6 @@ open class PsiRawFirBuilder(
             // 2. `(suspend @A () -> Int)?` is a nullable suspend function type but the modifier list is on the child KtNullableType
             //
             // `getModifierList()` only returns the first one so we have to get all modifier list children.
-            // TODO: Report MODIFIER_LIST_NOT_ALLOWED error when there are multiple modifier lists. How do we report on each of them?
             fun KtElementImplStub<*>.getAllModifierLists(): Array<out KtDeclarationModifierList> =
                 getStubOrPsiChildren(KtStubElementTypes.MODIFIER_LIST, KtStubElementTypes.MODIFIER_LIST.arrayFactory)
 
@@ -2559,11 +2558,13 @@ open class PsiRawFirBuilder(
                             }
                         }
 
-                        contextParameterTypeRefs.addAll(
-                            unwrappedElement.contextReceiversTypeReferences.mapNotNull {
-                                it.toFirType()
-                            }
-                        )
+                        val contextReceiverList = unwrappedElement.contextReceiverList
+                        contextReceiverList?.contextReceivers()?.mapNotNullTo(contextParameterTypeRefs) {
+                            it.typeReference()?.toFirType()
+                        }
+                        contextReceiverList?.contextParameters()?.mapNotNullTo(contextParameterTypeRefs) {
+                            it.typeReference?.toFirType()
+                        }
                     }
                 }
                 is KtIntersectionType -> FirIntersectionTypeRefBuilder().apply {

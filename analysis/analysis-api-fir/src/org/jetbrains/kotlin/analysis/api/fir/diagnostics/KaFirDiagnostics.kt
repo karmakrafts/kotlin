@@ -994,6 +994,10 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         val useSiteDescription: String
     }
 
+    interface AnnotationsOnBlockLevelExpressionOnTheSameLine : KaFirDiagnostic<PsiElement> {
+        override val diagnosticClass get() = AnnotationsOnBlockLevelExpressionOnTheSameLine::class
+    }
+
     interface JsModuleProhibitedOnVar : KaFirDiagnostic<KtElement> {
         override val diagnosticClass get() = JsModuleProhibitedOnVar::class
     }
@@ -1575,6 +1579,10 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         override val diagnosticClass get() = NameForAmbiguousParameter::class
     }
 
+    interface MixingNamedAndPositionalArguments : KaFirDiagnostic<PsiElement> {
+        override val diagnosticClass get() = MixingNamedAndPositionalArguments::class
+    }
+
     interface AssignmentTypeMismatch : KaFirDiagnostic<KtExpression> {
         override val diagnosticClass get() = AssignmentTypeMismatch::class
         val expectedType: KaType
@@ -1707,6 +1715,14 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
     interface CallableReferenceToContextualDeclaration : KaFirDiagnostic<KtElement> {
         override val diagnosticClass get() = CallableReferenceToContextualDeclaration::class
         val symbol: KaCallableSymbol
+    }
+
+    interface MultipleContextLists : KaFirDiagnostic<KtElement> {
+        override val diagnosticClass get() = MultipleContextLists::class
+    }
+
+    interface NamedContextParameterInFunctionType : KaFirDiagnostic<KtElement> {
+        override val diagnosticClass get() = NamedContextParameterInFunctionType::class
     }
 
     interface RecursionInImplicitTypes : KaFirDiagnostic<PsiElement> {

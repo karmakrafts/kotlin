@@ -7,7 +7,6 @@ package org.jetbrains.kotlin.swiftexport.standalone;
 
 import com.intellij.testFramework.TestDataPath;
 import org.jetbrains.kotlin.test.util.KtTestUtil;
-import org.junit.jupiter.api.Tag;
 import org.jetbrains.kotlin.konan.test.blackbox.support.group.FirPipeline;
 import org.jetbrains.kotlin.konan.test.blackbox.support.group.UseStandardTestCaseGroupProvider;
 import org.jetbrains.kotlin.test.TestMetadata;
@@ -20,7 +19,6 @@ import java.util.regex.Pattern;
 @SuppressWarnings("all")
 @TestMetadata("native/swift/swift-export-standalone/testData/generation")
 @TestDataPath("$PROJECT_ROOT")
-@Tag("frontend-fir")
 @FirPipeline()
 @UseStandardTestCaseGroupProvider()
 public class KlibBasedSwiftExportRunnerTest extends AbstractKlibBasedSwiftRunnerTest {
@@ -159,12 +157,6 @@ public class KlibBasedSwiftExportRunnerTest extends AbstractKlibBasedSwiftRunner
   @TestMetadata("set")
   public void testSet() {
     runTest("native/swift/swift-export-standalone/testData/generation/set/");
-  }
-
-  @Test
-  @TestMetadata("single_module_production")
-  public void testSingle_module_production() {
-    runTest("native/swift/swift-export-standalone/testData/generation/single_module_production/");
   }
 
   @Test

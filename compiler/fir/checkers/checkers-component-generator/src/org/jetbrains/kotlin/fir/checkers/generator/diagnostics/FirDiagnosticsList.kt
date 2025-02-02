@@ -458,6 +458,7 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         val ANNOTATION_WILL_BE_APPLIED_ALSO_TO_PROPERTY_OR_FIELD by warning<KtAnnotationEntry> {
             parameter<String>("useSiteDescription")
         }
+        val ANNOTATIONS_ON_BLOCK_LEVEL_EXPRESSION_ON_THE_SAME_LINE by warning<PsiElement>()
     }
 
     val OPT_IN by object : DiagnosticGroup("OptIn") {
@@ -698,6 +699,7 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
             parameter<String>("name")
         }
         val NAME_FOR_AMBIGUOUS_PARAMETER by error<KtValueArgument>(PositioningStrategy.NAME_OF_NAMED_ARGUMENT)
+        val MIXING_NAMED_AND_POSITIONAL_ARGUMENTS by error<PsiElement>()
 
         val ASSIGNMENT_TYPE_MISMATCH by error<KtExpression> {
             parameter<ConeKotlinType>("expectedType")
@@ -770,6 +772,8 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         val CALLABLE_REFERENCE_TO_CONTEXTUAL_DECLARATION by error<KtElement>() {
             parameter<FirCallableSymbol<*>>("symbol")
         }
+        val MULTIPLE_CONTEXT_LISTS by error<KtElement>()
+        val NAMED_CONTEXT_PARAMETER_IN_FUNCTION_TYPE by error<KtElement>()
     }
 
     val TYPES_AND_TYPE_PARAMETERS by object : DiagnosticGroup("Types & type parameters") {

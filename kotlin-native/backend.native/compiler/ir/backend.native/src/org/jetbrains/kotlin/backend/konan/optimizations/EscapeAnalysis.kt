@@ -610,12 +610,33 @@ internal object EscapeAnalysis {
             return pointsToGraphs
         }
 
-        private fun arrayLengthOf(node: DataFlowIR.Node): Int? =
-                (node as? DataFlowIR.Node.SimpleConst<*>)?.value as? Int
-                // In case of several possible values, it's unknown what is used.
-                // TODO: if all values are constants which are less limit?
-                        ?: (node as? DataFlowIR.Node.Variable)
-                                ?.values?.singleOrNull()?.let { arrayLengthOf(it.node) }
+        private fun arrayLengthOf(node: DataFlowIR.Node): Int? {
+            var lengthNode: DataFlowIR.Node.SimpleConst<*>? = null
+            val nodes = mutableListOf(node)
+            val visited = mutableSetOf<DataFlowIR.Node>()
+            while (true) {
+                val currentNode = nodes.peek() ?: break
+                nodes.pop()
+                visited.add(currentNode)
+                when (currentNode) {
+                    is DataFlowIR.Node.SimpleConst<*> -> {
+                        if (lengthNode != null && currentNode != lengthNode)
+                            return null
+                        lengthNode = currentNode
+                    }
+                    is DataFlowIR.Node.Variable -> {
+                        currentNode.values.forEach {
+                            val nextNode = it.node
+                            if (nextNode !in visited)
+                                nodes.push(nextNode)
+                        }
+                    }
+                    else -> return null
+                }
+            }
+
+            return lengthNode?.value as? Int
+        }
 
         private val pointerSize = generationState.runtime.pointerSize
 
@@ -1650,8 +1671,7 @@ internal object EscapeAnalysis {
                                     stackArrayCandidates += ArrayStaticAllocation(ptgNode, irClass, arraySize.toInt())
                                 } else {
                                     // Can be placed into the local arena.
-                                    // TODO. Support Lifetime.LOCAL
-                                    lifetime = Lifetime.GLOBAL
+                                    lifetime = Lifetime.LOCAL
                                 }
                             }
                         }
@@ -1682,7 +1702,7 @@ internal object EscapeAnalysis {
                             escapeOrigins += ptgNode
                             propagateEscapeOrigin(ptgNode)
                         } else {
-                            ptgNode.forcedLifetime = Lifetime.GLOBAL // TODO: Change to LOCAL when supported.
+                            ptgNode.forcedLifetime = Lifetime.LOCAL
                         }
                     }
                 }
@@ -1773,13 +1793,7 @@ internal object EscapeAnalysis {
         assert(lifetimes.isEmpty())
 
         try {
-            InterproceduralAnalysis(context, generationState, callGraph,
-                    moduleDFG, lifetimes,
-                    // The GC must be careful not to scan exiled objects, that have already became dead,
-                    // as they may reference other already destroyed stack-allocated objects.
-                    // TODO somehow tag these object, so that GC could handle them properly.
-                    propagateExiledToHeapObjects = context.config.gc == GC.CONCURRENT_MARK_AND_SWEEP
-            ).analyze()
+            InterproceduralAnalysis(context, generationState, callGraph, moduleDFG, lifetimes, propagateExiledToHeapObjects = false).analyze()
         } catch (t: Throwable) {
             val extraUserInfo =
                     """

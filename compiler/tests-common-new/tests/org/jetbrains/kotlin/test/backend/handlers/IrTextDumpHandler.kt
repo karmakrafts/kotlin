@@ -7,11 +7,7 @@ package org.jetbrains.kotlin.test.backend.handlers
 
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.ir.IrBuiltIns
-import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.ir.declarations.IrDeclaration
-import org.jetbrains.kotlin.ir.declarations.IrField
-import org.jetbrains.kotlin.ir.declarations.IrFile
-import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.DumpIrTreeOptions
 import org.jetbrains.kotlin.ir.util.DumpIrTreeOptions.FlagsFilter
@@ -33,6 +29,7 @@ import org.jetbrains.kotlin.test.directives.model.DirectivesContainer
 import org.jetbrains.kotlin.test.model.*
 import org.jetbrains.kotlin.test.services.TestServices
 import org.jetbrains.kotlin.test.services.defaultsProvider
+import org.jetbrains.kotlin.test.services.independentSourceDirectoryPath
 import org.jetbrains.kotlin.test.services.moduleStructure
 import org.jetbrains.kotlin.test.utils.MultiModuleInfoDumper
 import org.jetbrains.kotlin.test.utils.withExtension
@@ -63,13 +60,22 @@ class IrTextDumpHandler(
             }
         }
 
-        fun List<IrFile>.groupWithTestFiles(module: TestModule, ordered: Boolean = false): List<Pair<TestFile?, IrFile>> =
-            mapNotNull { irFile ->
+        fun List<IrFile>.groupWithTestFiles(testServices: TestServices, ordered: Boolean = false): List<Pair<Pair<TestModule, TestFile>?, IrFile>> {
+            return mapNotNull { irFile ->
                 val name = File(irFile.fileEntry.name).name
-                val testFile = module.files.firstOrNull { it.name == name }
-                testFile to irFile
-            }.applyIf(ordered) { sortedBy { it.second.fileEntry.name } }
-
+                val moduleAndFile = testServices.moduleStructure.modules.firstNotNullOfOrNull { module ->
+                    val file = module.files.firstOrNull { it.name == name } ?: return@firstNotNullOfOrNull null
+                    module to file
+                }
+                moduleAndFile to irFile
+            }.applyIf(ordered) {
+                sortedBy { (moduleAndFile, irFile) ->
+                    val pathFromIrFile = irFile.fileEntry.name
+                    val (module, _) = moduleAndFile ?: return@sortedBy pathFromIrFile
+                    pathFromIrFile.removePrefix(module.independentSourceDirectoryPath(testServices))
+                }
+            }
+        }
 
         private val HIDDEN_ENUM_METHOD_NAMES = setOf(
             Name.identifier("finalize"), // JVM-specific fake override from java.lang.Enum. TODO: remove it after fixing KT-63744
@@ -85,6 +91,16 @@ class IrTextDumpHandler(
 
         fun isHiddenDeclaration(declaration: IrDeclaration, irBuiltIns: IrBuiltIns): Boolean =
             (declaration as? IrSimpleFunction)?.isHiddenEnumMethod(irBuiltIns) == true
+
+        fun renderFilePathForIrFile(
+            testFileToIrFile: List<Pair<Pair<TestModule, TestFile>?, IrFile>>,
+            testServices: TestServices,
+            irFile: IrFile,
+            fullPath: String,
+        ): String {
+            val (correspondingModule, _) = testFileToIrFile.firstOrNull { it.second == irFile }?.first ?: return fullPath
+            return fullPath.removePrefix(correspondingModule.independentSourceDirectoryPath(testServices))
+        }
     }
 
     override val directiveContainers: List<DirectivesContainer>
@@ -103,6 +119,7 @@ class IrTextDumpHandler(
 
         if (DUMP_IR !in module.directives) return
 
+        val testFileToIrFile = info.irModuleFragment.files.groupWithTestFiles(testServices, ordered = true)
         val dumpOptions = DumpIrTreeOptions(
             normalizeNames = true,
             printFacadeClassInFqNames = false,
@@ -117,12 +134,14 @@ class IrTextDumpHandler(
             printTypeAbbreviations = false,
             isHiddenDeclaration = { isHiddenDeclaration(it, info.irPluginContext.irBuiltIns) },
             stableOrder = true,
+            filePathRenderer = { irFile, fullPath ->
+                renderFilePathForIrFile(testFileToIrFile, testServices, irFile, fullPath)
+            }
         )
         val builder = baseDumper.builderForModule(module.name)
 
-        val testFileToIrFile = info.irModuleFragment.files.groupWithTestFiles(module, ordered = dumpOptions.stableOrder)
-        for ((testFile, irFile) in testFileToIrFile) {
-            if (testFile?.directives?.contains(EXTERNAL_FILE) == true) continue
+        for ((moduleAndFile, irFile) in testFileToIrFile) {
+            if (moduleAndFile?.second?.directives?.contains(EXTERNAL_FILE) == true) continue
             val actualDump = irFile.dumpTreesFromLineNumber(lineNumber = 0, dumpOptions)
             builder.append(actualDump)
         }
@@ -133,7 +152,7 @@ class IrTextDumpHandler(
     private fun compareDumpsOfExternalClasses(module: TestModule, info: IrBackendInput) {
         val externalClassIds = module.directives[DUMP_EXTERNAL_CLASS]
         if (externalClassIds.isEmpty()) return
-        val dumpOptions = DumpIrTreeOptions(stableOrder = true)
+        val dumpOptions = DumpIrTreeOptions(stableOrder = true, printFilePath = false)
         val baseFile = testServices.moduleStructure.originalTestDataFiles.first()
         assertions.assertAll(
             externalClassIds.map { externalClassId ->

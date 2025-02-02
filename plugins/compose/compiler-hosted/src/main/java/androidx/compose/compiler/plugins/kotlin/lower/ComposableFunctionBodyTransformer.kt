@@ -1542,14 +1542,29 @@ class ComposableFunctionBodyTransformer(
                 // over time. In the future, we may want to make an optimization where whether or
                 // not the call site had a spread or not and only create groups if it did.
 
+                // for varargs with default type, check if $default is set for that parameter
+                val statements = if (defaultParam != null && param.defaultValue != null) {
+                    val defaultIndex = scope.defaultIndexForSlotIndex(slotIndex)
+                    val block = irBlock(statements = listOf())
+                    skipPreamble.statements.add(
+                        irIf(
+                            condition = irIsProvided(defaultParam, defaultIndex),
+                            body = block
+                        )
+                    )
+                    block.statements
+                } else {
+                    skipPreamble.statements
+                }
+
                 // composer.startMovableGroup(<>, values.size)
+                val sizeGetter = param.type.classOrNull!!.getPropertyGetter("size")!!.owner
                 val irGetParamSize = irMethodCall(
                     irGet(param),
-                    param.type.classOrNull!!.getPropertyGetter("size")!!.owner
+                    sizeGetter
                 )
 
-                // TODO(lmr): verify this works with default vararg expressions!
-                skipPreamble.statements.add(
+                statements.add(
                     irStartMovableGroup(
                         param,
                         irGetParamSize,
@@ -1557,10 +1572,22 @@ class ComposableFunctionBodyTransformer(
                     )
                 )
 
+                // dirty = if (composer.changed(values.length)) 0b0100 else 0b0000
                 // for (value in values) {
                 //     dirty = dirty or if (composer.changed(value)) 0b0100 else 0b0000
                 // }
-                skipPreamble.statements.add(
+                statements.add(
+                    dirty.irOrSetBitsAtSlot(
+                        slotIndex,
+                        irIfThenElse(
+                            context.irBuiltIns.intType,
+                            irChanged(irMethodCall(irGet(param), sizeGetter), compareInstanceForFunctionTypes = true),
+                            thenPart = irConst(ParamState.Different.bitsForSlot(slotIndex)),
+                            elsePart = irConst(ParamState.Uncertain.bitsForSlot(slotIndex))
+                        )
+                    )
+                )
+                statements.add(
                     irForLoop(
                         varargElementType,
                         irGet(param)
@@ -1589,12 +1616,12 @@ class ComposableFunctionBodyTransformer(
                 )
 
                 // composer.endMovableGroup()
-                skipPreamble.statements.add(irEndMovableGroup(scope))
+                statements.add(irEndMovableGroup(scope))
 
-                // if (dirty and 0b0110 === 0) {
+                // if (dirty and 0b1110 === 0) {
                 //   dirty = dirty or 0b0010
                 // }
-                skipPreamble.statements.add(
+                statements.add(
                     irIf(
                         condition = irIsUncertainAndStable(dirty, slotIndex),
                         body = dirty.irOrSetBitsAtSlot(
@@ -1747,29 +1774,8 @@ class ComposableFunctionBodyTransformer(
                     irCall(function.symbol).apply {
                         symbol.owner
                             .valueParameters
-                            .fastForEachIndexed { index, param ->
-                                if (param.isVararg) {
-                                    putValueArgument(
-                                        index,
-                                        IrVarargImpl(
-                                            UNDEFINED_OFFSET,
-                                            UNDEFINED_OFFSET,
-                                            param.type,
-                                            param.varargElementType!!,
-                                            elements = listOf(
-                                                IrSpreadElementImpl(
-                                                    UNDEFINED_OFFSET,
-                                                    UNDEFINED_OFFSET,
-                                                    irGet(param)
-                                                )
-                                            )
-                                        )
-                                    )
-                                } else {
-                                    // NOTE(lmr): should we be using the parameter here, or the temporary
-                                    // with the default value?
-                                    putValueArgument(index, irGet(param))
-                                }
+                            .fastForEach { param ->
+                                arguments[param.indexInParameters] = irGet(param)
                             }
 
                         // new composer

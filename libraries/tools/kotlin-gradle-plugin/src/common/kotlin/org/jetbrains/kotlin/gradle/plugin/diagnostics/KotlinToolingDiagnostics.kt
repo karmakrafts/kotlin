@@ -1361,21 +1361,41 @@ object KotlinToolingDiagnostics {
         }
     }
 
-    object DeprecatedInKMPJavaPluginsDiagnostic : ToolingDiagnosticFactory(WARNING) {
-        operator fun invoke(pluginId: String): ToolingDiagnostic {
+    object KMPJavaPluginsIncompatibilityDiagnostic : ToolingDiagnosticFactory(ERROR) {
+
+        operator fun invoke(
+            pluginId: String,
+        ): ToolingDiagnostic {
             val pluginString = when (pluginId) {
                 "application" -> "'$pluginId' (also applies 'java' plugin)"
                 "java-library" -> "'$pluginId' (also applies 'java' plugin)"
                 else -> "'$pluginId'"
             }
 
-            return build {
+            return build(
+                severity = if (GradleVersion.current() >= GradleVersion.version("8.7")) ERROR else WARNING,
+            ) {
                 title("'$pluginId' Plugin Incompatible with 'org.jetbrains.kotlin.multiplatform' Plugin")
                     .description {
                         "$pluginString Gradle plugin is not compatible with 'org.jetbrains.kotlin.multiplatform' plugin."
                     }
                     .solution {
                         "Consider adding a new subproject with '$pluginId' plugin where the KMP project is added as a dependency."
+                    }
+            }
+        }
+    }
+
+    internal object KMPWithJavaDiagnostic : ToolingDiagnosticFactory(predefinedSeverity = WARNING) {
+        operator fun invoke(): ToolingDiagnostic {
+            val severity = if (GradleVersion.current() >= GradleVersion.version("9.0")) ERROR else WARNING
+            return build(severity = severity) {
+                title("'org.jetbrains.kotlin.multiplatform' plugin 'withJava()' configuration deprecation.")
+                    .description {
+                        "Kotlin multiplatform plugin always configures Java sources compilation and 'withJava()' configuration is deprecated."
+                    }
+                    .solution {
+                        "Please remove 'withJava()' method call from build configuration."
                     }
             }
         }

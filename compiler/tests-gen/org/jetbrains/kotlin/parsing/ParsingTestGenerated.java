@@ -146,6 +146,11 @@ public class ParsingTestGenerated extends AbstractParsingTest {
       runTest("compiler/testData/psi/Constructors.kt");
     }
 
+    @TestMetadata("contextParametersAndAnnotations.kt")
+    public void testContextParametersAndAnnotations() {
+      runTest("compiler/testData/psi/contextParametersAndAnnotations.kt");
+    }
+
     @TestMetadata("ControlStructures.kt")
     public void testControlStructures() {
       runTest("compiler/testData/psi/ControlStructures.kt");
@@ -1348,6 +1353,11 @@ public class ParsingTestGenerated extends AbstractParsingTest {
       @TestMetadata("functions.kt")
       public void testFunctions() {
         runTest("compiler/testData/psi/contextParameters/functions.kt");
+      }
+
+      @TestMetadata("labelInFunctionTypeContext.kt")
+      public void testLabelInFunctionTypeContext() {
+        runTest("compiler/testData/psi/contextParameters/labelInFunctionTypeContext.kt");
       }
 
       @TestMetadata("properties.kt")

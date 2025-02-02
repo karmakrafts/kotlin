@@ -137,7 +137,7 @@ NO_INLINE void beforeHeapRefUpdateSlowPath(mm::DirectRefAccessor ref, ObjHeader*
         prev = ref.load();
     }
 
-    if (prev != nullptr && prev->heap()) {
+    if (prev != nullptr && prev->heapNotLocal()) {
         // TODO Redundant if the destination object is black.
         //      Yet at the moment there is now efficient way to distinguish black and gray objects.
 
@@ -160,7 +160,7 @@ PERFORMANCE_INLINE void gc::barriers::beforeHeapRefUpdate(mm::DirectRefAccessor 
     }
 }
 
-PERFORMANCE_INLINE gc::barriers::SpecialRefReleaseGuard::Impl::Impl(mm::DirectRefAccessor ref) noexcept {
+PERFORMANCE_INLINE gc::barriers::ExternalRCRefReleaseGuard::Impl::Impl(mm::DirectRefAccessor ref) noexcept {
     // Can be called with any possible thread state: kotlin, native, unattached thread.
     // This guard synchronizes with the `ConcurrentMark` via the ThreadRegistry lock.
     // It must be done before the barriers phase check.

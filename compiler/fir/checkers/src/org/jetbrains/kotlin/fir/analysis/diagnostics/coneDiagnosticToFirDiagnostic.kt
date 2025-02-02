@@ -307,6 +307,10 @@ private fun mapInapplicableCandidateError(
                 rootCause.forbiddenNamedArgumentsTarget
             )
 
+            is MixingNamedAndPositionArguments -> FirErrors.MIXING_NAMED_AND_POSITIONAL_ARGUMENTS.createOn(
+                rootCause.argument.source,
+            )
+
             is ArgumentTypeMismatch -> {
                 diagnosticForArgumentTypeMismatch(
                     source = rootCause.argument.source ?: source,
@@ -314,6 +318,7 @@ private fun mapInapplicableCandidateError(
                         diagnostic.candidate,
                         typeContext,
                     ),
+                    // For lambda expressions, use their resolved type because `rootCause.actualType` can contain unresolved types
                     actualType = if (rootCause.argument is FirAnonymousFunctionExpression && !rootCause.argument.resolvedType.hasError()) {
                         rootCause.argument.resolvedType
                     } else {
@@ -476,28 +481,28 @@ private fun diagnosticForArgumentTypeMismatch(
     val symbol = candidate.symbol as FirCallableSymbol
     val receiverType = (candidate.chosenExtensionReceiver ?: candidate.dispatchReceiver)?.expression?.resolvedType
 
-    return if (expectedType is ConeCapturedType &&
-        expectedType.constructor.projection.kind.let { it == ProjectionKind.OUT || it == ProjectionKind.STAR } &&
-        receiverType != null &&
-        // Ensure we report an actual argument type mismatch of the candidate and not a lambda return expression
-        candidate.argumentMapping.keys.any { it.expression.source == source }
-    ) {
-        FirErrors.MEMBER_PROJECTED_OUT.createOn(
+    return when {
+        expectedType is ConeCapturedType && expectedType.isBasedOnStarOrOut() && receiverType != null &&
+                // Ensure we report an actual argument type mismatch of the candidate and not a lambda return expression
+                candidate.argumentMapping.keys.any { it.expression.source == source }
+            ->
+            FirErrors.MEMBER_PROJECTED_OUT.createOn(
+                source,
+                receiverType,
+                expectedType.projectionKindAsString(),
+                symbol.originalOrSelf(),
+            )
+        else -> FirErrors.ARGUMENT_TYPE_MISMATCH.createOn(
             source,
-            receiverType,
-            expectedType.projectionKindAsString(),
-            symbol.originalOrSelf(),
-        )
-    } else {
-        FirErrors.ARGUMENT_TYPE_MISMATCH.createOn(
-            source,
-            // For lambda expressions, use their resolved type because `rootCause.actualType` can contain unresolved types
             actualType,
             expectedType,
             isMismatchDueToNullability
         )
     }
 }
+
+private fun ConeCapturedType.isBasedOnStarOrOut(): Boolean =
+    constructor.projection.kind.let { it == ProjectionKind.OUT || it == ProjectionKind.STAR }
 
 private fun UnstableSmartCast.mapUnstableSmartCast(): KtDiagnosticWithParameters4<ConeKotlinType, FirExpression, String, Boolean> {
     val factory = when {

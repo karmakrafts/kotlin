@@ -473,7 +473,11 @@ internal class CInteropCompilation(
                 add(it.absolutePath)
             }
             add("-Xsource-compiler-option")
-            add("-fobjc-arc")
+            if (freeCompilerArgs.objcArc) {
+                add("-fobjc-arc")
+            } else {
+                add("-fno-objc-arc")
+            }
             add("-Xsource-compiler-option")
             add("-DNS_FORMAT_ARGUMENT(A)=")
             add("-compiler-option")
@@ -819,8 +823,6 @@ internal class TestBundleCompilation(
         add(
             "-produce", "test_bundle",
             "-linker-option", "-F" + settings.get<XCTestRunner>().frameworksPath,
-            // FIXME: KT-70202: new linker fails with SIGBUS
-            "-linker-option", "-ld_classic",
             "-output", expectedArtifact.bundleDir.path,
             "-Xbinary=bundleId=com.jetbrains.kotlin.${expectedArtifact.bundleDir.nameWithoutExtension}"
         )

@@ -563,6 +563,11 @@ public abstract class org/jetbrains/kotlin/gradle/plugin/AbstractKotlinTargetCon
 public final class org/jetbrains/kotlin/gradle/plugin/AbstractKotlinTargetConfigurator$Companion {
 }
 
+public final class org/jetbrains/kotlin/gradle/plugin/AndroidGradlePluginVersion$Companion {
+	public final fun getCurrent ()Lorg/jetbrains/kotlin/gradle/plugin/AndroidGradlePluginVersion;
+	public final fun getCurrentOrNull ()Lorg/jetbrains/kotlin/gradle/plugin/AndroidGradlePluginVersion;
+}
+
 public final class org/jetbrains/kotlin/gradle/plugin/AndroidTestedVariantArtifactsFilter : java/io/Serializable, org/gradle/api/specs/Spec {
 	public fun <init> (Lorg/gradle/api/artifacts/ArtifactCollection;ZLjava/lang/String;)V
 	public fun isSatisfiedBy (Ljava/io/File;)Z
@@ -577,19 +582,6 @@ public class org/jetbrains/kotlin/gradle/plugin/BuildEventsListenerRegistryHolde
 
 public final class org/jetbrains/kotlin/gradle/plugin/BuildEventsListenerRegistryHolder$Companion {
 	public final fun getInstance (Lorg/gradle/api/Project;)Lorg/jetbrains/kotlin/gradle/plugin/BuildEventsListenerRegistryHolder;
-}
-
-public abstract class org/jetbrains/kotlin/gradle/plugin/BuildFinishedListenerService : java/lang/AutoCloseable, org/gradle/api/services/BuildService {
-	public static final field Companion Lorg/jetbrains/kotlin/gradle/plugin/BuildFinishedListenerService$Companion;
-	public fun <init> ()V
-	public fun close ()V
-	public final fun onClose (Lkotlin/jvm/functions/Function0;)V
-	public final fun onCloseOnceByKey (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)V
-}
-
-public final class org/jetbrains/kotlin/gradle/plugin/BuildFinishedListenerService$Companion {
-	public final fun getInstance (Lorg/gradle/api/Project;)Lorg/jetbrains/kotlin/gradle/plugin/BuildFinishedListenerService;
-	public final fun registerIfAbsent (Lorg/gradle/api/Project;)Lorg/gradle/api/provider/Provider;
 }
 
 public abstract class org/jetbrains/kotlin/gradle/plugin/DefaultKotlinBasePlugin : org/jetbrains/kotlin/gradle/plugin/KotlinBasePlugin {
@@ -1119,11 +1111,6 @@ public final class org/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingD
 	public final fun invoke (Ljava/lang/String;)Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnostic;
 }
 
-public final class org/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingDiagnostics$DeprecatedInKMPJavaPluginsDiagnostic : org/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnosticFactory {
-	public static final field INSTANCE Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingDiagnostics$DeprecatedInKMPJavaPluginsDiagnostic;
-	public final fun invoke (Ljava/lang/String;)Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnostic;
-}
-
 public final class org/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingDiagnostics$DeprecatedJvmHistoryBasedIncrementalCompilationDiagnostic : org/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnosticFactory {
 	public static final field INSTANCE Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingDiagnostics$DeprecatedJvmHistoryBasedIncrementalCompilationDiagnostic;
 	public final fun invoke ()Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnostic;
@@ -1245,6 +1232,11 @@ public abstract class org/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinTooli
 public final class org/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingDiagnostics$JvmWithJavaIsIncompatibleWithAndroid : org/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnosticFactory {
 	public static final field INSTANCE Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingDiagnostics$JvmWithJavaIsIncompatibleWithAndroid;
 	public final fun invoke (Ljava/lang/String;Ljava/lang/Throwable;)Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnostic;
+}
+
+public final class org/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingDiagnostics$KMPJavaPluginsIncompatibilityDiagnostic : org/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnosticFactory {
+	public static final field INSTANCE Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingDiagnostics$KMPJavaPluginsIncompatibilityDiagnostic;
+	public final fun invoke (Ljava/lang/String;)Lorg/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnostic;
 }
 
 public final class org/jetbrains/kotlin/gradle/plugin/diagnostics/KotlinToolingDiagnostics$KonanHomeConflictDeclaration : org/jetbrains/kotlin/gradle/plugin/diagnostics/ToolingDiagnosticFactory {
@@ -5893,12 +5885,16 @@ public final class org/jetbrains/kotlin/gradle/targets/js/yarn/YarnWorkspaces : 
 public abstract interface class org/jetbrains/kotlin/gradle/targets/jvm/KotlinJvmBinariesDsl {
 	public abstract fun executable (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lorg/gradle/api/tasks/TaskProvider;
 	public abstract fun executable (Ljava/lang/String;Ljava/lang/String;Lorg/gradle/api/Action;)Lorg/gradle/api/tasks/TaskProvider;
+	public abstract fun executable (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lorg/gradle/api/tasks/TaskProvider;
+	public abstract fun executable (Ljava/lang/String;Lorg/gradle/api/Action;)Lorg/gradle/api/tasks/TaskProvider;
 	public abstract fun executable (Lkotlin/jvm/functions/Function1;)Lorg/gradle/api/tasks/TaskProvider;
 	public abstract fun executable (Lorg/gradle/api/Action;)Lorg/gradle/api/tasks/TaskProvider;
 }
 
 public final class org/jetbrains/kotlin/gradle/targets/jvm/KotlinJvmBinariesDsl$DefaultImpls {
 	public static fun executable (Lorg/jetbrains/kotlin/gradle/targets/jvm/KotlinJvmBinariesDsl;Ljava/lang/String;Ljava/lang/String;Lorg/gradle/api/Action;)Lorg/gradle/api/tasks/TaskProvider;
+	public static fun executable (Lorg/jetbrains/kotlin/gradle/targets/jvm/KotlinJvmBinariesDsl;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lorg/gradle/api/tasks/TaskProvider;
+	public static fun executable (Lorg/jetbrains/kotlin/gradle/targets/jvm/KotlinJvmBinariesDsl;Ljava/lang/String;Lorg/gradle/api/Action;)Lorg/gradle/api/tasks/TaskProvider;
 	public static fun executable (Lorg/jetbrains/kotlin/gradle/targets/jvm/KotlinJvmBinariesDsl;Lkotlin/jvm/functions/Function1;)Lorg/gradle/api/tasks/TaskProvider;
 	public static fun executable (Lorg/jetbrains/kotlin/gradle/targets/jvm/KotlinJvmBinariesDsl;Lorg/gradle/api/Action;)Lorg/gradle/api/tasks/TaskProvider;
 	public static synthetic fun executable$default (Lorg/jetbrains/kotlin/gradle/targets/jvm/KotlinJvmBinariesDsl;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lorg/gradle/api/tasks/TaskProvider;
