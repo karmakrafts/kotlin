@@ -23,8 +23,10 @@ import org.jetbrains.kotlin.test.backend.ir.IrBackendInput
 import org.jetbrains.kotlin.test.directives.KlibBasedCompilerTestDirectives
 import org.jetbrains.kotlin.test.directives.KlibBasedCompilerTestDirectives.SKIP_IR_DESERIALIZATION_CHECKS
 import org.jetbrains.kotlin.test.directives.model.DirectivesContainer
+import org.jetbrains.kotlin.test.model.FrontendKinds
 import org.jetbrains.kotlin.test.model.TestModule
 import org.jetbrains.kotlin.test.services.TestServices
+import org.jetbrains.kotlin.test.services.defaultsProvider
 import org.jetbrains.kotlin.test.services.moduleStructure
 import org.jetbrains.kotlin.test.services.temporaryDirectoryManager
 import org.jetbrains.kotlin.test.utils.MultiModuleInfoDumper
@@ -61,6 +63,8 @@ class SerializedIrDumpHandler(
     override fun processModule(module: TestModule, info: IrBackendInput) {
         if (module.isSkipped) return
 
+        val isFirFrontend = testServices.defaultsProvider.frontendKind == FrontendKinds.FIR
+
         val dumpOptions = DumpIrTreeOptions(
             /** Rename temporary local variables using a stable naming scheme. */
             normalizeNames = true,
@@ -84,7 +88,7 @@ class SerializedIrDumpHandler(
             declarationFlagsFilter = FlagsFilterImpl(isAfterDeserialization),
 
             /** Don't dump annotations having source retention such as [UnsafeVariance], [Suppress], [OptIn]. */
-            printSourceRetentionAnnotations = false,
+            printAnnotationsWithSourceRetention = false,
 
             /**
              * Fake overrides generation works slightly different for Fir2LazyIr and normal IR (either built
@@ -167,6 +171,32 @@ class SerializedIrDumpHandler(
                     false
                 }
             },
+
+            /**
+             * Render offsets, but only in case the FIR frontend is used.
+             * There are some known mismatches in offsets of fake overrides between K1 LazyIr and deserialized IR,
+             * which we don't care much.
+             */
+            printSourceOffsets = isFirFrontend,
+
+            /**
+             * A workaround for mismatched offsets in default value expressions in annotations of fake overrides,
+             * which is finally going to be fixed in KT-74938.
+             *
+             * Example:
+             * ```
+             * // Fir2LazyIr:
+             * FUN[138, 282] FAKE_OVERRIDE name:...
+             *   annotations:
+             *     Deprecated(message = "...", replaceWith = <null>, level = GET_ENUM[-1, -1] 'ENUM_ENTRY name:HIDDEN' type=kotlin.DeprecationLevel)
+             *
+             * // Deserialized IR:
+             * FUN[138, 282] FAKE_OVERRIDE name:...
+             *   annotations:
+             *     Deprecated(message = "...", replaceWith = <null>, level = GET_ENUM[1899, 1905] 'ENUM_ENTRY name:HIDDEN' type=kotlin.DeprecationLevel)
+             * ```
+             */
+            printAnnotationsInFakeOverrides = false,
         )
 
         val builder = dumper.builderForModule(module.name)

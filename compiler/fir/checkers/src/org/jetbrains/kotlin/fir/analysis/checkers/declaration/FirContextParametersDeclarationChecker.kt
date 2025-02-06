@@ -47,13 +47,14 @@ object FirContextParametersDeclarationChecker : FirBasicDeclarationChecker(MppCh
             is FirPropertyAccessor -> "Context parameters on property accessors are unsupported."
             is FirBackingField -> "Context parameters on backing fields are unsupported."
             is FirPrimaryConstructor -> "Context parameters on primary constructors are unsupported."
+            is FirProperty if declaration.isLocal -> "Context parameters on local properties are unsupported.".takeIf { contextParametersEnabled }
             // Stuff that is unsupported with context parameters
             is FirConstructor -> "Context parameters on constructors are unsupported.".takeIf { contextParametersEnabled }
             is FirClass -> "Context parameters on classes are unsupported.".takeIf { contextParametersEnabled }
             is FirCallableDeclaration if declaration.isDelegationOperator() -> "Context parameters on delegation operators are unsupported.".takeIf { contextParametersEnabled }
             is FirProperty if declaration.delegate != null -> "Context parameters on delegated properties are unsupported.".takeIf { contextParametersEnabled }
             // Only valid positions
-            is FirSimpleFunction, is FirProperty -> null
+            is FirSimpleFunction, is FirProperty, is FirAnonymousFunction -> null
             // Fallback if we forgot something.
             else -> "Context parameters are unsupported in this position."
         }

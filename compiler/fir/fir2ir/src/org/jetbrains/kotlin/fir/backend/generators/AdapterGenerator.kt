@@ -395,15 +395,11 @@ internal class AdapterGenerator(
 
     internal fun IrExpression.applySamConversionIfNeeded(
         argument: FirExpression,
-        parameter: FirValueParameter?,
     ): IrExpression {
-        if (parameter == null) {
-            return this
-        }
         if (this is IrVararg) {
             // element-wise SAM conversion if and only if we can build 1-to-1 mapping for elements.
             return applyConversionOnVararg(argument) { firVarargArgument ->
-                applySamConversionIfNeeded(firVarargArgument, parameter)
+                applySamConversionIfNeeded(firVarargArgument)
             }
         }
 
@@ -416,7 +412,12 @@ internal class AdapterGenerator(
         fun IrExpression.generateSamConversion(samType: IrType, firSamConversion: FirSamConversionExpression, samFirType: ConeKotlinType) =
             IrTypeOperatorCallImpl(
                 this.startOffset, this.endOffset, samType, IrTypeOperator.SAM_CONVERSION, samType,
-                castArgumentToFunctionalInterfaceForSamType(this, firSamConversion.expression.resolvedType, samFirType)
+                castArgumentToFunctionalInterfaceForSamType(
+                    argument = this,
+                    argumentConeType = firSamConversion.expression.resolvedType,
+                    samType = samFirType,
+                    usesFunctionalTypeConversion = firSamConversion.usesFunctionKindConversion
+                )
             )
 
         return if (this is IrBlock && (origin == IrStatementOrigin.ADAPTED_FUNCTION_REFERENCE || origin == IrStatementOrigin.SUSPEND_CONVERSION)) {
@@ -438,6 +439,7 @@ internal class AdapterGenerator(
         argument: IrExpression,
         argumentConeType: ConeKotlinType,
         samType: ConeKotlinType,
+        usesFunctionalTypeConversion: Boolean,
     ): IrExpression {
         // The rule for SAM conversions is: the argument must be a subtype of the required function type.
         // We handle intersection types, captured types, etc. by approximating both expected and actual types.
@@ -450,9 +452,7 @@ internal class AdapterGenerator(
 
         // We don't want to insert a redundant cast from a function type to a suspend function type,
         // because that's already handled by suspend conversion.
-        if (approximatedConeKotlinFunctionType.functionTypeKind(session)?.isSuspendOrKSuspendFunction == true &&
-            approximateArgumentConeType.functionTypeKind(session)?.isSuspendOrKSuspendFunction != true
-        ) {
+        if (usesFunctionalTypeConversion) {
             approximatedConeKotlinFunctionType = approximatedConeKotlinFunctionType.customFunctionTypeToSimpleFunctionType(session)
         }
 

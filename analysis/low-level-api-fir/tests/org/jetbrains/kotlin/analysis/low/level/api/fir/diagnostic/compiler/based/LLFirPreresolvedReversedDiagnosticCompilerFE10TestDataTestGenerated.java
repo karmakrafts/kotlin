@@ -18394,6 +18394,18 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFE10TestDataTestGenerated
         }
 
         @Test
+        @TestMetadata("lastStatementInNonUnitLambda.kt")
+        public void testLastStatementInNonUnitLambda() {
+          runTest("compiler/testData/diagnostics/tests/inference/coercionToUnit/lastStatementInNonUnitLambda.kt");
+        }
+
+        @Test
+        @TestMetadata("lastStatementInNonUnitLambdaWithRegularReturn.kt")
+        public void testLastStatementInNonUnitLambdaWithRegularReturn() {
+          runTest("compiler/testData/diagnostics/tests/inference/coercionToUnit/lastStatementInNonUnitLambdaWithRegularReturn.kt");
+        }
+
+        @Test
         @TestMetadata("nestedLambda.kt")
         public void testNestedLambda() {
           runTest("compiler/testData/diagnostics/tests/inference/coercionToUnit/nestedLambda.kt");
@@ -19455,6 +19467,12 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFE10TestDataTestGenerated
         @TestMetadata("preferNothingToBound.kt")
         public void testPreferNothingToBound() {
           runTest("compiler/testData/diagnostics/tests/inference/nestedCalls/preferNothingToBound.kt");
+        }
+
+        @Test
+        @TestMetadata("secondLambdaWithRevisableExpectedType.kt")
+        public void testSecondLambdaWithRevisableExpectedType() {
+          runTest("compiler/testData/diagnostics/tests/inference/nestedCalls/secondLambdaWithRevisableExpectedType.kt");
         }
       }
 
@@ -24619,6 +24637,12 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFE10TestDataTestGenerated
       }
 
       @Test
+      @TestMetadata("javaOverrideOfExtensionProperty.kt")
+      public void testJavaOverrideOfExtensionProperty() {
+        runTest("compiler/testData/diagnostics/tests/j+k/javaOverrideOfExtensionProperty.kt");
+      }
+
+      @Test
       @TestMetadata("javaStaticImport.kt")
       public void testJavaStaticImport() {
         runTest("compiler/testData/diagnostics/tests/j+k/javaStaticImport.kt");
@@ -27443,6 +27467,24 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFE10TestDataTestGenerated
       }
 
       @Test
+      @TestMetadata("InaccessibleTypeEagerCheck.kt")
+      public void testInaccessibleTypeEagerCheck() {
+        runTest("compiler/testData/diagnostics/tests/multimodule/InaccessibleTypeEagerCheck.kt");
+      }
+
+      @Test
+      @TestMetadata("InaccessibleTypeEagerCheckForbidden.kt")
+      public void testInaccessibleTypeEagerCheckForbidden() {
+        runTest("compiler/testData/diagnostics/tests/multimodule/InaccessibleTypeEagerCheckForbidden.kt");
+      }
+
+      @Test
+      @TestMetadata("InaccessibleTypeEagerCheckJava.kt")
+      public void testInaccessibleTypeEagerCheckJava() {
+        runTest("compiler/testData/diagnostics/tests/multimodule/InaccessibleTypeEagerCheckJava.kt");
+      }
+
+      @Test
       @TestMetadata("internal.kt")
       public void testInternal() {
         runTest("compiler/testData/diagnostics/tests/multimodule/internal.kt");
@@ -29943,6 +29985,12 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFE10TestDataTestGenerated
         @TestMetadata("ambiguousActuals.kt")
         public void testAmbiguousActuals() {
           runTest("compiler/testData/diagnostics/tests/multiplatform/hmpp/ambiguousActuals.kt");
+        }
+
+        @Test
+        @TestMetadata("expectsHmppRedeclaration.kt")
+        public void testExpectsHmppRedeclaration() {
+          runTest("compiler/testData/diagnostics/tests/multiplatform/hmpp/expectsHmppRedeclaration.kt");
         }
 
         @Test
@@ -43492,6 +43540,12 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFE10TestDataTestGenerated
       @TestMetadata("destructuringDeclarations.kt")
       public void testDestructuringDeclarations() {
         runTest("compiler/testData/diagnostics/tests/typeParameters/destructuringDeclarations.kt");
+      }
+
+      @Test
+      @TestMetadata("dnnAsPropertyReceiver.kt")
+      public void testDnnAsPropertyReceiver() {
+        runTest("compiler/testData/diagnostics/tests/typeParameters/dnnAsPropertyReceiver.kt");
       }
 
       @Test

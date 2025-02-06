@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":native:analysis-api-klib-reader"))
 
     testImplementation(projectTests(":native:objcexport-header-generator"))
+    testApi(project(":native:analysis-api-based-test-utils"))
     testApi(project(":analysis:analysis-api-standalone"))
 }
 

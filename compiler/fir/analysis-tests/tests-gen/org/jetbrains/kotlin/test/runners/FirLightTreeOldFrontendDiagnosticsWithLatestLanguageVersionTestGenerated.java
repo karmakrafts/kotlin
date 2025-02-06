@@ -18388,6 +18388,18 @@ public class FirLightTreeOldFrontendDiagnosticsWithLatestLanguageVersionTestGene
         }
 
         @Test
+        @TestMetadata("lastStatementInNonUnitLambda.kt")
+        public void testLastStatementInNonUnitLambda() {
+          runTest("compiler/testData/diagnostics/tests/inference/coercionToUnit/lastStatementInNonUnitLambda.kt");
+        }
+
+        @Test
+        @TestMetadata("lastStatementInNonUnitLambdaWithRegularReturn.kt")
+        public void testLastStatementInNonUnitLambdaWithRegularReturn() {
+          runTest("compiler/testData/diagnostics/tests/inference/coercionToUnit/lastStatementInNonUnitLambdaWithRegularReturn.kt");
+        }
+
+        @Test
         @TestMetadata("nestedLambda.kt")
         public void testNestedLambda() {
           runTest("compiler/testData/diagnostics/tests/inference/coercionToUnit/nestedLambda.kt");
@@ -19449,6 +19461,12 @@ public class FirLightTreeOldFrontendDiagnosticsWithLatestLanguageVersionTestGene
         @TestMetadata("preferNothingToBound.kt")
         public void testPreferNothingToBound() {
           runTest("compiler/testData/diagnostics/tests/inference/nestedCalls/preferNothingToBound.kt");
+        }
+
+        @Test
+        @TestMetadata("secondLambdaWithRevisableExpectedType.kt")
+        public void testSecondLambdaWithRevisableExpectedType() {
+          runTest("compiler/testData/diagnostics/tests/inference/nestedCalls/secondLambdaWithRevisableExpectedType.kt");
         }
       }
 
@@ -24613,6 +24631,12 @@ public class FirLightTreeOldFrontendDiagnosticsWithLatestLanguageVersionTestGene
       }
 
       @Test
+      @TestMetadata("javaOverrideOfExtensionProperty.kt")
+      public void testJavaOverrideOfExtensionProperty() {
+        runTest("compiler/testData/diagnostics/tests/j+k/javaOverrideOfExtensionProperty.kt");
+      }
+
+      @Test
       @TestMetadata("javaStaticImport.kt")
       public void testJavaStaticImport() {
         runTest("compiler/testData/diagnostics/tests/j+k/javaStaticImport.kt");
@@ -27434,6 +27458,24 @@ public class FirLightTreeOldFrontendDiagnosticsWithLatestLanguageVersionTestGene
       @TestMetadata("InaccessibleIntersectionType.kt")
       public void testInaccessibleIntersectionType() {
         runTest("compiler/testData/diagnostics/tests/multimodule/InaccessibleIntersectionType.kt");
+      }
+
+      @Test
+      @TestMetadata("InaccessibleTypeEagerCheck.kt")
+      public void testInaccessibleTypeEagerCheck() {
+        runTest("compiler/testData/diagnostics/tests/multimodule/InaccessibleTypeEagerCheck.kt");
+      }
+
+      @Test
+      @TestMetadata("InaccessibleTypeEagerCheckForbidden.kt")
+      public void testInaccessibleTypeEagerCheckForbidden() {
+        runTest("compiler/testData/diagnostics/tests/multimodule/InaccessibleTypeEagerCheckForbidden.kt");
+      }
+
+      @Test
+      @TestMetadata("InaccessibleTypeEagerCheckJava.kt")
+      public void testInaccessibleTypeEagerCheckJava() {
+        runTest("compiler/testData/diagnostics/tests/multimodule/InaccessibleTypeEagerCheckJava.kt");
       }
 
       @Test
@@ -40536,6 +40578,12 @@ public class FirLightTreeOldFrontendDiagnosticsWithLatestLanguageVersionTestGene
       @TestMetadata("destructuringDeclarations.kt")
       public void testDestructuringDeclarations() {
         runTest("compiler/testData/diagnostics/tests/typeParameters/destructuringDeclarations.kt");
+      }
+
+      @Test
+      @TestMetadata("dnnAsPropertyReceiver.kt")
+      public void testDnnAsPropertyReceiver() {
+        runTest("compiler/testData/diagnostics/tests/typeParameters/dnnAsPropertyReceiver.kt");
       }
 
       @Test

@@ -493,7 +493,10 @@ class FirCallCompletionResultsWriterTransformer(
                     val key = (element as? FirAnonymousFunctionExpression)?.anonymousFunction ?: element
                     expectedArgumentsTypeMapping?.samConversions?.get(key)?.let { samInfo ->
                         @Suppress("UNCHECKED_CAST")
-                        return transformed.wrapInSamExpression(samInfo.samType) as E
+                        return transformed.wrapInSamExpression(
+                            expectedArgumentType = samInfo.samType,
+                            usesFunctionKindConversion = key in expectedArgumentsTypeMapping.argumentsWithFunctionKindConversion
+                        ) as E
                     }
                 }
 
@@ -522,7 +525,10 @@ class FirCallCompletionResultsWriterTransformer(
         argumentList.transformArguments(ArgumentTransformer(), null)
     }
 
-    private fun FirExpression.wrapInSamExpression(expectedArgumentType: ConeKotlinType): FirExpression {
+    private fun FirExpression.wrapInSamExpression(
+        expectedArgumentType: ConeKotlinType,
+        usesFunctionKindConversion: Boolean,
+    ): FirExpression {
         return buildSamConversionExpression {
             expression = this@wrapInSamExpression
             coneTypeOrNull = expectedArgumentType.withNullabilityOf(resolvedType, session.typeContext)
@@ -532,6 +538,7 @@ class FirCallCompletionResultsWriterTransformer(
                         TypeApproximatorConfiguration.TypeArgumentApproximationAfterCompletionInK2
                     ) ?: it
                 }
+            this.usesFunctionKindConversion = usesFunctionKindConversion
             source = this@wrapInSamExpression.source?.fakeElement(KtFakeSourceElementKind.SamConversion)
         }
     }
@@ -779,9 +786,9 @@ class FirCallCompletionResultsWriterTransformer(
 
             argument.unwrapAndFlattenArgument(flattenArrays = false).map {
                 val element: FirElement = (it as? FirAnonymousFunctionExpression)?.anonymousFunction ?: it
-                functionTypesOfSamConversions?.get(it)?.let { samInfo ->
+                samConversionInfosOfArguments?.get(it)?.let { samInfo ->
                     if (samConversions == null) samConversions = mutableMapOf()
-                    samConversions!![element] = FirSamResolver.SamConversionInfo(
+                    samConversions[element] = FirSamResolver.SamConversionInfo(
                         functionalType = samInfo.functionalType.substituteType(this),
                         samType = samInfo.samType.substituteType(this)
                     )
@@ -791,7 +798,13 @@ class FirCallCompletionResultsWriterTransformer(
         }.toMap()
 
         if (lambdasReturnType.isEmpty() && arguments.isEmpty()) return null
-        return ExpectedArgumentType.ArgumentsMap(arguments, lambdasReturnType, samConversions ?: emptyMap(), forErrorReference)
+        return ExpectedArgumentType.ArgumentsMap(
+            map = arguments,
+            lambdasReturnTypes = lambdasReturnType,
+            samConversions = samConversions ?: emptyMap(),
+            argumentsWithFunctionKindConversion = argumentsWithFunctionKindConversion ?: emptySet(),
+            forErrorReference = forErrorReference
+        )
     }
 
     override fun transformDelegatedConstructorCall(
@@ -1262,6 +1275,7 @@ sealed class ExpectedArgumentType {
         val map: Map<FirElement, ConeKotlinType>,
         val lambdasReturnTypes: Map<FirAnonymousFunction, ConeKotlinType>,
         val samConversions: Map<FirElement, FirSamResolver.SamConversionInfo>,
+        val argumentsWithFunctionKindConversion: Set<FirExpression>,
         val forErrorReference: Boolean
     ) : ExpectedArgumentType()
 

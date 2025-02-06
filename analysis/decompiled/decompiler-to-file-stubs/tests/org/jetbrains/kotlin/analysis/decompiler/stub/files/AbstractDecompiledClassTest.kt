@@ -137,7 +137,7 @@ internal data class TestData(
         }
         if (useK2) {
             if (IdenticalCheckerHelper.firAndClassicContentsAreEquals(expectedFile.toFile())) {
-                IdenticalCheckerHelper.deleteFirFileToCompareAndAssertIfExists(expectedFile.toFile())
+                IdenticalCheckerHelper.deleteFirFileToCompareAndAssertIfExists(expectedFile.toFile(), suppressAssertion = true)
                 IdenticalCheckerHelper.addDirectiveToClassicFileAndAssert(mainKotlinFile.toFile())
             }
         }
@@ -152,7 +152,7 @@ internal data class TestData(
             val jvmFileName = InTextDirectivesUtils.findStringWithPrefixes(fileText, "JVM_FILE_NAME:") ?: directory.name
             val additionalCompilerOptions = InTextDirectivesUtils.findListWithPrefixes(fileText, "// LANGUAGE: ")
                 .map { "-XXLanguage:$it" } + InTextDirectivesUtils.findListWithPrefixes(fileText, "// JVM_DEFAULT: ")
-                .map { "-Xjvm-default=$it" }
+                .map { "-jvm-default=$it" }
             return TestData(
                 directory = directory,
                 mainKotlinFile = mainKotlinFile,

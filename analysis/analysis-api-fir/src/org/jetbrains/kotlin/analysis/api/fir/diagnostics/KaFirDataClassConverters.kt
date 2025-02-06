@@ -495,6 +495,14 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
             token,
         )
     }
+    add(FirErrors.MISSING_DEPENDENCY_SUPERCLASS_WARNING) { firDiagnostic ->
+        MissingDependencySuperclassWarningImpl(
+            firSymbolBuilder.typeBuilder.buildKtType(firDiagnostic.a),
+            firSymbolBuilder.typeBuilder.buildKtType(firDiagnostic.b),
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
     add(FirErrors.MISSING_DEPENDENCY_SUPERCLASS_IN_TYPE_ARGUMENT) { firDiagnostic ->
         MissingDependencySuperclassInTypeArgumentImpl(
             firSymbolBuilder.typeBuilder.buildKtType(firDiagnostic.a),
@@ -5997,6 +6005,18 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
     }
     add(FirJvmErrors.JVM_SERIALIZABLE_LAMBDA_ON_INLINED_FUNCTION_LITERALS.warningFactory) { firDiagnostic ->
         JvmSerializableLambdaOnInlinedFunctionLiteralsWarningImpl(
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
+    add(FirJvmErrors.INCOMPATIBLE_ANNOTATION_TARGETS) { firDiagnostic ->
+        IncompatibleAnnotationTargetsImpl(
+            firDiagnostic.a.map { string ->
+                string
+            },
+            firDiagnostic.b.map { string ->
+                string
+            },
             firDiagnostic as KtPsiDiagnostic,
             token,
         )

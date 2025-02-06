@@ -851,8 +851,10 @@ tasks {
         dependsOn(":tools:binary-compatibility-validator:check")
         dependsOn(":native:objcexport-header-generator:check")
         dependsOn(":native:swift:swift-export-standalone:test")
+        dependsOn(":native:swift:swift-export-embeddable:testSwiftExportStandaloneWithEmbeddable")
         dependsOn(":native:swift:swift-export-ide:test")
         dependsOn(":native:native.tests:litmus-tests:check")
+        dependsOn(":native:swift:sir-light-classes:check")
     }
 
     // These are unit tests of Native compiler

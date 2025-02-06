@@ -644,6 +644,7 @@ KtCallExpression(805,808): 'A()'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -661,6 +662,7 @@ KtNameReferenceExpression(805,806): 'A'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -684,6 +686,7 @@ KtCallExpression(821,838): 'SimpleOperators()'
           returnType = SimpleOperators
           symbol = <constructor>(): SimpleOperators
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -701,6 +704,7 @@ KtNameReferenceExpression(821,836): 'SimpleOperators'
           returnType = SimpleOperators
           symbol = <constructor>(): SimpleOperators
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -717,6 +721,7 @@ KtCallExpression(843,1229): 'with(A()){'
           receiverType = null
           returnType = A
           symbol = receiver: T
+          contextParameters = []
           callableId = null),
         {
                 var thisProp = this
@@ -734,7 +739,7 @@ KtCallExpression(843,1229): 'with(A()){'
                 a += 1
                 thisProp++
                 a = a++
-
+        
                 b + 1
                 +b
                 b[1]
@@ -747,6 +752,7 @@ KtCallExpression(843,1229): 'with(A()){'
           receiverType = null
           returnType = @ExtensionFunctionType kotlin.Function1<A, SimpleOperators>
           symbol = block: @ExtensionFunctionType kotlin.Function1<T, R>
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -763,14 +769,17 @@ KtCallExpression(843,1229): 'with(A()){'
               receiverType = null
               returnType = A
               symbol = receiver: T
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = block
               receiverType = null
               returnType = @ExtensionFunctionType kotlin.Function1<A, SimpleOperators>
               symbol = block: @ExtensionFunctionType kotlin.Function1<T, R>
+              contextParameters = []
               callableId = null
           ]
+          contextParameters = []
           callableId = kotlin/with
       typeArgumentsMapping = {
         T -> (A),
@@ -787,6 +796,7 @@ KtNameReferenceExpression(843,847): 'with'
           receiverType = null
           returnType = A
           symbol = receiver: T
+          contextParameters = []
           callableId = null),
         {
                 var thisProp = this
@@ -804,7 +814,7 @@ KtNameReferenceExpression(843,847): 'with'
                 a += 1
                 thisProp++
                 a = a++
-
+        
                 b + 1
                 +b
                 b[1]
@@ -817,6 +827,7 @@ KtNameReferenceExpression(843,847): 'with'
           receiverType = null
           returnType = @ExtensionFunctionType kotlin.Function1<A, SimpleOperators>
           symbol = block: @ExtensionFunctionType kotlin.Function1<T, R>
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -833,14 +844,17 @@ KtNameReferenceExpression(843,847): 'with'
               receiverType = null
               returnType = A
               symbol = receiver: T
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = block
               receiverType = null
               returnType = @ExtensionFunctionType kotlin.Function1<A, SimpleOperators>
               symbol = block: @ExtensionFunctionType kotlin.Function1<T, R>
+              contextParameters = []
               callableId = null
           ]
+          contextParameters = []
           callableId = kotlin/with
       typeArgumentsMapping = {
         T -> (A),
@@ -867,6 +881,7 @@ KtCallExpression(848,851): 'A()'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -884,6 +899,7 @@ KtNameReferenceExpression(848,849): 'A'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -928,6 +944,15 @@ KtPrefixExpression(890,899): '+thisProp'
           returnType = kotlin.Unit
           symbol = /unaryPlus(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /unaryPlus
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -948,6 +973,15 @@ KtOperationReferenceExpression(890,891): '+'
           returnType = kotlin.Unit
           symbol = /unaryPlus(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /unaryPlus
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -963,6 +997,7 @@ KtNameReferenceExpression(891,899): 'thisProp'
           receiverType = null
           returnType = A
           symbol = var thisProp: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -984,6 +1019,15 @@ KtPrefixExpression(908,910): '+a'
           returnType = kotlin.Unit
           symbol = /unaryPlus(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /unaryPlus
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -1004,6 +1048,15 @@ KtOperationReferenceExpression(908,909): '+'
           returnType = kotlin.Unit
           symbol = /unaryPlus(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /unaryPlus
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -1019,6 +1072,7 @@ KtNameReferenceExpression(909,910): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -1033,6 +1087,7 @@ KtBinaryExpression(919,931): 'thisProp + 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1052,6 +1107,16 @@ KtBinaryExpression(919,931): 'thisProp + 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plus
@@ -1069,6 +1134,7 @@ KtNameReferenceExpression(919,927): 'thisProp'
           receiverType = null
           returnType = A
           symbol = var thisProp: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -1083,6 +1149,7 @@ KtOperationReferenceExpression(928,929): '+'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1102,6 +1169,16 @@ KtOperationReferenceExpression(928,929): '+'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plus
@@ -1120,6 +1197,7 @@ KtBinaryExpression(940,945): 'a + 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1139,6 +1217,16 @@ KtBinaryExpression(940,945): 'a + 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plus
@@ -1156,6 +1244,7 @@ KtNameReferenceExpression(940,941): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -1170,6 +1259,7 @@ KtOperationReferenceExpression(942,943): '+'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1189,6 +1279,16 @@ KtOperationReferenceExpression(942,943): '+'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plus
@@ -1207,6 +1307,7 @@ KtArrayAccessExpression(954,965): 'thisProp[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1226,6 +1327,16 @@ KtArrayAccessExpression(954,965): 'thisProp[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /get
@@ -1243,6 +1354,7 @@ KtNameReferenceExpression(954,962): 'thisProp'
           receiverType = null
           returnType = A
           symbol = var thisProp: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -1263,6 +1375,7 @@ KtArrayAccessExpression(974,978): 'a[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1282,6 +1395,16 @@ KtArrayAccessExpression(974,978): 'a[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /get
@@ -1299,6 +1422,7 @@ KtNameReferenceExpression(974,975): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -1319,12 +1443,14 @@ KtBinaryExpression(987,1004): 'thisProp[1] = A()'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1344,12 +1470,23 @@ KtBinaryExpression(987,1004): 'thisProp[1] = A()'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -1365,12 +1502,14 @@ KtArrayAccessExpression(987,998): 'thisProp[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1390,12 +1529,23 @@ KtArrayAccessExpression(987,998): 'thisProp[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -1413,6 +1563,7 @@ KtNameReferenceExpression(987,995): 'thisProp'
           receiverType = null
           returnType = A
           symbol = var thisProp: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -1433,12 +1584,14 @@ KtOperationReferenceExpression(999,1000): '='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1458,12 +1611,23 @@ KtOperationReferenceExpression(999,1000): '='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -1483,6 +1647,7 @@ KtCallExpression(1001,1004): 'A()'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -1500,6 +1665,7 @@ KtNameReferenceExpression(1001,1002): 'A'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -1516,12 +1682,14 @@ KtBinaryExpression(1013,1023): 'a[1] = A()'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1541,12 +1709,23 @@ KtBinaryExpression(1013,1023): 'a[1] = A()'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -1562,12 +1741,14 @@ KtArrayAccessExpression(1013,1017): 'a[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1587,12 +1768,23 @@ KtArrayAccessExpression(1013,1017): 'a[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -1610,6 +1802,7 @@ KtNameReferenceExpression(1013,1014): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -1630,12 +1823,14 @@ KtOperationReferenceExpression(1018,1019): '='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1655,12 +1850,23 @@ KtOperationReferenceExpression(1018,1019): '='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -1680,6 +1886,7 @@ KtCallExpression(1020,1023): 'A()'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -1697,6 +1904,7 @@ KtNameReferenceExpression(1020,1021): 'A'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -1720,6 +1928,15 @@ KtCallExpression(1032,1042): 'thisProp()'
           returnType = kotlin.Unit
           symbol = /invoke(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /invoke
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -1735,6 +1952,7 @@ KtNameReferenceExpression(1032,1040): 'thisProp'
           receiverType = null
           returnType = A
           symbol = var thisProp: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -1759,6 +1977,15 @@ KtCallExpression(1051,1054): 'a()'
           returnType = kotlin.Unit
           symbol = /invoke(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /invoke
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -1774,6 +2001,7 @@ KtNameReferenceExpression(1051,1052): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -1791,6 +2019,7 @@ KtBinaryExpression(1063,1076): 'thisProp += 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1810,6 +2039,16 @@ KtBinaryExpression(1063,1076): 'thisProp += 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plusAssign
@@ -1827,6 +2066,7 @@ KtNameReferenceExpression(1063,1071): 'thisProp'
           receiverType = null
           returnType = A
           symbol = var thisProp: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -1841,6 +2081,7 @@ KtOperationReferenceExpression(1072,1074): '+='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1860,6 +2101,16 @@ KtOperationReferenceExpression(1072,1074): '+='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plusAssign
@@ -1878,6 +2129,7 @@ KtBinaryExpression(1085,1091): 'a += 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1897,6 +2149,16 @@ KtBinaryExpression(1085,1091): 'a += 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plusAssign
@@ -1914,6 +2176,7 @@ KtNameReferenceExpression(1085,1086): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -1928,6 +2191,7 @@ KtOperationReferenceExpression(1087,1089): '+='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -1947,6 +2211,16 @@ KtOperationReferenceExpression(1087,1089): '+='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plusAssign
@@ -1972,6 +2246,15 @@ KtPostfixExpression(1100,1110): 'thisProp++'
             returnType = A
             symbol = /inc(<extension receiver>: A): A
             valueParameters = []
+            contextParameters = [
+              KaVariableSignature:
+                name = a
+                receiverType = null
+                returnType = A
+                symbol = a: A
+                contextParameters = []
+                callableId = null
+            ]
             callableId = /inc
         precedence = POSTFIX
       variablePartiallyAppliedSymbol = KaPartiallyAppliedSymbol:
@@ -1982,6 +2265,7 @@ KtPostfixExpression(1100,1110): 'thisProp++'
           receiverType = null
           returnType = A
           symbol = var thisProp: A
+          contextParameters = []
           callableId = null
     isInBestCandidates = true
 
@@ -1996,6 +2280,7 @@ KtNameReferenceExpression(1100,1108): 'thisProp'
           receiverType = null
           returnType = A
           symbol = var thisProp: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -2017,6 +2302,15 @@ KtOperationReferenceExpression(1108,1110): '++'
             returnType = A
             symbol = /inc(<extension receiver>: A): A
             valueParameters = []
+            contextParameters = [
+              KaVariableSignature:
+                name = a
+                receiverType = null
+                returnType = A
+                symbol = a: A
+                contextParameters = []
+                callableId = null
+            ]
             callableId = /inc
         precedence = POSTFIX
       variablePartiallyAppliedSymbol = KaPartiallyAppliedSymbol:
@@ -2027,6 +2321,7 @@ KtOperationReferenceExpression(1108,1110): '++'
           receiverType = null
           returnType = A
           symbol = var thisProp: A
+          contextParameters = []
           callableId = null
     isInBestCandidates = true
 
@@ -2041,6 +2336,7 @@ KtBinaryExpression(1119,1126): 'a = a++'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Write:
         value = a++
@@ -2058,6 +2354,7 @@ KtNameReferenceExpression(1119,1120): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Write:
         value = a++
@@ -2075,6 +2372,7 @@ KtOperationReferenceExpression(1121,1122): '='
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Write:
         value = a++
@@ -2097,6 +2395,15 @@ KtPostfixExpression(1123,1126): 'a++'
             returnType = A
             symbol = /inc(<extension receiver>: A): A
             valueParameters = []
+            contextParameters = [
+              KaVariableSignature:
+                name = a
+                receiverType = null
+                returnType = A
+                symbol = a: A
+                contextParameters = []
+                callableId = null
+            ]
             callableId = /inc
         precedence = POSTFIX
       variablePartiallyAppliedSymbol = KaPartiallyAppliedSymbol:
@@ -2107,6 +2414,7 @@ KtPostfixExpression(1123,1126): 'a++'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
     isInBestCandidates = true
 
@@ -2121,6 +2429,7 @@ KtNameReferenceExpression(1123,1124): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -2142,6 +2451,15 @@ KtOperationReferenceExpression(1124,1126): '++'
             returnType = A
             symbol = /inc(<extension receiver>: A): A
             valueParameters = []
+            contextParameters = [
+              KaVariableSignature:
+                name = a
+                receiverType = null
+                returnType = A
+                symbol = a: A
+                contextParameters = []
+                callableId = null
+            ]
             callableId = /inc
         precedence = POSTFIX
       variablePartiallyAppliedSymbol = KaPartiallyAppliedSymbol:
@@ -2152,6 +2470,7 @@ KtOperationReferenceExpression(1124,1126): '++'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
     isInBestCandidates = true
 
@@ -2164,6 +2483,7 @@ KtBinaryExpression(1136,1141): 'b + 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2183,6 +2503,16 @@ KtBinaryExpression(1136,1141): 'b + 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.plus
@@ -2197,6 +2527,7 @@ KtBinaryExpression(1136,1141): 'b + 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2216,6 +2547,16 @@ KtBinaryExpression(1136,1141): 'b + 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plus
@@ -2235,6 +2576,7 @@ KtNameReferenceExpression(1136,1137): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -2249,6 +2591,7 @@ KtOperationReferenceExpression(1138,1139): '+'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2268,6 +2611,16 @@ KtOperationReferenceExpression(1138,1139): '+'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.plus
@@ -2282,6 +2635,7 @@ KtOperationReferenceExpression(1138,1139): '+'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2301,6 +2655,16 @@ KtOperationReferenceExpression(1138,1139): '+'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plus
@@ -2328,6 +2692,15 @@ KtPrefixExpression(1150,1152): '+b'
           returnType = kotlin.Unit
           symbol = /SimpleOperators.unaryPlus(<dispatch receiver>: SimpleOperators): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /SimpleOperators.unaryPlus
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -2347,6 +2720,15 @@ KtPrefixExpression(1150,1152): '+b'
           returnType = kotlin.Unit
           symbol = /unaryPlus(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /unaryPlus
       typeArgumentsMapping = {}
     diagnostic = ERROR<UNRESOLVED_REFERENCE_WRONG_RECEIVER: Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
@@ -2369,6 +2751,15 @@ KtOperationReferenceExpression(1150,1151): '+'
           returnType = kotlin.Unit
           symbol = /SimpleOperators.unaryPlus(<dispatch receiver>: SimpleOperators): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /SimpleOperators.unaryPlus
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -2388,6 +2779,15 @@ KtOperationReferenceExpression(1150,1151): '+'
           returnType = kotlin.Unit
           symbol = /unaryPlus(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /unaryPlus
       typeArgumentsMapping = {}
     diagnostic = ERROR<UNRESOLVED_REFERENCE_WRONG_RECEIVER: Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
@@ -2405,6 +2805,7 @@ KtNameReferenceExpression(1151,1152): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -2419,6 +2820,7 @@ KtArrayAccessExpression(1161,1165): 'b[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2438,6 +2840,16 @@ KtArrayAccessExpression(1161,1165): 'b[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.get
@@ -2452,6 +2864,7 @@ KtArrayAccessExpression(1161,1165): 'b[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2471,6 +2884,16 @@ KtArrayAccessExpression(1161,1165): 'b[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /get
@@ -2490,6 +2913,7 @@ KtNameReferenceExpression(1161,1162): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -2510,12 +2934,14 @@ KtBinaryExpression(1174,1184): 'b[1] = A()'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2535,12 +2961,23 @@ KtBinaryExpression(1174,1184): 'b[1] = A()'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.set
@@ -2555,12 +2992,14 @@ KtBinaryExpression(1174,1184): 'b[1] = A()'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2580,12 +3019,23 @@ KtBinaryExpression(1174,1184): 'b[1] = A()'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -2603,12 +3053,14 @@ KtArrayAccessExpression(1174,1178): 'b[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2628,12 +3080,23 @@ KtArrayAccessExpression(1174,1178): 'b[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.set
@@ -2648,12 +3111,14 @@ KtArrayAccessExpression(1174,1178): 'b[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2673,12 +3138,23 @@ KtArrayAccessExpression(1174,1178): 'b[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -2698,6 +3174,7 @@ KtNameReferenceExpression(1174,1175): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -2718,12 +3195,14 @@ KtOperationReferenceExpression(1179,1180): '='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2743,12 +3222,23 @@ KtOperationReferenceExpression(1179,1180): '='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.set
@@ -2763,12 +3253,14 @@ KtOperationReferenceExpression(1179,1180): '='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2788,12 +3280,23 @@ KtOperationReferenceExpression(1179,1180): '='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -2815,6 +3318,7 @@ KtCallExpression(1181,1184): 'A()'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -2832,6 +3336,7 @@ KtNameReferenceExpression(1181,1182): 'A'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -2855,6 +3360,15 @@ KtCallExpression(1193,1196): 'b()'
           returnType = kotlin.Unit
           symbol = /SimpleOperators.invoke(<dispatch receiver>: SimpleOperators): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /SimpleOperators.invoke
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -2874,6 +3388,15 @@ KtCallExpression(1193,1196): 'b()'
           returnType = kotlin.Unit
           symbol = /invoke(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /invoke
       typeArgumentsMapping = {}
     diagnostic = ERROR<UNRESOLVED_REFERENCE_WRONG_RECEIVER: Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
@@ -2891,6 +3414,7 @@ KtNameReferenceExpression(1193,1194): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -2908,6 +3432,7 @@ KtBinaryExpression(1205,1211): 'b += 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2927,6 +3452,16 @@ KtBinaryExpression(1205,1211): 'b += 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.plusAssign
@@ -2941,6 +3476,7 @@ KtBinaryExpression(1205,1211): 'b += 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -2960,6 +3496,16 @@ KtBinaryExpression(1205,1211): 'b += 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plusAssign
@@ -2979,6 +3525,7 @@ KtNameReferenceExpression(1205,1206): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -2993,6 +3540,7 @@ KtOperationReferenceExpression(1207,1209): '+='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3012,6 +3560,16 @@ KtOperationReferenceExpression(1207,1209): '+='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.plusAssign
@@ -3026,6 +3584,7 @@ KtOperationReferenceExpression(1207,1209): '+='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3045,6 +3604,16 @@ KtOperationReferenceExpression(1207,1209): '+='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plusAssign
@@ -3072,6 +3641,15 @@ KtPostfixExpression(1220,1223): 'b++'
             returnType = SimpleOperators
             symbol = /SimpleOperators.inc(<dispatch receiver>: SimpleOperators): SimpleOperators
             valueParameters = []
+            contextParameters = [
+              KaVariableSignature:
+                name = a
+                receiverType = null
+                returnType = A
+                symbol = a: A
+                contextParameters = []
+                callableId = null
+            ]
             callableId = /SimpleOperators.inc
         precedence = POSTFIX
       variablePartiallyAppliedSymbol = KaPartiallyAppliedSymbol:
@@ -3082,6 +3660,7 @@ KtPostfixExpression(1220,1223): 'b++'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
     isInBestCandidates = true
 
@@ -3096,6 +3675,7 @@ KtNameReferenceExpression(1220,1221): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -3117,6 +3697,15 @@ KtOperationReferenceExpression(1221,1223): '++'
             returnType = SimpleOperators
             symbol = /SimpleOperators.inc(<dispatch receiver>: SimpleOperators): SimpleOperators
             valueParameters = []
+            contextParameters = [
+              KaVariableSignature:
+                name = a
+                receiverType = null
+                returnType = A
+                symbol = a: A
+                contextParameters = []
+                callableId = null
+            ]
             callableId = /SimpleOperators.inc
         precedence = POSTFIX
       variablePartiallyAppliedSymbol = KaPartiallyAppliedSymbol:
@@ -3127,6 +3716,7 @@ KtOperationReferenceExpression(1221,1223): '++'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
     isInBestCandidates = true
 
@@ -3155,6 +3745,7 @@ KtCallExpression(1268,1271): 'A()'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -3172,6 +3763,7 @@ KtNameReferenceExpression(1268,1269): 'A'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -3195,6 +3787,7 @@ KtCallExpression(1284,1301): 'SimpleOperators()'
           returnType = SimpleOperators
           symbol = <constructor>(): SimpleOperators
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -3212,6 +3805,7 @@ KtNameReferenceExpression(1284,1299): 'SimpleOperators'
           returnType = SimpleOperators
           symbol = <constructor>(): SimpleOperators
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -3235,6 +3829,15 @@ KtPrefixExpression(1307,1309): '+a'
           returnType = kotlin.Unit
           symbol = /unaryPlus(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /unaryPlus
       typeArgumentsMapping = {}
     diagnostic = ERROR<NO_CONTEXT_ARGUMENT: No context argument for 'A' found.>
@@ -3256,6 +3859,15 @@ KtOperationReferenceExpression(1307,1308): '+'
           returnType = kotlin.Unit
           symbol = /unaryPlus(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /unaryPlus
       typeArgumentsMapping = {}
     diagnostic = ERROR<NO_CONTEXT_ARGUMENT: No context argument for 'A' found.>
@@ -3272,6 +3884,7 @@ KtNameReferenceExpression(1308,1309): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -3286,6 +3899,7 @@ KtBinaryExpression(1314,1319): 'a + 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3305,6 +3919,16 @@ KtBinaryExpression(1314,1319): 'a + 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plus
@@ -3323,6 +3947,7 @@ KtNameReferenceExpression(1314,1315): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -3337,6 +3962,7 @@ KtOperationReferenceExpression(1316,1317): '+'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3356,6 +3982,16 @@ KtOperationReferenceExpression(1316,1317): '+'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plus
@@ -3375,6 +4011,7 @@ KtArrayAccessExpression(1324,1328): 'a[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3394,6 +4031,16 @@ KtArrayAccessExpression(1324,1328): 'a[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /get
@@ -3412,6 +4059,7 @@ KtNameReferenceExpression(1324,1325): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -3432,12 +4080,14 @@ KtBinaryExpression(1333,1343): 'a[1] = A()'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3457,12 +4107,23 @@ KtBinaryExpression(1333,1343): 'a[1] = A()'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -3479,12 +4140,14 @@ KtArrayAccessExpression(1333,1337): 'a[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3504,12 +4167,23 @@ KtArrayAccessExpression(1333,1337): 'a[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -3528,6 +4202,7 @@ KtNameReferenceExpression(1333,1334): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -3548,12 +4223,14 @@ KtOperationReferenceExpression(1338,1339): '='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3573,12 +4250,23 @@ KtOperationReferenceExpression(1338,1339): '='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -3599,6 +4287,7 @@ KtCallExpression(1340,1343): 'A()'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -3616,6 +4305,7 @@ KtNameReferenceExpression(1340,1341): 'A'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -3639,6 +4329,15 @@ KtCallExpression(1348,1351): 'a()'
           returnType = kotlin.Unit
           symbol = /invoke(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /invoke
       typeArgumentsMapping = {}
     diagnostic = ERROR<NO_CONTEXT_ARGUMENT: No context argument for 'A' found.>
@@ -3655,6 +4354,7 @@ KtNameReferenceExpression(1348,1349): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -3672,6 +4372,7 @@ KtBinaryExpression(1356,1362): 'a += 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3691,6 +4392,16 @@ KtBinaryExpression(1356,1362): 'a += 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plusAssign
@@ -3709,6 +4420,7 @@ KtNameReferenceExpression(1356,1357): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -3723,6 +4435,7 @@ KtOperationReferenceExpression(1358,1360): '+='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3742,6 +4455,16 @@ KtOperationReferenceExpression(1358,1360): '+='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plusAssign
@@ -3768,6 +4491,15 @@ KtPostfixExpression(1367,1370): 'a++'
             returnType = A
             symbol = /inc(<extension receiver>: A): A
             valueParameters = []
+            contextParameters = [
+              KaVariableSignature:
+                name = a
+                receiverType = null
+                returnType = A
+                symbol = a: A
+                contextParameters = []
+                callableId = null
+            ]
             callableId = /inc
         precedence = POSTFIX
       variablePartiallyAppliedSymbol = KaPartiallyAppliedSymbol:
@@ -3778,6 +4510,7 @@ KtPostfixExpression(1367,1370): 'a++'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
     isInBestCandidates = true
 
@@ -3792,6 +4525,7 @@ KtNameReferenceExpression(1367,1368): 'a'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -3813,6 +4547,15 @@ KtOperationReferenceExpression(1368,1370): '++'
             returnType = A
             symbol = /inc(<extension receiver>: A): A
             valueParameters = []
+            contextParameters = [
+              KaVariableSignature:
+                name = a
+                receiverType = null
+                returnType = A
+                symbol = a: A
+                contextParameters = []
+                callableId = null
+            ]
             callableId = /inc
         precedence = POSTFIX
       variablePartiallyAppliedSymbol = KaPartiallyAppliedSymbol:
@@ -3823,6 +4566,7 @@ KtOperationReferenceExpression(1368,1370): '++'
           receiverType = null
           returnType = A
           symbol = var a: A
+          contextParameters = []
           callableId = null
     isInBestCandidates = true
 
@@ -3835,6 +4579,7 @@ KtBinaryExpression(1376,1381): 'b + 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3854,6 +4599,16 @@ KtBinaryExpression(1376,1381): 'b + 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.plus
@@ -3869,6 +4624,7 @@ KtBinaryExpression(1376,1381): 'b + 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3888,6 +4644,16 @@ KtBinaryExpression(1376,1381): 'b + 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plus
@@ -3907,6 +4673,7 @@ KtNameReferenceExpression(1376,1377): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -3921,6 +4688,7 @@ KtOperationReferenceExpression(1378,1379): '+'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3940,6 +4708,16 @@ KtOperationReferenceExpression(1378,1379): '+'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.plus
@@ -3955,6 +4733,7 @@ KtOperationReferenceExpression(1378,1379): '+'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -3974,6 +4753,16 @@ KtOperationReferenceExpression(1378,1379): '+'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plus
@@ -4001,6 +4790,15 @@ KtPrefixExpression(1386,1388): '+b'
           returnType = kotlin.Unit
           symbol = /SimpleOperators.unaryPlus(<dispatch receiver>: SimpleOperators): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /SimpleOperators.unaryPlus
       typeArgumentsMapping = {}
     diagnostic = ERROR<NO_CONTEXT_ARGUMENT: No context argument for 'A' found.>
@@ -4021,6 +4819,15 @@ KtPrefixExpression(1386,1388): '+b'
           returnType = kotlin.Unit
           symbol = /unaryPlus(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /unaryPlus
       typeArgumentsMapping = {}
     diagnostic = ERROR<UNRESOLVED_REFERENCE_WRONG_RECEIVER: Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
@@ -4043,6 +4850,15 @@ KtOperationReferenceExpression(1386,1387): '+'
           returnType = kotlin.Unit
           symbol = /SimpleOperators.unaryPlus(<dispatch receiver>: SimpleOperators): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /SimpleOperators.unaryPlus
       typeArgumentsMapping = {}
     diagnostic = ERROR<NO_CONTEXT_ARGUMENT: No context argument for 'A' found.>
@@ -4063,6 +4879,15 @@ KtOperationReferenceExpression(1386,1387): '+'
           returnType = kotlin.Unit
           symbol = /unaryPlus(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /unaryPlus
       typeArgumentsMapping = {}
     diagnostic = ERROR<UNRESOLVED_REFERENCE_WRONG_RECEIVER: Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
@@ -4080,6 +4905,7 @@ KtNameReferenceExpression(1387,1388): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -4094,6 +4920,7 @@ KtArrayAccessExpression(1393,1397): 'b[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -4113,6 +4940,16 @@ KtArrayAccessExpression(1393,1397): 'b[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.get
@@ -4128,6 +4965,7 @@ KtArrayAccessExpression(1393,1397): 'b[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -4147,6 +4985,16 @@ KtArrayAccessExpression(1393,1397): 'b[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /get
@@ -4166,6 +5014,7 @@ KtNameReferenceExpression(1393,1394): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -4186,12 +5035,14 @@ KtBinaryExpression(1402,1412): 'b[1] = A()'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -4211,12 +5062,23 @@ KtBinaryExpression(1402,1412): 'b[1] = A()'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.set
@@ -4232,12 +5094,14 @@ KtBinaryExpression(1402,1412): 'b[1] = A()'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -4257,12 +5121,23 @@ KtBinaryExpression(1402,1412): 'b[1] = A()'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -4280,12 +5155,14 @@ KtArrayAccessExpression(1402,1406): 'b[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -4305,12 +5182,23 @@ KtArrayAccessExpression(1402,1406): 'b[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.set
@@ -4326,12 +5214,14 @@ KtArrayAccessExpression(1402,1406): 'b[1]'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -4351,12 +5241,23 @@ KtArrayAccessExpression(1402,1406): 'b[1]'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -4376,6 +5277,7 @@ KtNameReferenceExpression(1402,1403): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -4396,12 +5298,14 @@ KtOperationReferenceExpression(1407,1408): '='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -4421,12 +5325,23 @@ KtOperationReferenceExpression(1407,1408): '='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.set
@@ -4442,12 +5357,14 @@ KtOperationReferenceExpression(1407,1408): '='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null),
         A() -> (KaVariableSignature:
           name = x
           receiverType = null
           returnType = A
           symbol = x: A
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -4467,12 +5384,23 @@ KtOperationReferenceExpression(1407,1408): '='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
               callableId = null,
             KaVariableSignature:
               name = x
               receiverType = null
               returnType = A
               symbol = x: A
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /set
@@ -4494,6 +5422,7 @@ KtCallExpression(1409,1412): 'A()'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -4511,6 +5440,7 @@ KtNameReferenceExpression(1409,1410): 'A'
           returnType = A
           symbol = <constructor>(): A
           valueParameters = []
+          contextParameters = []
           callableId = null
       typeArgumentsMapping = {}
     isInBestCandidates = true
@@ -4534,6 +5464,15 @@ KtCallExpression(1417,1420): 'b()'
           returnType = kotlin.Unit
           symbol = /SimpleOperators.invoke(<dispatch receiver>: SimpleOperators): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /SimpleOperators.invoke
       typeArgumentsMapping = {}
     diagnostic = ERROR<NO_CONTEXT_ARGUMENT: No context argument for 'A' found.>
@@ -4554,6 +5493,15 @@ KtCallExpression(1417,1420): 'b()'
           returnType = kotlin.Unit
           symbol = /invoke(<extension receiver>: A): kotlin.Unit
           valueParameters = []
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
+              callableId = null
+          ]
           callableId = /invoke
       typeArgumentsMapping = {}
     diagnostic = ERROR<UNRESOLVED_REFERENCE_WRONG_RECEIVER: Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
@@ -4571,6 +5519,7 @@ KtNameReferenceExpression(1417,1418): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -4588,6 +5537,7 @@ KtBinaryExpression(1425,1431): 'b += 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -4607,6 +5557,16 @@ KtBinaryExpression(1425,1431): 'b += 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.plusAssign
@@ -4622,6 +5582,7 @@ KtBinaryExpression(1425,1431): 'b += 1'
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -4641,6 +5602,16 @@ KtBinaryExpression(1425,1431): 'b += 1'
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plusAssign
@@ -4660,6 +5631,7 @@ KtNameReferenceExpression(1425,1426): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -4674,6 +5646,7 @@ KtOperationReferenceExpression(1427,1429): '+='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -4693,6 +5666,16 @@ KtOperationReferenceExpression(1427,1429): '+='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /SimpleOperators.plusAssign
@@ -4708,6 +5691,7 @@ KtOperationReferenceExpression(1427,1429): '+='
           receiverType = null
           returnType = kotlin.Int
           symbol = b: kotlin.Int
+          contextParameters = []
           callableId = null)
       }
       isImplicitInvoke = false
@@ -4727,6 +5711,16 @@ KtOperationReferenceExpression(1427,1429): '+='
               receiverType = null
               returnType = kotlin.Int
               symbol = b: kotlin.Int
+              contextParameters = []
+              callableId = null
+          ]
+          contextParameters = [
+            KaVariableSignature:
+              name = a
+              receiverType = null
+              returnType = A
+              symbol = a: A
+              contextParameters = []
               callableId = null
           ]
           callableId = /plusAssign
@@ -4754,6 +5748,15 @@ KtPostfixExpression(1436,1439): 'b++'
             returnType = SimpleOperators
             symbol = /SimpleOperators.inc(<dispatch receiver>: SimpleOperators): SimpleOperators
             valueParameters = []
+            contextParameters = [
+              KaVariableSignature:
+                name = a
+                receiverType = null
+                returnType = A
+                symbol = a: A
+                contextParameters = []
+                callableId = null
+            ]
             callableId = /SimpleOperators.inc
         precedence = POSTFIX
       variablePartiallyAppliedSymbol = KaPartiallyAppliedSymbol:
@@ -4764,6 +5767,7 @@ KtPostfixExpression(1436,1439): 'b++'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
     isInBestCandidates = true
 
@@ -4778,6 +5782,7 @@ KtNameReferenceExpression(1436,1437): 'b'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
       simpleAccess = Read
       typeArgumentsMapping = {}
@@ -4799,6 +5804,15 @@ KtOperationReferenceExpression(1437,1439): '++'
             returnType = SimpleOperators
             symbol = /SimpleOperators.inc(<dispatch receiver>: SimpleOperators): SimpleOperators
             valueParameters = []
+            contextParameters = [
+              KaVariableSignature:
+                name = a
+                receiverType = null
+                returnType = A
+                symbol = a: A
+                contextParameters = []
+                callableId = null
+            ]
             callableId = /SimpleOperators.inc
         precedence = POSTFIX
       variablePartiallyAppliedSymbol = KaPartiallyAppliedSymbol:
@@ -4809,5 +5823,6 @@ KtOperationReferenceExpression(1437,1439): '++'
           receiverType = null
           returnType = SimpleOperators
           symbol = var b: SimpleOperators
+          contextParameters = []
           callableId = null
     isInBestCandidates = true

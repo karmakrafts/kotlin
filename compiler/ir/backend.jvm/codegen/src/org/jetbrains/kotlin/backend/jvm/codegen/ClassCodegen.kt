@@ -282,6 +282,7 @@ class ClassCodegen private constructor(
             facadeClassName != null -> KotlinClassHeader.Kind.MULTIFILE_CLASS_PART
             metadata is MetadataSource.Class -> KotlinClassHeader.Kind.CLASS
             metadata is MetadataSource.Script -> KotlinClassHeader.Kind.CLASS
+            metadata is MetadataSource.ReplSnippet -> KotlinClassHeader.Kind.CLASS
             metadata is MetadataSource.File -> KotlinClassHeader.Kind.FILE_FACADE
             metadata is MetadataSource.Function -> KotlinClassHeader.Kind.SYNTHETIC_CLASS
             entry is MultifileFacadeFileEntry -> KotlinClassHeader.Kind.MULTIFILE_CLASS
@@ -319,7 +320,9 @@ class ClassCodegen private constructor(
 
         writeKotlinMetadata(visitor, context.config, kind, isPublicAbi, extraFlags) { av ->
             if (metadata != null) {
-                metadataSerializer.serialize(metadata)?.let { (proto, stringTable) ->
+                val containingFile = irClass.file.metadata as? MetadataSource.File
+                    ?: error("Cannot serialize class metadata without containing file: ${irClass.render()}")
+                metadataSerializer.serialize(metadata, containingFile)?.let { (proto, stringTable) ->
                     DescriptorAsmUtil.writeAnnotationData(av, proto, stringTable)
                 }
             }

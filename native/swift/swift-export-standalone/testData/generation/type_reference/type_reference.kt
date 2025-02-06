@@ -101,6 +101,14 @@ var nullablePrim: Int? = null
 fun Int?.extensionOnNullablePrimitive(): Unit = TODO()
 fun Class_without_package?.extensionOnNullabeRef(): Unit = TODO()
 
+var Int?.extensionVarOnNullablePrimitive: String
+    get() = TODO()
+    set(v) = TODO()
+
+var Class_without_package?.extensionVarOnNullableRef: String
+    get() = TODO()
+    set(v) = TODO()
+
 // FILE: inheritance.kt
 
 open class OPEN_CLASS
@@ -120,13 +128,20 @@ data class DATA_CLASS(val a: Int)
 fun receive_DATA_CLASS(x: DATA_CLASS): Unit = TODO()
 fun produce_DATA_CLASS(): DATA_CLASS = TODO()
 
+// FILE: interface.kt
+
+interface INTERFACE
+
+fun receive_INTERFACE(x: INTERFACE): Unit = TODO()
+fun produce_INTERFACE(): INTERFACE = TODO()
+
+
 // FILE: ingored.kt
 package ignored
 
 import Class_without_package
 
 value class VALUE_CLASS(val a: Int)
-interface INTERFACE
 
 enum class ENUM {
     A,
@@ -134,9 +149,6 @@ enum class ENUM {
 
 fun receive_VALUE_CLASS(x: VALUE_CLASS): Unit = TODO()
 fun produce_VALUE_CLASS(): VALUE_CLASS = TODO()
-
-fun receive_INTERFACE(x: INTERFACE): Unit = TODO()
-fun produce_INTERFACE(): INTERFACE = TODO()
 
 fun receive_ENUM(x: ENUM): Unit = TODO()
 fun produce_ENUM(): ENUM = TODO()

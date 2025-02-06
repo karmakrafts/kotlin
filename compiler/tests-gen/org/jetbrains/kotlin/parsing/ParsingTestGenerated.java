@@ -1350,6 +1350,11 @@ public class ParsingTestGenerated extends AbstractParsingTest {
         KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/psi/contextParameters"), Pattern.compile("^(.*)\\.kts?$"), null, true);
       }
 
+      @TestMetadata("anonymousFunction.kt")
+      public void testAnonymousFunction() {
+        runTest("compiler/testData/psi/contextParameters/anonymousFunction.kt");
+      }
+
       @TestMetadata("functions.kt")
       public void testFunctions() {
         runTest("compiler/testData/psi/contextParameters/functions.kt");
@@ -1363,6 +1368,21 @@ public class ParsingTestGenerated extends AbstractParsingTest {
       @TestMetadata("properties.kt")
       public void testProperties() {
         runTest("compiler/testData/psi/contextParameters/properties.kt");
+      }
+
+      @TestMetadata("syntaxError.kt")
+      public void testSyntaxError() {
+        runTest("compiler/testData/psi/contextParameters/syntaxError.kt");
+      }
+
+      @TestMetadata("trailingComma.kt")
+      public void testTrailingComma() {
+        runTest("compiler/testData/psi/contextParameters/trailingComma.kt");
+      }
+
+      @TestMetadata("trailingCommaForbidden.kt")
+      public void testTrailingCommaForbidden() {
+        runTest("compiler/testData/psi/contextParameters/trailingCommaForbidden.kt");
       }
 
       @TestMetadata("unnamed.kt")

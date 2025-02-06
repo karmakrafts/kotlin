@@ -53,8 +53,6 @@ import kotlin.contracts.contract
 abstract class AbstractRawFirBuilder<T>(val baseSession: FirSession, val context: Context<T> = Context()) {
     val baseModuleData: FirModuleData = baseSession.moduleData
 
-    protected val contextParameterEnabled: Boolean = baseSession.languageVersionSettings.supportsFeature(LanguageFeature.ContextParameters)
-
     abstract fun T.toFirSourceElement(kind: KtFakeSourceElementKind? = null): KtSourceElement
 
     protected val implicitUnitType: FirImplicitBuiltinTypeRef = baseSession.builtinTypes.unitType
@@ -195,6 +193,19 @@ abstract class AbstractRawFirBuilder<T>(val baseSession: FirSession, val context
         } finally {
             context.popContainerSymbol(symbol)
             context.containingScriptSymbol = null
+        }
+    }
+
+    inline fun <T> withContainerReplSymbol(
+        symbol: FirReplSnippetSymbol,
+        block: () -> T,
+    ): T {
+        require(context.containingReplSymbol == null) { "Nested snippets are not supported" }
+        context.containingReplSymbol = symbol
+        return try {
+            block()
+        } finally {
+            context.containingReplSymbol = null
         }
     }
 

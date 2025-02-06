@@ -481,7 +481,7 @@ internal class PropertiesProvider private constructor(private val project: Proje
                 reportDiagnostic()
             }
             // Gradle has problems with nullability annotations: https://github.com/gradle/gradle/issues/24767
-            @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+            @Suppress("TYPE_MISMATCH")
             transformedValue
         }
     }
@@ -574,7 +574,6 @@ internal class PropertiesProvider private constructor(private val project: Proje
     val useNonPackedKlibs: Boolean
         get() = booleanProperty(PropertyNames.KOTLIN_USE_NON_PACKED_KLIBS) ?: true
 
-    @OptIn(ExperimentalTime::class)
     private val defaultClassLoaderCacheTimeout = 120.minutes.inWholeSeconds
 
     val classLoaderCacheTimeoutInSeconds: Provider<Long>

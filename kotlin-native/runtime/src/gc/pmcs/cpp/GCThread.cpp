@@ -8,13 +8,11 @@
 #include "GCThread.hpp"
 
 #include "Allocator.hpp"
-#include "AllocatorImpl.hpp"
 #include "Barriers.hpp"
 #include "GCScheduler.hpp"
 #include "GCState.hpp"
 #include "MarkAndSweepUtils.hpp"
 #include "ParallelMark.hpp"
-#include "SegregatedGCFinalizerProcessor.hpp"
 
 using namespace kotlin;
 
@@ -29,35 +27,14 @@ UtilityThread createGCThread(const char* name, Body&& body) {
     });
 }
 
-#ifndef CUSTOM_ALLOCATOR
-// TODO move to common
-[[maybe_unused]] inline void checkMarkCorrectness(alloc::ObjectFactoryImpl::Iterable& heap) {
-    if (compiler::runtimeAssertsMode() == compiler::RuntimeAssertsMode::kIgnore) return;
-    for (auto objRef : heap) {
-        auto obj = objRef.GetObjHeader();
-        auto& objData = objRef.ObjectData();
-        if (objData.marked()) {
-            traverseReferredObjects(obj, [obj](ObjHeader* field) {
-                if (field->heap()) {
-                    auto& fieldObjData = alloc::ObjectFactoryImpl::NodeRef::From(field).ObjectData();
-                    RuntimeAssert(fieldObjData.marked(), "Field %p of an alive obj %p must be alive", field, obj);
-                }
-            });
-        }
-    }
-}
-#endif
-
 } // namespace
 
 gc::internal::MainGCThread::MainGCThread(
         GCStateHolder& state,
-        SegregatedGCFinalizerProcessor<alloc::FinalizerQueueSingle, alloc::FinalizerQueueTraits>& finalizerProcessor,
         mark::ParallelMark& markDispatcher,
         alloc::Allocator& allocator,
         gcScheduler::GCScheduler& gcScheduler) noexcept :
     state_(state),
-    finalizerProcessor_(finalizerProcessor),
     markDispatcher_(markDispatcher),
     allocator_(allocator),
     gcScheduler_(gcScheduler),
@@ -115,40 +92,17 @@ void gc::internal::MainGCThread::PerformFullGC(int64_t epoch) noexcept {
     }
     allocator_.prepareForGC();
 
-#ifndef CUSTOM_ALLOCATOR
-    // Taking the locks before the pause is completed. So that any destroying thread
-    // would not publish into the global state at an unexpected time.
-    std::optional objectFactoryIterable = allocator_.impl().objectFactory().LockForIter();
-    std::optional extraObjectFactoryIterable = allocator_.impl().extraObjectDataFactory().LockForIter();
-
-    checkMarkCorrectness(*objectFactoryIterable);
-#endif
-
     resumeTheWorld(gcHandle);
 
-#ifndef CUSTOM_ALLOCATOR
-    alloc::SweepExtraObjects<alloc::DefaultSweepTraits<alloc::ObjectFactoryImpl>>(gcHandle, *extraObjectFactoryIterable);
-    extraObjectFactoryIterable = std::nullopt;
-    auto finalizerQueue = alloc::Sweep<alloc::DefaultSweepTraits<alloc::ObjectFactoryImpl>>(gcHandle, *objectFactoryIterable);
-    objectFactoryIterable = std::nullopt;
-    alloc::compactObjectPoolInMainThread();
-#else
-    // also sweeps extraObjects
-    auto finalizerQueue = allocator_.impl().heap().Sweep(gcHandle);
-    for (auto& thread : kotlin::mm::ThreadRegistry::Instance().LockForIter()) {
-        finalizerQueue.mergeFrom(thread.allocator().impl().alloc().ExtractFinalizerQueue());
-    }
-    finalizerQueue.mergeFrom(allocator_.impl().heap().ExtractFinalizerQueue());
-#endif
+    allocator_.sweep(gcHandle);
     scheduler.onGCFinish(epoch, gcHandle.getKeptSizeBytes());
     state_.finish(epoch);
-    gcHandle.finalizersScheduled(finalizerQueue.size());
     gcHandle.finished();
 
     // This may start a new thread. On some pthreads implementations, this may block waiting for concurrent thread
     // destructors running. So, it must ensured that no locks are held by this point.
     // TODO: Consider having an always on sleeping finalizer thread.
-    finalizerProcessor_.schedule(std::move(finalizerQueue), epoch);
+    allocator_.scheduleFinalization(gcHandle);
 }
 
 gc::internal::AuxiliaryGCThreads::AuxiliaryGCThreads(mark::ParallelMark& markDispatcher, size_t count) noexcept :

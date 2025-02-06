@@ -1,0 +1,33 @@
+KtNameReferenceExpression(193,196): 'foo'
+  KaSuccessCallInfo:
+    call = KaSimpleVariableAccessCall:
+      partiallyAppliedSymbol = KaPartiallyAppliedSymbol:
+        dispatchReceiver = KaExplicitReceiverValue:
+          expression = another
+          isSafeNavigation = false
+          type = Another
+        extensionReceiver = null
+        signature = KaVariableSignature:
+          name = foo
+          receiverType = null
+          returnType = kotlin.Long
+          symbol = val foo: kotlin.Long
+          contextParameters = [
+            KaVariableSignature:
+              name = cp1
+              receiverType = null
+              returnType = kotlin.Long
+              symbol = cp1: kotlin.Long
+              contextParameters = []
+              callableId = null,
+            KaVariableSignature:
+              name = cp2
+              receiverType = null
+              returnType = kotlin.Boolean
+              symbol = cp2: kotlin.Boolean
+              contextParameters = []
+              callableId = null
+          ]
+          callableId = /Another.foo
+      simpleAccess = Read
+      typeArgumentsMapping = {}

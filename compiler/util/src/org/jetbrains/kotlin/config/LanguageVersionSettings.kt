@@ -6,7 +6,6 @@
 package org.jetbrains.kotlin.config
 
 import org.jetbrains.kotlin.config.LanguageFeature.Kind.*
-import org.jetbrains.kotlin.config.LanguageFeature.entries
 import org.jetbrains.kotlin.config.LanguageVersion.*
 import org.jetbrains.kotlin.utils.DescriptionAware
 import java.util.*
@@ -385,6 +384,7 @@ enum class LanguageFeature(
     ErrorAboutDataClassCopyVisibilityChange(KOTLIN_2_3, kind = BUG_FIX), // KT-11914 Deprecation phase 2
     ReportExposedTypeForInternalTypeParameterBounds(KOTLIN_2_3, kind = BUG_FIX), // KTLC-275
     EnableDfaWarningsInK2(KOTLIN_2_3, kind = OTHER), // KT-50965
+    AllowEagerSupertypeAccessibilityChecks(KOTLIN_2_3, kind = OTHER), // KT-73611
 
     // End of 2.* language features --------------------------------------------------
 

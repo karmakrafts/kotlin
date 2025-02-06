@@ -1176,9 +1176,7 @@ class LightTreeRawFirDeclarationBuilder(
                 contractDescription?.let { this.contractDescription = it }
                 context.firFunctionTargets.removeLast()
                 this.contextParameters.addContextParameters(classWrapper.modifiers.contextList, constructorSymbol)
-                if (contextParameterEnabled) {
-                    this.contextParameters.addContextParameters(modifiers?.contextList, constructorSymbol)
-                }
+                this.contextParameters.addContextParameters(modifiers?.contextList, constructorSymbol)
             }.also {
                 it.containingClassForStaticMemberAttr = currentDispatchReceiverType()!!.lookupTag
                 target.bind(it)
@@ -1921,7 +1919,6 @@ class LightTreeRawFirDeclarationBuilder(
 
                     symbol = functionSymbol as FirNamedFunctionSymbol
                     dispatchReceiverType = runIf(!isLocal) { currentDispatchReceiverType() }
-                    contextParameters.addContextParameters(modifiers?.contextList, functionSymbol)
                 }
             }
 
@@ -1944,6 +1941,8 @@ class LightTreeRawFirDeclarationBuilder(
                 }
 
                 withCapturedTypeParameters(true, functionSource, actualTypeParameters) {
+                    contextParameters.addContextParameters(modifiers?.contextList, functionSymbol)
+
                     valueParametersList?.let { list ->
                         valueParameters += convertValueParameters(
                             list,

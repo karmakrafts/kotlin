@@ -93,6 +93,7 @@ open class FirDeclarationsResolveTransformer(
     private fun prepareSignatureForBodyResolve(callableMember: FirCallableDeclaration) {
         callableMember.transformReturnTypeRef(transformer, ResolutionMode.ContextIndependent)
         callableMember.transformReceiverParameter(transformer, ResolutionMode.ContextIndependent)
+        callableMember.transformContextParameters(transformer, ResolutionMode.ContextIndependent)
         if (callableMember is FirFunction) {
             callableMember.valueParameters.forEach {
                 it.transformReturnTypeRef(transformer, ResolutionMode.ContextIndependent)
@@ -1111,13 +1112,12 @@ open class FirDeclarationsResolveTransformer(
         anonymousFunctionExpression: FirAnonymousFunctionExpression,
         data: ResolutionMode
     ): FirStatement = whileAnalysing(session, anonymousFunctionExpression) {
-        dataFlowAnalyzer.enterAnonymousFunctionExpression(anonymousFunctionExpression)
-
         val anonymousFunction = anonymousFunctionExpression.anonymousFunction
         anonymousFunction.transformAnnotations(transformer, ResolutionMode.ContextIndependent)
 
         anonymousFunction.transformReturnTypeRef(transformer, ResolutionMode.ContextIndependent)
         anonymousFunction.transformReceiverParameter(transformer, ResolutionMode.ContextIndependent)
+        anonymousFunction.contextParameters.forEach { it.transformReturnTypeRef(transformer, ResolutionMode.ContextIndependent) }
         anonymousFunction.valueParameters.forEach { it.transformReturnTypeRef(transformer, ResolutionMode.ContextIndependent) }
 
         if (anonymousFunction.contractDescription != null) {
@@ -1126,6 +1126,7 @@ open class FirDeclarationsResolveTransformer(
 
         return when (data) {
             is ResolutionMode.ContextDependent -> {
+                dataFlowAnalyzer.enterAnonymousFunctionExpression(anonymousFunctionExpression)
                 context.storeContextForAnonymousFunction(anonymousFunction)
                 anonymousFunctionExpression // return the same instance
             }
@@ -1165,6 +1166,7 @@ open class FirDeclarationsResolveTransformer(
         anonymousFunctionExpression: FirAnonymousFunctionExpression,
         expectedType: ConeKotlinType?
     ): FirAnonymousFunction {
+        dataFlowAnalyzer.enterAnonymousFunctionExpression(anonymousFunctionExpression)
         val anonymousFunction = anonymousFunctionExpression.anonymousFunction
         val resolvedLambdaAtom = expectedType?.let {
             extractLambdaInfoFromFunctionType(
@@ -1218,6 +1220,7 @@ open class FirDeclarationsResolveTransformer(
         lambda.replaceValueParameters(valueParameters)
 
         lambda = lambda.transformValueParameters(ImplicitToErrorTypeTransformer, null)
+        lambda = lambda.transformContextParameters(ImplicitToErrorTypeTransformer, null)
 
         val initialReturnTypeRef = lambda.returnTypeRef as? FirResolvedTypeRef
         val expectedReturnTypeRef = initialReturnTypeRef

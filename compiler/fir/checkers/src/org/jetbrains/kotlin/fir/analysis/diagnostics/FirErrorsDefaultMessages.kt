@@ -720,6 +720,7 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors.DIFFERENT_NAMES_F
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors.GENERIC_QUALIFIER_ON_CONSTRUCTOR_CALL
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors.INAPPLICABLE_ALL_TARGET
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors.INAPPLICABLE_ALL_TARGET_IN_MULTI_ANNOTATION
+import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors.MISSING_DEPENDENCY_SUPERCLASS_WARNING
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors.MULTIPLE_CONTEXT_LISTS
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors.NAMED_CONTEXT_PARAMETER_IN_FUNCTION_TYPE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors.MIXING_NAMED_AND_POSITIONAL_ARGUMENTS
@@ -867,7 +868,7 @@ object FirErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         )
         map.put(
             MISSING_DEPENDENCY_CLASS_IN_EXPRESSION_TYPE,
-            "Cannot access class ''{0}'' in the expression type. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.",
+            "Cannot access class ''{0}'' in the expression type. This may be forbidden soon. Check the module classpath for missing or conflicting dependencies.",
             RENDER_TYPE,
         )
         map.put(
@@ -877,20 +878,26 @@ object FirErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
             RENDER_TYPE,
         )
         map.put(
+            MISSING_DEPENDENCY_SUPERCLASS_WARNING,
+            "Cannot access ''{0}'' which is a supertype of ''{1}''. This may be forbidden soon. Check the module classpath for missing or conflicting dependencies.",
+            RENDER_TYPE,
+            RENDER_TYPE,
+        )
+        map.put(
             MISSING_DEPENDENCY_SUPERCLASS_IN_TYPE_ARGUMENT,
-            "Cannot access ''{0}'' which is a supertype of ''{1}'' or one of its type/supertype arguments. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.",
+            "Cannot access ''{0}'' which is a supertype of ''{1}'' or one of its arguments. This may be forbidden soon. Check the module classpath for missing or conflicting dependencies.",
             RENDER_TYPE,
             RENDER_TYPE,
         )
         map.put(
             MISSING_DEPENDENCY_CLASS_IN_LAMBDA_PARAMETER,
-            "Class ''{0}'' of the parameter ''{1}'' is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.",
+            "Class ''{0}'' of the parameter ''{1}'' is inaccessible. This may be forbidden soon. Check the module classpath for missing or conflicting dependencies.",
             RENDER_TYPE,
             NAME,
         )
         map.put(
             MISSING_DEPENDENCY_CLASS_IN_LAMBDA_RECEIVER,
-            "Class ''{0}'' of the lambda receiver is inaccessible. While it may work, this case indicates a configuration mistake and can lead to avoidable compilation errors, so it may be forbidden soon. Check your module classpath for missing or conflicting dependencies.",
+            "Class ''{0}'' of the lambda receiver is inaccessible. This may be forbidden soon. Check the module classpath for missing or conflicting dependencies.",
             RENDER_TYPE,
         )
 
@@ -2810,7 +2817,7 @@ object FirErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         )
         map.put(
             TYPEALIAS_EXPANSION_CAPTURES_OUTER_TYPE_PARAMETERS,
-            "Type alias expansion captures outer type parameters: ''{0}''.",
+            "Type alias expansion captures outer type parameters: {0}.",
             commaSeparated(SYMBOL_WITH_CONTAINING_DECLARATION),
         )
 

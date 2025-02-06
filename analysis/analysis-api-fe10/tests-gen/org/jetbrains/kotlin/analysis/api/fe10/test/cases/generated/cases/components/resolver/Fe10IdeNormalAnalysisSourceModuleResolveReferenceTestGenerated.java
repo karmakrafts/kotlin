@@ -2134,6 +2134,12 @@ public class Fe10IdeNormalAnalysisSourceModuleResolveReferenceTestGenerated exte
     }
 
     @Test
+    @TestMetadata("functionDeclarationSiteSubstitution.kt")
+    public void testFunctionDeclarationSiteSubstitution() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionDeclarationSiteSubstitution.kt");
+    }
+
+    @Test
     @TestMetadata("functionFromFunctionExplicitly.kt")
     public void testFunctionFromFunctionExplicitly() {
       runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionFromFunctionExplicitly.kt");
@@ -2143,6 +2149,30 @@ public class Fe10IdeNormalAnalysisSourceModuleResolveReferenceTestGenerated exte
     @TestMetadata("functionFromPropertyExplicitly.kt")
     public void testFunctionFromPropertyExplicitly() {
       runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionFromPropertyExplicitly.kt");
+    }
+
+    @Test
+    @TestMetadata("functionNotEnoughContextWithContextParameter.kt")
+    public void testFunctionNotEnoughContextWithContextParameter() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionNotEnoughContextWithContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("functionNotEnoughContextWithContextParameterAndUnrelatedReceiver.kt")
+    public void testFunctionNotEnoughContextWithContextParameterAndUnrelatedReceiver() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionNotEnoughContextWithContextParameterAndUnrelatedReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("functionNotEnoughContextWithContextReceiver.kt")
+    public void testFunctionNotEnoughContextWithContextReceiver() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionNotEnoughContextWithContextReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("functionNotEnoughContextWithReceiver.kt")
+    public void testFunctionNotEnoughContextWithReceiver() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionNotEnoughContextWithReceiver.kt");
     }
 
     @Test
@@ -2164,6 +2194,66 @@ public class Fe10IdeNormalAnalysisSourceModuleResolveReferenceTestGenerated exte
     }
 
     @Test
+    @TestMetadata("functionUseSiteSubstitution.kt")
+    public void testFunctionUseSiteSubstitution() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionUseSiteSubstitution.kt");
+    }
+
+    @Test
+    @TestMetadata("functionUseSiteSubstitution2.kt")
+    public void testFunctionUseSiteSubstitution2() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionUseSiteSubstitution2.kt");
+    }
+
+    @Test
+    @TestMetadata("functionWithReceiverAndContext.kt")
+    public void testFunctionWithReceiverAndContext() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionWithReceiverAndContext.kt");
+    }
+
+    @Test
+    @TestMetadata("functionWithUnresolvedReceiverAndContext.kt")
+    public void testFunctionWithUnresolvedReceiverAndContext() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionWithUnresolvedReceiverAndContext.kt");
+    }
+
+    @Test
+    @TestMetadata("functionWithoutContext.kt")
+    public void testFunctionWithoutContext() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/functionWithoutContext.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyDeclarationSiteSubstitution.kt")
+    public void testPropertyDeclarationSiteSubstitution() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyDeclarationSiteSubstitution.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyNotEnoughContextWithContextParameter.kt")
+    public void testPropertyNotEnoughContextWithContextParameter() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyNotEnoughContextWithContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyNotEnoughContextWithContextParameterAndUnrelatedReceiver.kt")
+    public void testPropertyNotEnoughContextWithContextParameterAndUnrelatedReceiver() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyNotEnoughContextWithContextParameterAndUnrelatedReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyNotEnoughContextWithContextReceiver.kt")
+    public void testPropertyNotEnoughContextWithContextReceiver() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyNotEnoughContextWithContextReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyNotEnoughContextWithReceiver.kt")
+    public void testPropertyNotEnoughContextWithReceiver() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyNotEnoughContextWithReceiver.kt");
+    }
+
+    @Test
     @TestMetadata("propertyOutsideClass.kt")
     public void testPropertyOutsideClass() {
       runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyOutsideClass.kt");
@@ -2179,6 +2269,42 @@ public class Fe10IdeNormalAnalysisSourceModuleResolveReferenceTestGenerated exte
     @TestMetadata("propertyUsageInsideClass.kt")
     public void testPropertyUsageInsideClass() {
       runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyUsageInsideClass.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyUseSiteSubstitution.kt")
+    public void testPropertyUseSiteSubstitution() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyUseSiteSubstitution.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyUseSiteSubstitution2.kt")
+    public void testPropertyUseSiteSubstitution2() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyUseSiteSubstitution2.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyWithReceiverAndContext.kt")
+    public void testPropertyWithReceiverAndContext() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyWithReceiverAndContext.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyWithUnresolvedReceiverAndContext.kt")
+    public void testPropertyWithUnresolvedReceiverAndContext() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyWithUnresolvedReceiverAndContext.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyWithoutContext.kt")
+    public void testPropertyWithoutContext() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/propertyWithoutContext.kt");
+    }
+
+    @Test
+    @TestMetadata("smartCastedContextParameterFromFunction.kt")
+    public void testSmartCastedContextParameterFromFunction() {
+      runTest("analysis/analysis-api/testData/components/resolver/singleByPsi/contextParameters/smartCastedContextParameterFromFunction.kt");
     }
   }
 

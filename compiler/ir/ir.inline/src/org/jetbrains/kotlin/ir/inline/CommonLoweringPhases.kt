@@ -6,6 +6,7 @@
 package org.jetbrains.kotlin.ir.inline
 
 import org.jetbrains.kotlin.backend.common.LoweringContext
+import org.jetbrains.kotlin.backend.common.PreSerializationLoweringContext
 import org.jetbrains.kotlin.backend.common.ir.isReifiable
 import org.jetbrains.kotlin.backend.common.lower.ArrayConstructorLowering
 import org.jetbrains.kotlin.backend.common.lower.LateinitLowering
@@ -14,7 +15,7 @@ import org.jetbrains.kotlin.backend.common.lower.WrapInlineDeclarationsWithReifi
 import org.jetbrains.kotlin.backend.common.lower.inline.LocalClassesInInlineLambdasLowering
 import org.jetbrains.kotlin.backend.common.phaser.IrValidationAfterInliningOnlyPrivateFunctionsPhase
 import org.jetbrains.kotlin.backend.common.phaser.makeIrModulePhase
-import org.jetbrains.kotlin.config.phaser.SimpleNamedCompilerPhase
+import org.jetbrains.kotlin.config.phaser.NamedCompilerPhase
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.expressions.IrFunctionReference
 
@@ -101,6 +102,12 @@ private val validateIrAfterInliningOnlyPrivateFunctions = makeIrModulePhase(
     name = "IrValidationAfterInliningOnlyPrivateFunctionsPhase",
 )
 
+private val checkInlineDeclarationsAfterInliningOnlyPrivateFunctions = makeIrModulePhase(
+    lowering = ::InlineDeclarationCheckerLowering,
+    name = "InlineDeclarationCheckerAfterInliningOnlyPrivateFunctionsPhase",
+    prerequisite = setOf(inlineOnlyPrivateFunctionsPhase),
+)
+
 ///**
 // * The second phase of inlining (inline all functions).
 // */
@@ -116,7 +123,7 @@ private val validateIrAfterInliningOnlyPrivateFunctions = makeIrModulePhase(
 //    prerequisite = setOf(outerThisSpecialAccessorInInlineFunctionsPhase)
 //)
 
-val loweringsOfTheFirstPhase: List<SimpleNamedCompilerPhase<LoweringContext, IrModuleFragment, IrModuleFragment>> = listOf(
+val loweringsOfTheFirstPhase: List<NamedCompilerPhase<PreSerializationLoweringContext, IrModuleFragment, IrModuleFragment>> = listOf(
     lateinitPhase,
     sharedVariablesLoweringPhase,
     localClassesInInlineLambdasPhase,
@@ -124,6 +131,7 @@ val loweringsOfTheFirstPhase: List<SimpleNamedCompilerPhase<LoweringContext, IrM
     arrayConstructorPhase,
     wrapInlineDeclarationsWithReifiedTypeParametersLowering,
     inlineOnlyPrivateFunctionsPhase,
+    checkInlineDeclarationsAfterInliningOnlyPrivateFunctions,
     outerThisSpecialAccessorInInlineFunctionsPhase,
     syntheticAccessorGenerationPhase,
     validateIrAfterInliningOnlyPrivateFunctions,

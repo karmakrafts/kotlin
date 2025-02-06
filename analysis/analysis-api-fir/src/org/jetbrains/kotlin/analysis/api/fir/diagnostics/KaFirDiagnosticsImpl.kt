@@ -457,6 +457,13 @@ internal class MissingDependencySuperclassImpl(
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.MissingDependencySuperclass
 
+internal class MissingDependencySuperclassWarningImpl(
+    override val missingType: KaType,
+    override val declarationType: KaType,
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.MissingDependencySuperclassWarning
+
 internal class MissingDependencySuperclassInTypeArgumentImpl(
     override val missingType: KaType,
     override val declarationType: KaType,
@@ -5037,6 +5044,13 @@ internal class JvmSerializableLambdaOnInlinedFunctionLiteralsWarningImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<KtAnnotationEntry>(firDiagnostic, token), KaFirDiagnostic.JvmSerializableLambdaOnInlinedFunctionLiteralsWarning
+
+internal class IncompatibleAnnotationTargetsImpl(
+    override val missingJavaTargets: List<String>,
+    override val correspondingKotlinTargets: List<String>,
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtAnnotationEntry>(firDiagnostic, token), KaFirDiagnostic.IncompatibleAnnotationTargets
 
 internal class LocalJvmRecordImpl(
     firDiagnostic: KtPsiDiagnostic,

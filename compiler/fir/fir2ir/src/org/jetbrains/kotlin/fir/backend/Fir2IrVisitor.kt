@@ -983,7 +983,7 @@ class Fir2IrVisitor(
         // These array literals normally have a type of Array<Any>,
         // so FIR2IR should instead use a type of corresponding property
         // See also KT-62598
-        expectedType: ConeKotlinType? = null,
+        expectedTypeForAnnotationArgument: ConeKotlinType? = null,
     ): IrExpression {
         return when (expression) {
             is FirBlock -> {
@@ -1004,7 +1004,7 @@ class Fir2IrVisitor(
             else -> {
                 when (val unwrappedExpression = expression.unwrapArgument()) {
                     is FirCallableReferenceAccess -> convertCallableReferenceAccess(unwrappedExpression, isDelegate)
-                    is FirArrayLiteral -> convertToArrayLiteral(unwrappedExpression, expectedType)
+                    is FirArrayLiteral -> convertToArrayLiteral(unwrappedExpression, expectedTypeForAnnotationArgument)
                     else -> expression.accept(this, null) as IrExpression
                 }
             }
@@ -1454,13 +1454,18 @@ class Fir2IrVisitor(
     }
 
     private fun FirWhenBranch.toIrWhenBranch(whenExpressionType: ConeKotlinType): IrBranch {
-        return convertWithOffsets { startOffset, _ ->
+        return convertWithOffsets { startOffset, endOffset ->
             val condition = condition
             val irResult = convertToIrExpression(result).insertImplicitCast(result, result.resolvedType, whenExpressionType)
             if (condition is FirElseIfTrueCondition) {
                 IrElseBranchImpl(IrConstImpl.boolean(irResult.startOffset, irResult.endOffset, builtins.booleanType, true), irResult)
             } else {
-                IrBranchImpl(startOffset, irResult.endOffset, convertToIrExpression(condition), irResult)
+                IrBranchImpl(
+                    startOffset = startOffset,
+                    endOffset = if (irResult.endOffset < 0) endOffset else irResult.endOffset,
+                    condition = convertToIrExpression(condition),
+                    result = irResult
+                )
             }
         }
     }

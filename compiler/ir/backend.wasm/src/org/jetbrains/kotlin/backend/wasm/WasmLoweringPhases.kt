@@ -17,7 +17,7 @@ import org.jetbrains.kotlin.backend.wasm.lower.*
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.KlibConfigurationKeys
 import org.jetbrains.kotlin.config.phaser.CompilerPhase
-import org.jetbrains.kotlin.config.phaser.SimpleNamedCompilerPhase
+import org.jetbrains.kotlin.config.phaser.NamedCompilerPhase
 import org.jetbrains.kotlin.ir.backend.js.lower.*
 import org.jetbrains.kotlin.ir.backend.js.lower.coroutines.AddContinuationToFunctionCallsLowering
 import org.jetbrains.kotlin.ir.backend.js.lower.coroutines.JsSuspendFunctionsLowering
@@ -92,6 +92,11 @@ private val validateIrAfterLowering = makeIrModulePhase(
 private val generateTests = makeIrModulePhase(
     ::GenerateWasmTests,
     name = "GenerateTests",
+)
+
+private val annotationInstantiationLowering = makeIrModulePhase(
+    ::JsCommonAnnotationImplementationTransformer,
+    name = "AnnotationImplementation",
 )
 
 private val expectDeclarationsRemovingPhase = makeIrModulePhase(
@@ -582,7 +587,7 @@ val constEvaluationPhase = makeIrModulePhase(
 fun getWasmLowerings(
     configuration: CompilerConfiguration,
     isIncremental: Boolean,
-): List<SimpleNamedCompilerPhase<WasmBackendContext, IrModuleFragment, IrModuleFragment>> {
+): List<NamedCompilerPhase<WasmBackendContext, IrModuleFragment, IrModuleFragment>> {
     val syntheticAccessorsDumpDir = configuration[KlibConfigurationKeys.SYNTHETIC_ACCESSORS_DUMP_DIR]
     val isDebugFriendlyCompilation = configuration.getBoolean(WasmConfigurationKeys.WASM_FORCE_DEBUG_FRIENDLY_COMPILATION)
 
@@ -612,6 +617,8 @@ fun getWasmLowerings(
         jsCodeCallsLowering,
 
         generateTests,
+
+        annotationInstantiationLowering,
 
         excludeDeclarationsFromCodegenPhase,
         expectDeclarationsRemovingPhase,

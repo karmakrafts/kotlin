@@ -11,17 +11,16 @@ import org.jetbrains.kotlin.backend.common.ir.SharedVariablesManager
 import org.jetbrains.kotlin.backend.konan.ir.KonanIr
 import org.jetbrains.kotlin.backend.konan.ir.KonanSharedVariablesManager
 import org.jetbrains.kotlin.backend.konan.ir.KonanSymbols
-import org.jetbrains.kotlin.backend.konan.ir.SymbolOverIrLookupUtils
 import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.ir.IrBuiltIns
 
 class NativePreSerializationLoweringContext(
         irBuiltIns: IrBuiltIns,
         configuration: CompilerConfiguration,
-) : PreSerializationLoweringContext(irBuiltIns, configuration) {
-    private val konanSymbols = KonanSymbols(
-            this, SymbolOverIrLookupUtils(), irBuiltIns, configuration
-    )
+        diagnosticReporter: DiagnosticReporter,
+) : PreSerializationLoweringContext(irBuiltIns, configuration, diagnosticReporter) {
+    private val konanSymbols = KonanSymbols(this, irBuiltIns, configuration)
 
     override val ir: Ir = KonanIr(konanSymbols)
 

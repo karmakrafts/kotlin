@@ -1420,65 +1420,67 @@ open class PsiRawFirBuilder(
             val snippetName = Name.special("<$fileName>")
             val snippetSymbol = FirReplSnippetSymbol(snippetName)
 
-            return buildReplSnippet {
-                source = scriptSource
-                moduleData = baseModuleData
-                origin = FirDeclarationOrigin.Source
-                name = snippetName
-                symbol = snippetSymbol
+            return withContainerReplSymbol(snippetSymbol) {
+                buildReplSnippet {
+                    source = scriptSource
+                    moduleData = baseModuleData
+                    origin = FirDeclarationOrigin.Source
+                    name = snippetName
+                    symbol = snippetSymbol
 
-                body = buildOrLazyBlock {
-                    withContainerSymbol(snippetSymbol, isLocal = true) {
-                        buildBlock {
-                            script.declarations.forEach { declaration ->
-                                when (declaration) {
-                                    is KtScriptInitializer -> {
-                                        val initializer = buildAnonymousInitializer(
-                                            initializer = declaration,
-                                            containingDeclarationSymbol = snippetSymbol,
-                                            allowLazyBody = true,
-                                            isLocal = true,
-                                        )
+                    body = buildOrLazyBlock {
+                        withContainerSymbol(snippetSymbol, isLocal = true) {
+                            buildBlock {
+                                script.declarations.forEach { declaration ->
+                                    when (declaration) {
+                                        is KtScriptInitializer -> {
+                                            val initializer = buildAnonymousInitializer(
+                                                initializer = declaration,
+                                                containingDeclarationSymbol = snippetSymbol,
+                                                allowLazyBody = true,
+                                                isLocal = true,
+                                            )
 
-                                        statements.addAll(initializer.body!!.statements)
-                                    }
-                                    is KtDestructuringDeclaration -> {
-                                        val destructuringContainerVar = buildScriptDestructuringDeclaration(declaration)
-                                        statements.add(destructuringContainerVar)
-
-                                        addDestructuringVariables(
-                                            statements,
-                                            this@Visitor,
-                                            baseModuleData,
-                                            declaration,
-                                            destructuringContainerVar,
-                                            tmpVariable = false,
-                                            forceLocal = false,
-                                        ) {
-                                            configureScriptDestructuringDeclarationEntry(it, destructuringContainerVar)
+                                            statements.addAll(initializer.body!!.statements)
                                         }
-                                    }
-                                    is KtProperty -> {
-                                        val firProperty = convertProperty(declaration, null, forceLocal = true)
-                                        statements.add(firProperty)
-                                    }
-                                    else -> {
-                                        val firStatement = declaration.toFirStatement()
-                                        if (firStatement is FirDeclaration) {
-                                            statements.add(firStatement)
-                                        } else {
-                                            error("unexpected declaration type in script")
+                                        is KtDestructuringDeclaration -> {
+                                            val destructuringContainerVar = buildScriptDestructuringDeclaration(declaration)
+                                            statements.add(destructuringContainerVar)
+
+                                            addDestructuringVariables(
+                                                statements,
+                                                this@Visitor,
+                                                baseModuleData,
+                                                declaration,
+                                                destructuringContainerVar,
+                                                tmpVariable = false,
+                                                forceLocal = false,
+                                            ) {
+                                                configureScriptDestructuringDeclarationEntry(it, destructuringContainerVar)
+                                            }
+                                        }
+                                        is KtProperty -> {
+                                            val firProperty = convertProperty(declaration, null, forceLocal = true)
+                                            statements.add(firProperty)
+                                        }
+                                        else -> {
+                                            val firStatement = declaration.toFirStatement()
+                                            if (firStatement is FirDeclaration) {
+                                                statements.add(firStatement)
+                                            } else {
+                                                error("unexpected declaration type in script")
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
+                    // TODO: proper lazy support - see the script
+                    resultTypeRef =
+                        if (body.statements.lastOrNull() is FirDeclaration) implicitUnitType else FirImplicitTypeRefImplWithoutSource
+                    setup()
                 }
-                // TODO: proper lazy support - see the script
-                resultTypeRef =
-                    if (body.statements.lastOrNull() is FirDeclaration) implicitUnitType else FirImplicitTypeRefImplWithoutSource
-                setup()
             }
         }
 
@@ -1838,6 +1840,9 @@ open class PsiRawFirBuilder(
                 context.containingScriptSymbol?.let { script ->
                     it.containingScriptSymbolAttr = script
                 }
+                context.containingReplSymbol?.let { repl ->
+                    it.containingReplSymbolAttr = repl
+                }
             }
         }
 
@@ -1980,8 +1985,6 @@ open class PsiRawFirBuilder(
                             isExternal = function.hasModifier(EXTERNAL_KEYWORD)
                             isSuspend = function.hasModifier(SUSPEND_KEYWORD)
                         }
-
-                        contextParameters.addContextParameters(function.contextReceiverList, functionSymbol)
                     }
                 }
 
@@ -1998,6 +2001,7 @@ open class PsiRawFirBuilder(
                     if (this is FirSimpleFunctionBuilder) {
                         function.extractTypeParametersTo(this, symbol)
                     }
+                    contextParameters.addContextParameters(function.contextReceiverList, functionSymbol)
                     for (valueParameter in function.valueParameters) {
                         valueParameters += valueParameter.toFirValueParameter(
                             null,
@@ -2187,9 +2191,7 @@ open class PsiRawFirBuilder(
                     }
                     dispatchReceiverType = owner.obtainDispatchReceiverForConstructor()
                     contextParameters.addContextParameters(owner.contextReceiverList, symbol)
-                    if (contextParameterEnabled) {
-                        contextParameters.addContextParameters(this@toFirConstructor.modifierList?.getChildOfType(), symbol)
-                    }
+                    contextParameters.addContextParameters(this@toFirConstructor.modifierList?.contextReceiverList, symbol)
                     if (!owner.hasModifier(EXTERNAL_KEYWORD) && !status.isExpect || isExplicitDelegationCall()) {
                         delegatedConstructor = buildOrLazyDelegatedConstructorCall(
                             isThis = isDelegatedCallToThis(),
