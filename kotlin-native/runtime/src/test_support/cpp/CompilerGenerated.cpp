@@ -112,7 +112,7 @@ OBJ_GETTER0(TheEmptyString) {
     RETURN_OBJ(reinterpret_cast<KRef>(&theEmptyStringImpl));
 }
 
-RUNTIME_NORETURN OBJ_GETTER(makeRegularWeakReferenceImpl, void*) {
+RUNTIME_NORETURN OBJ_GETTER(makeRegularWeakReferenceImpl, KRef, void*) {
     throw std::runtime_error("Not implemented for tests");
 }
 
@@ -135,7 +135,11 @@ void checkRangeIndexes(KInt from, KInt to, KInt size) {
     }
 }
 
-RUNTIME_NORETURN OBJ_GETTER(WorkerLaunchpad, KRef) {
+kotlin::mm::RawExternalRCRef* RUNTIME_NORETURN WorkerExecuteLaunchpad(KRef (*job)(KRef, ObjHeader**), kotlin::mm::RawExternalRCRef* jobArgument) {
+    throw std::runtime_error("Not implemented for tests");
+}
+
+void RUNTIME_NORETURN WorkerExecuteAfterLaunchpad(kotlin::mm::RawExternalRCRef* job) {
     throw std::runtime_error("Not implemented for tests");
 }
 

@@ -10,7 +10,6 @@ import com.intellij.util.lang.JavaVersion
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.config.addKotlinSourceRoot
-import org.jetbrains.kotlin.cli.common.config.addKotlinSourceRoots
 import org.jetbrains.kotlin.cli.common.moduleChunk
 import org.jetbrains.kotlin.cli.common.modules.ModuleBuilder
 import org.jetbrains.kotlin.cli.common.modules.ModuleChunk
@@ -21,16 +20,17 @@ import org.jetbrains.kotlin.config.*
 import org.jetbrains.kotlin.config.phaser.PhaseConfig
 import org.jetbrains.kotlin.config.phaser.PhaseSet
 import org.jetbrains.kotlin.constant.EvaluatedConstTracker
-import org.jetbrains.kotlin.metadata.jvm.deserialization.JvmProtoBufUtil
-import org.jetbrains.kotlin.platform.isMultiPlatform
-import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 import org.jetbrains.kotlin.platform.jvm.isJvm
 import org.jetbrains.kotlin.test.ConfigurationKind
 import org.jetbrains.kotlin.test.MockLibraryUtil.compileJavaFilesLibraryToJar
 import org.jetbrains.kotlin.test.TestJdkKind
 import org.jetbrains.kotlin.test.backend.handlers.PhasedIrDumpHandler
+import org.jetbrains.kotlin.test.cli.CliDirectives
+import org.jetbrains.kotlin.test.cli.CliDirectives.ADDITIONAL_JAVA_MODULES
+import org.jetbrains.kotlin.test.cli.CliDirectives.FORCE_COMPILE_AS_JAVA_MODULE
 import org.jetbrains.kotlin.test.directives.CodegenTestDirectives
 import org.jetbrains.kotlin.test.directives.ConfigurationDirectives
+import org.jetbrains.kotlin.test.directives.ForeignAnnotationsDirectives.ENABLE_FOREIGN_ANNOTATIONS
 import org.jetbrains.kotlin.test.directives.JvmEnvironmentConfigurationDirectives
 import org.jetbrains.kotlin.test.directives.JvmEnvironmentConfigurationDirectives.ASSERTIONS_MODE
 import org.jetbrains.kotlin.test.directives.JvmEnvironmentConfigurationDirectives.ENABLE_DEBUG_MODE
@@ -68,7 +68,6 @@ import org.jetbrains.kotlin.test.services.jvm.CompiledClassesManager
 import org.jetbrains.kotlin.test.services.jvm.compiledClassesManager
 import org.jetbrains.kotlin.test.util.KtTestUtil
 import org.jetbrains.kotlin.test.util.joinToArrayString
-import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import org.jetbrains.kotlin.utils.addToStdlib.runIf
 import java.io.File
 
@@ -172,7 +171,7 @@ open class JvmEnvironmentConfigurator(testServices: TestServices) : EnvironmentC
     }
 
     override val directiveContainers: List<DirectivesContainer>
-        get() = listOf(JvmEnvironmentConfigurationDirectives)
+        get() = listOf(JvmEnvironmentConfigurationDirectives, CliDirectives)
 
     override val additionalServices: List<ServiceRegistrationData>
         get() = listOf(service(::CompiledClassesManager))
@@ -232,10 +231,17 @@ open class JvmEnvironmentConfigurator(testServices: TestServices) : EnvironmentC
         }
 
         if (configurationKind.withRuntime) {
-            configuration.configureStandardLibs(
-                testServices.standardLibrariesPathProvider,
-                K2JVMCompilerArguments().also { it.noReflect = true }
-            )
+            if (testServices.cliBasedFacadesEnabled) {
+                val provider = testServices.standardLibrariesPathProvider
+                val isJava9Module = module.isJava9Module
+                configuration.addModularRootIfNotNull(isJava9Module, "kotlin.stdlib", provider.runtimeJarForTests())
+                configuration.addModularRootIfNotNull(isJava9Module, "kotlin.script.runtime", provider.scriptRuntimeJarForTests())
+            } else {
+                configuration.configureStandardLibs(
+                    testServices.standardLibrariesPathProvider,
+                    K2JVMCompilerArguments().also { it.noReflect = true }
+                )
+            }
         }
         configuration.addJvmClasspathRoots(getLibraryFilesExceptRealRuntime(testServices, configurationKind, module.directives))
 
@@ -250,7 +256,9 @@ open class JvmEnvironmentConfigurator(testServices: TestServices) : EnvironmentC
 
         configuration.registerModuleDependencies(module)
 
-        configuration.addJavaBinaryRootsByCompiledJavaModulesFromModuleDependencies(configurationKind, module)
+        if (ENABLE_FOREIGN_ANNOTATIONS in module.directives) {
+            configuration.addJavaBinaryRootsByCompiledJavaModulesFromModuleDependencies(configurationKind, module)
+        }
 
         setupK2CliConfiguration(module, configuration)
 
@@ -271,6 +279,9 @@ open class JvmEnvironmentConfigurator(testServices: TestServices) : EnvironmentC
                 testServices.additionalClassPathForJavaCompilationOrAnalysis?.classPath?.map(::File).orEmpty()
             )
         } else {
+            check(ENABLE_FOREIGN_ANNOTATIONS in module.directives) {
+                "PROVIDE_JAVA_AS_BINARIES should be used only in combination with ENABLE_FOREIGN_ANNOTATIONS"
+            }
             if (javaModuleInfoFiles.isNotEmpty()) {
                 configuration.addJavaBinaryRootsByJavaModules(configurationKind, javaModuleInfoFiles)
             } else {
@@ -395,19 +406,25 @@ open class JvmEnvironmentConfigurator(testServices: TestServices) : EnvironmentC
         }
     }
 
+    private val TestModule.isJava9Module: Boolean
+        get() = files.any(TestFile::isModuleInfoJavaFile) || FORCE_COMPILE_AS_JAVA_MODULE in directives
+
     private fun CompilerConfiguration.registerModuleDependencies(module: TestModule) {
-        val isJava9Module = module.files.any(TestFile::isModuleInfoJavaFile)
+        val isJava9Module = module.isJava9Module
         for (dependency in module.allDependencies.filter { it.kind == DependencyKind.Binary }.toFileList()) {
             if (isJava9Module) {
                 add(CLIConfigurationKeys.CONTENT_ROOTS, JvmModulePathRoot(dependency))
             }
-            addJvmClasspathRoot(dependency)
+            if (FORCE_COMPILE_AS_JAVA_MODULE !in module.directives) {
+                addJvmClasspathRoot(dependency)
+            }
         }
 
         val binaryFriends = module.friendDependencies.filter { it.kind == DependencyKind.Binary }
         if (binaryFriends.isNotEmpty()) {
             put(JVMConfigurationKeys.FRIEND_PATHS, binaryFriends.toFileList().map { it.absolutePath })
         }
+        addAll(JVMConfigurationKeys.ADDITIONAL_JAVA_MODULES, module.directives[ADDITIONAL_JAVA_MODULES])
     }
 
     private fun List<DependencyDescription>.toFileList(): List<File> = this.flatMap(::convertDependencyToFileList)

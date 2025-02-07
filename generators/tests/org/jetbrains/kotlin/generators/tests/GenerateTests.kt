@@ -22,11 +22,11 @@ import org.jetbrains.kotlin.jvm.abi.AbstractCompareJvmAbiTest
 import org.jetbrains.kotlin.jvm.abi.AbstractCompileAgainstJvmAbiTest
 import org.jetbrains.kotlin.jvm.abi.AbstractJvmAbiContentTest
 import org.jetbrains.kotlin.kapt.cli.test.AbstractArgumentParsingTest
-import org.jetbrains.kotlin.kapt.cli.test.AbstractKapt4ToolIntegrationTest
+import org.jetbrains.kotlin.kapt.cli.test.AbstractFirKaptToolIntegrationTest
 import org.jetbrains.kotlin.kapt.cli.test.AbstractKaptToolIntegrationTest
-import org.jetbrains.kotlin.kapt3.test.runners.AbstractIrKotlinKaptContextTest
-import org.jetbrains.kotlin.kapt3.test.runners.AbstractKaptStubConverterTest
-import org.jetbrains.kotlin.kapt4.AbstractFirKaptStubConverterTest
+import org.jetbrains.kotlin.kapt.test.AbstractFirKaptStubConverterTest
+import org.jetbrains.kotlin.kapt.test.runners.AbstractIrKotlinKaptContextTest
+import org.jetbrains.kotlin.kapt.test.runners.AbstractKaptStubConverterTest
 import org.jetbrains.kotlin.lombok.AbstractDiagnosticTestForLombok
 import org.jetbrains.kotlin.lombok.AbstractFirLightTreeBlackBoxCodegenTestForLombok
 import org.jetbrains.kotlin.lombok.AbstractFirPsiDiagnosticTestForLombok
@@ -346,19 +346,19 @@ fun main(args: Array<String>) {
             }
         }
 
-        testGroup("plugins/kapt3/kapt3-cli/tests-gen", "plugins/kapt3/kapt3-cli/testData") {
+        testGroup("plugins/kapt/kapt-cli/tests-gen", "plugins/kapt/kapt-cli/testData") {
             testClass<AbstractArgumentParsingTest> {
                 model("argumentParsing", extension = "txt")
             }
             testClass<AbstractKaptToolIntegrationTest> {
                 model("integration", recursive = false, extension = null)
             }
-            testClass<AbstractKapt4ToolIntegrationTest> {
+            testClass<AbstractFirKaptToolIntegrationTest> {
                 model("integration-kapt4", recursive = false, extension = null)
             }
         }
 
-        testGroup("plugins/kapt3/kapt3-compiler/tests-gen", "plugins/kapt3/kapt3-compiler/testData") {
+        testGroup("plugins/kapt/kapt-compiler/tests-gen", "plugins/kapt/kapt-compiler/testData") {
             testClass<AbstractIrKotlinKaptContextTest> {
                 model("kotlinRunner")
             }
