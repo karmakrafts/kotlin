@@ -564,6 +564,10 @@ private class ContextCollectorVisitor(
         processList(anonymousObject.superTypeRefs)
     }
 
+    override fun visitErrorPrimaryConstructor(errorPrimaryConstructor: FirErrorPrimaryConstructor) {
+        visitConstructor(errorPrimaryConstructor)
+    }
+
     override fun visitConstructor(constructor: FirConstructor) = withProcessor(constructor) {
         dumpContext(constructor, ContextKind.SELF)
 
@@ -645,6 +649,10 @@ private class ContextCollectorVisitor(
                 }
             }
         }
+    }
+
+    override fun visitErrorProperty(errorProperty: FirErrorProperty) {
+        visitProperty(errorProperty)
     }
 
     override fun visitProperty(property: FirProperty) = withProcessor(property) {
@@ -796,10 +804,8 @@ private class ContextCollectorVisitor(
 
         onActiveBody {
             context.withAnonymousFunction(anonymousFunction, bodyHolder) {
-                for (parameter in anonymousFunction.valueParameters) {
-                    process(parameter)
-                    context.storeVariable(parameter, bodyHolder.session)
-                }
+                processList(anonymousFunction.contextParameters)
+                processList(anonymousFunction.valueParameters)
 
                 dumpContext(anonymousFunction, ContextKind.BODY)
 
@@ -812,7 +818,6 @@ private class ContextCollectorVisitor(
                 }
             }
         }
-
     }
 
     override fun visitAnonymousObject(anonymousObject: FirAnonymousObject) = withProcessor(anonymousObject) {

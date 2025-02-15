@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -93,7 +93,11 @@ open class FirDeclarationsResolveTransformer(
     private fun prepareSignatureForBodyResolve(callableMember: FirCallableDeclaration) {
         callableMember.transformReturnTypeRef(transformer, ResolutionMode.ContextIndependent)
         callableMember.transformReceiverParameter(transformer, ResolutionMode.ContextIndependent)
-        callableMember.transformContextParameters(transformer, ResolutionMode.ContextIndependent)
+
+        callableMember.contextParameters.forEach {
+            it.transformReturnTypeRef(transformer, ResolutionMode.ContextIndependent)
+        }
+
         if (callableMember is FirFunction) {
             callableMember.valueParameters.forEach {
                 it.transformReturnTypeRef(transformer, ResolutionMode.ContextIndependent)
@@ -710,12 +714,6 @@ open class FirDeclarationsResolveTransformer(
             // it's been propagated to receivers in the RawFirBuilder
             if (accessor.returnTypeRef is FirImplicitTypeRef && propertyTypeRef !is FirImplicitTypeRef) {
                 accessor.replaceReturnTypeRef(propertyTypeRef)
-            }
-
-            for (parameter in owner.contextParameters) {
-                if (!parameter.isLegacyContextReceiver()) {
-                    context.storeVariable(parameter, session)
-                }
             }
 
             if (accessor is FirDefaultPropertyAccessor || accessor.body == null) {
@@ -1355,6 +1353,7 @@ open class FirDeclarationsResolveTransformer(
         // `transformFunction` will replace both `typeRef` and `returnTypeRef`, so make sure to keep the former.
         val lambdaType = anonymousFunction.typeRef
         return context.withAnonymousFunction(anonymousFunction, components) {
+            doTransformTypeParameters(anonymousFunction)
             withFullBodyResolve {
                 transformFunction(
                     anonymousFunction,

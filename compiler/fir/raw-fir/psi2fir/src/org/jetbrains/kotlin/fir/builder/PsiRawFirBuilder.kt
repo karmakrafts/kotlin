@@ -52,6 +52,8 @@ import org.jetbrains.kotlin.utils.addToStdlib.shouldNotBeCalled
 import org.jetbrains.kotlin.utils.exceptions.errorWithAttachment
 import org.jetbrains.kotlin.utils.exceptions.requireWithAttachment
 import org.jetbrains.kotlin.utils.exceptions.withPsiEntry
+import org.jetbrains.kotlin.utils.filterIsInstanceMapNotNullTo
+import org.jetbrains.kotlin.utils.filterIsInstanceMapTo
 
 open class PsiRawFirBuilder(
     session: FirSession,
@@ -390,7 +392,8 @@ open class PsiRawFirBuilder(
                     )
                 }
                 is KtDestructuringDeclaration -> {
-                    buildErrorTopLevelDestructuringDeclaration(toFirSourceElement())
+                    val initializer = toInitializerExpression()
+                    buildErrorTopLevelDestructuringDeclaration(toFirSourceElement(), initializer)
                 }
                 is KtClassInitializer -> {
                     buildAnonymousInitializer(this, ownerClassBuilder.ownerRegularOrAnonymousObjectSymbol)
@@ -1246,7 +1249,10 @@ open class PsiRawFirBuilder(
                     for (declaration in file.declarations) {
                         declarations += when (declaration) {
                             is KtScript -> convertScriptOrSnippets(declaration, this@buildFile)
-                            is KtDestructuringDeclaration -> buildErrorTopLevelDestructuringDeclaration(declaration.toFirSourceElement())
+                            is KtDestructuringDeclaration -> {
+                                val initializer = declaration.toInitializerExpression()
+                                buildErrorTopLevelDestructuringDeclaration(declaration.toFirSourceElement(), initializer)
+                            }
                             else -> declaration.convert()
                         }
                     }
@@ -1960,8 +1966,29 @@ open class PsiRawFirBuilder(
                         hasExplicitParameterList = true
                         label = context.getLastLabel(function)
                         labelName = label?.name ?: context.calleeNamesForLambda.lastOrNull()?.identifier
-                        if (function.hasModifier(SUSPEND_KEYWORD)) {
-                            status = FirResolvedDeclarationStatusImpl.DEFAULT_STATUS_FOR_SUSPEND_FUNCTION_EXPRESSION
+
+                        val isExpect = function.hasExpectModifier() || context.containerIsExpect
+                        val isActual = function.hasActualModifier()
+                        val isOverride = function.hasModifier(OVERRIDE_KEYWORD)
+                        val isOperator = function.hasModifier(OPERATOR_KEYWORD)
+                        val isInfix = function.hasModifier(INFIX_KEYWORD)
+                        val isInline = function.hasModifier(INLINE_KEYWORD)
+                        val isTailRec = function.hasModifier(TAILREC_KEYWORD)
+                        val isExternal = function.hasModifier(EXTERNAL_KEYWORD)
+                        val isSuspend = function.hasModifier(SUSPEND_KEYWORD)
+
+                        if (isExpect || isActual || isOverride || isOperator || isInfix || isInline || isTailRec || isExternal || isSuspend) {
+                            status = FirResolvedDeclarationStatusImpl.DEFAULT_STATUS_FOR_STATUSLESS_DECLARATIONS.copy(
+                                isExpect = isExpect,
+                                isActual = isActual,
+                                isOverride = isOverride,
+                                isOperator = isOperator,
+                                isInfix = isInfix,
+                                isInline = isInline,
+                                isTailRec = isTailRec,
+                                isExternal = isExternal,
+                                isSuspend = isSuspend,
+                            )
                         }
                     }
                 } else {
@@ -1998,9 +2025,8 @@ open class PsiRawFirBuilder(
 
                     context.firFunctionTargets += target
                     function.extractAnnotationsTo(this)
-                    if (this is FirSimpleFunctionBuilder) {
-                        function.extractTypeParametersTo(this, symbol)
-                    }
+
+                    function.extractTypeParametersTo(this, functionSymbol)
                     contextParameters.addContextParameters(function.contextReceiverList, functionSymbol)
                     for (valueParameter in function.valueParameters) {
                         valueParameters += valueParameter.toFirValueParameter(
@@ -2009,11 +2035,8 @@ open class PsiRawFirBuilder(
                             if (isAnonymousFunction) ValueParameterDeclaration.LAMBDA else ValueParameterDeclaration.FUNCTION,
                         )
                     }
-                    val actualTypeParameters = if (this is FirSimpleFunctionBuilder)
-                        this.typeParameters
-                    else
-                        listOf()
-                    withCapturedTypeParameters(true, functionSource, actualTypeParameters) {
+
+                    withCapturedTypeParameters(true, functionSource, typeParameters) {
                         val outerContractDescription = function.obtainContractDescription()
                         val (body, innerContractDescription) = withForcedLocalContext {
                             function.buildFirBody()
@@ -2031,9 +2054,7 @@ open class PsiRawFirBuilder(
                     context.firFunctionTargets.removeLast()
                 }.build().also {
                     bindFunctionTarget(target, it)
-                    if (it is FirSimpleFunction) {
-                        function.fillDanglingConstraintsTo(it)
-                    }
+                    function.fillDanglingConstraintsTo(it)
                 }
 
                 return if (firFunction is FirAnonymousFunction) {
@@ -2249,7 +2270,7 @@ open class PsiRawFirBuilder(
             }
         }
 
-        private fun KtDeclarationWithInitializer.toInitializerExpression() =
+        protected fun KtDeclarationWithInitializer.toInitializerExpression() =
             runIf(hasInitializer()) {
                 this@PsiRawFirBuilder.context.calleeNamesForLambda += null
 
@@ -3076,6 +3097,25 @@ open class PsiRawFirBuilder(
         }
 
         override fun visitBinaryExpression(expression: KtBinaryExpression, data: FirElement?): FirElement {
+            val foldingStringConcatenationStack = expression.tryVisitFoldingStringConcatenation()
+
+            return if (foldingStringConcatenationStack != null) {
+                buildStringConcatenationCall {
+                    val stringConcatenationSource = expression.toFirSourceElement()
+                    argumentList = buildArgumentList {
+                        foldingStringConcatenationStack.mapTo(arguments) { it.convert() }
+                        source = stringConcatenationSource
+                    }
+                    source = stringConcatenationSource
+                    interpolationPrefix = ""
+                    isFoldedStrings = true
+                }
+            } else {
+                visitBinaryExpressionFallback(expression)
+            }
+        }
+
+        private fun visitBinaryExpressionFallback(expression: KtBinaryExpression): FirElement {
             val operationToken = expression.operationToken
 
             if (operationToken == IDENTIFIER) {

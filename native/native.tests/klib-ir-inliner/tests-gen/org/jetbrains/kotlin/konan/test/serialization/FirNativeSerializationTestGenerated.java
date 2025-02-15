@@ -2332,6 +2332,12 @@ public class FirNativeSerializationTestGenerated extends AbstractFirNativeSerial
       }
 
       @Test
+      @TestMetadata("kt74377.kt")
+      public void testKt74377() {
+        runTest("compiler/testData/codegen/box/bridges/kt74377.kt", TransformersFunctions.getRemoveOptionalJvmInlineAnnotation());
+      }
+
+      @Test
       @TestMetadata("longChainOneBridge.kt")
       public void testLongChainOneBridge() {
         runTest("compiler/testData/codegen/box/bridges/longChainOneBridge.kt");
@@ -3047,6 +3053,12 @@ public class FirNativeSerializationTestGenerated extends AbstractFirNativeSerial
         }
 
         @Test
+        @TestMetadata("contextFunctionAnonymous.kt")
+        public void testContextFunctionAnonymous() {
+          runTest("compiler/testData/codegen/box/callableReference/adaptedReferences/contextFunctionAnonymous.kt");
+        }
+
+        @Test
         @TestMetadata("contextFunctionWithDefaultValue.kt")
         public void testContextFunctionWithDefaultValue() {
           runTest("compiler/testData/codegen/box/callableReference/adaptedReferences/contextFunctionWithDefaultValue.kt");
@@ -3146,6 +3158,12 @@ public class FirNativeSerializationTestGenerated extends AbstractFirNativeSerial
         @TestMetadata("extensionPropertyToFun.kt")
         public void testExtensionPropertyToFun() {
           runTest("compiler/testData/codegen/box/callableReference/adaptedReferences/extensionPropertyToFun.kt");
+        }
+
+        @Test
+        @TestMetadata("extensionPropertyWithAnonymousContextFun.kt")
+        public void testExtensionPropertyWithAnonymousContextFun() {
+          runTest("compiler/testData/codegen/box/callableReference/adaptedReferences/extensionPropertyWithAnonymousContextFun.kt");
         }
 
         @Test
@@ -7520,15 +7538,45 @@ public class FirNativeSerializationTestGenerated extends AbstractFirNativeSerial
       }
 
       @Test
+      @TestMetadata("contextualAnonymousFunAsAnExpression.kt")
+      public void testContextualAnonymousFunAsAnExpression() {
+        runTest("compiler/testData/codegen/box/contextParameters/contextualAnonymousFunAsAnExpression.kt");
+      }
+
+      @Test
       @TestMetadata("contextualAnonymousFunction.kt")
       public void testContextualAnonymousFunction() {
         runTest("compiler/testData/codegen/box/contextParameters/contextualAnonymousFunction.kt");
       }
 
       @Test
+      @TestMetadata("contextualLocalFunAndTopLevelFun.kt")
+      public void testContextualLocalFunAndTopLevelFun() {
+        runTest("compiler/testData/codegen/box/contextParameters/contextualLocalFunAndTopLevelFun.kt");
+      }
+
+      @Test
+      @TestMetadata("contextualLocalFunWithExtensiionReceiver.kt")
+      public void testContextualLocalFunWithExtensiionReceiver() {
+        runTest("compiler/testData/codegen/box/contextParameters/contextualLocalFunWithExtensiionReceiver.kt");
+      }
+
+      @Test
+      @TestMetadata("contextualLocalFunWithTypeParam.kt")
+      public void testContextualLocalFunWithTypeParam() {
+        runTest("compiler/testData/codegen/box/contextParameters/contextualLocalFunWithTypeParam.kt");
+      }
+
+      @Test
       @TestMetadata("contextualLocalFunction.kt")
       public void testContextualLocalFunction() {
         runTest("compiler/testData/codegen/box/contextParameters/contextualLocalFunction.kt");
+      }
+
+      @Test
+      @TestMetadata("contextualLocalWithLocalExtensionAndValue.kt")
+      public void testContextualLocalWithLocalExtensionAndValue() {
+        runTest("compiler/testData/codegen/box/contextParameters/contextualLocalWithLocalExtensionAndValue.kt");
       }
 
       @Test
@@ -7562,9 +7610,21 @@ public class FirNativeSerializationTestGenerated extends AbstractFirNativeSerial
       }
 
       @Test
+      @TestMetadata("sameNameWithLocalValueParameter.kt")
+      public void testSameNameWithLocalValueParameter() {
+        runTest("compiler/testData/codegen/box/contextParameters/sameNameWithLocalValueParameter.kt");
+      }
+
+      @Test
       @TestMetadata("sameNameWithMemberProperty.kt")
       public void testSameNameWithMemberProperty() {
         runTest("compiler/testData/codegen/box/contextParameters/sameNameWithMemberProperty.kt");
+      }
+
+      @Test
+      @TestMetadata("sameNameWithOuterContext.kt")
+      public void testSameNameWithOuterContext() {
+        runTest("compiler/testData/codegen/box/contextParameters/sameNameWithOuterContext.kt");
       }
 
       @Test
@@ -29969,16 +30029,6 @@ public class FirNativeSerializationTestGenerated extends AbstractFirNativeSerial
           @Test
           public void testAllFilesPresentInHmpp() {
             KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/box/multiplatform/k2/hmpp"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.NATIVE, true);
-          }
-        }
-
-        @Nested
-        @TestMetadata("compiler/testData/codegen/box/multiplatform/k2/lightTree")
-        @TestDataPath("$PROJECT_ROOT")
-        public class LightTree {
-          @Test
-          public void testAllFilesPresentInLightTree() {
-            KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/box/multiplatform/k2/lightTree"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.NATIVE, true);
           }
         }
 

@@ -158,13 +158,18 @@ message IrInlinedFunctionBlock {
 }
 
 message MemberAccessCommon {
+  // Value argument serialization scheme after 2.2.0
+  repeated NullableIrExpression argument = 6;
+
+  // Value argument serialization scheme before 2.2.0
   optional IrExpression dispatch_receiver = 1;
-  // Context parameters cannot have default values but we use NullableIrExpression here just in case
-  // that will be allowed in the future, to help with compatibility.
-  repeated NullableIrExpression context_argument = 5;
   optional IrExpression extension_receiver = 2;
   repeated NullableIrExpression regular_argument = 3;
+
   repeated int32 type_argument = 4 [packed=true];
+
+  // Previously used fields:
+  //repeated NullableIrExpression context_argument = 5;
 }
 
 message IrCall {
@@ -596,10 +601,6 @@ message IrTypeAlias {
   repeated IrTypeParameter type_parameter = 3;
 }
 
-message IrErrorDeclaration {
-  required int64 coordinates = 1;
-}
-
 message IrEnumEntry {
   required IrDeclarationBase base = 1;
   required int32 name = 2;
@@ -629,7 +630,9 @@ message IrDeclaration {
     IrValueParameter ir_value_parameter = 10;
     IrLocalDelegatedProperty ir_local_delegated_property = 11;
     IrTypeAlias ir_type_alias = 12;
-    IrErrorDeclaration ir_error_declaration = 13;
+
+    // WARNING: Don't occupy index 13 which was previously used for storing IrErrorDeclaration.
+    // IrErrorDeclaration ir_error_declaration = 13;
   }
 }
 

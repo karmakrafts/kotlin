@@ -6,13 +6,17 @@
 package org.jetbrains.kotlin.gradle
 
 import org.gradle.util.GradleVersion
+import org.jetbrains.kotlin.gradle.targets.js.binaryen.BinaryenEnvSpec
 import org.jetbrains.kotlin.gradle.targets.js.dsl.Distribution
 import org.jetbrains.kotlin.gradle.testbase.*
 import org.jetbrains.kotlin.gradle.util.replaceText
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.condition.OS
 import java.nio.file.Files
+import kotlin.io.path.Path
 import kotlin.io.path.appendText
+import kotlin.io.path.invariantSeparatorsPathString
+import kotlin.io.path.pathString
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.assertTrue
@@ -435,6 +439,37 @@ class KotlinWasmGradlePluginIT : KGPBaseTest() {
             )
 
             build("help")
+        }
+    }
+
+    @OptIn(ExperimentalWasmDsl::class)
+    @DisplayName("Different binaryen versions per project")
+    @GradleTest
+    fun testDifferentBinaryenVersions(gradleVersion: GradleVersion) {
+        project("wasm-browser-several-modules", gradleVersion) {
+            subProject("foo").let {
+                it.buildScriptInjection {
+                    project.extensions.getByType(BinaryenEnvSpec::class.java).version.set("119")
+                }
+            }
+
+            subProject("bar").let {
+                it.buildScriptInjection {
+                    project.extensions.getByType(BinaryenEnvSpec::class.java).version.set("118")
+                }
+            }
+
+            build(":foo:compileProductionExecutableKotlinWasmJsOptimize") {
+                assertOutputContains(
+                    Path("binaryen-version_119").resolve("bin").resolve("wasm-opt").pathString
+                )
+            }
+
+            build(":bar:compileProductionExecutableKotlinWasmJsOptimize") {
+                assertOutputContains(
+                    Path("binaryen-version_118").resolve("bin").resolve("wasm-opt").pathString
+                )
+            }
         }
     }
 }

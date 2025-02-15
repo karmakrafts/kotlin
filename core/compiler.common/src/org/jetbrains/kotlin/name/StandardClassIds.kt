@@ -162,7 +162,25 @@ object StandardClassIds {
 
     val EnumEntries = "EnumEntries".enumsId()
 
+    val AtomicBoolean = "AtomicBoolean".atomicsId()
+    val AtomicInt = "AtomicInt".atomicsId()
+    val AtomicLong = "AtomicLong".atomicsId()
     val AtomicReference = "AtomicReference".atomicsId()
+
+    val atomicByPrimitive = mapOf(
+        Boolean to AtomicBoolean,
+        Int to AtomicInt,
+        Long to AtomicLong,
+    )
+
+    val AtomicArray = "AtomicArray".atomicsId()
+    val AtomicIntArray = "AtomicIntArray".atomicsId()
+    val AtomicLongArray = "AtomicLongArray".atomicsId()
+
+    val atomicArrayByPrimitive = mapOf(
+        Int to AtomicIntArray,
+        Long to AtomicLongArray,
+    )
 
     object Annotations {
         val Suppress = "Suppress".baseId()
@@ -257,6 +275,11 @@ object StandardClassIds {
         val not = "not".callableId(Boolean)
 
         val contract = "contract".callableId(BASE_CONTRACTS_PACKAGE)
+
+        val atomicReferenceCompareAndSet = "compareAndSet".callableId(AtomicReference)
+        val atomicReferenceCompareAndExchange = "compareAndExchange".callableId(AtomicReference)
+        val atomicArrayCompareAndSetAt = "compareAndSetAt".callableId(AtomicArray)
+        val atomicArrayCompareAndExchangeAt = "compareAndExchangeAt".callableId(AtomicArray)
     }
 
     object Collections {

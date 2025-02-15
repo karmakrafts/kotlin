@@ -56,7 +56,6 @@ import org.jetbrains.kotlin.types.model.TypeCheckerProviderContext
 import org.jetbrains.kotlin.util.ImplementationStatus
 import org.jetbrains.kotlin.util.OperatorNameConventions
 import org.jetbrains.kotlin.util.getChildren
-import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -986,17 +985,19 @@ private fun ConeKotlinType.containsMalformedArgument(context: CheckerContext, al
         it.type?.fullyExpandedType(context.session)?.isMalformedExpandedType(context, allowNullableNothing) == true
     }
 
-fun checkAtomicReferenceAccess(
+fun reportAtomicToPrimitiveProblematicAccess(
     type: ConeKotlinType,
     source: KtSourceElement?,
     atomicReferenceClassId: ClassId,
+    appropriateCandidatesForArgument: Map<ClassId, ClassId>,
     context: CheckerContext,
     reporter: DiagnosticReporter,
 ) {
     val expanded = type.fullyExpandedType(context.session)
     val argument = expanded.typeArguments.firstOrNull()?.type ?: return
 
-    if (expanded.classId == atomicReferenceClassId && (argument.isPrimitive || argument.isValueClass(context.session))) {
-        reporter.reportOn(source, FirErrors.ATOMIC_REF_WITHOUT_CONSISTENT_IDENTITY, atomicReferenceClassId, argument, context)
+    if (argument.isPrimitive || argument.isValueClass(context.session)) {
+        val candidate = appropriateCandidatesForArgument[argument.classId]
+        reporter.reportOn(source, FirErrors.ATOMIC_REF_WITHOUT_CONSISTENT_IDENTITY, atomicReferenceClassId, argument, candidate, context)
     }
 }

@@ -214,12 +214,6 @@ class ExpressionCodegen(
         expression.accept(this, data).materializeAt(type, irType)
     }
 
-    // TODO remove
-    fun genToStackValue(expression: IrExpression, type: Type, irType: IrType, data: BlockInfo): StackValue {
-        gen(expression, type, irType, data)
-        return StackValue.onStack(type, irType.toIrBasedKotlinType())
-    }
-
     fun generate() {
         mv.visitCode()
         val startLabel = markNewLabel()
@@ -777,9 +771,10 @@ class ExpressionCodegen(
         val irValueDeclaration = expression.symbol.owner
         val realType = irValueDeclaration.realType
         val kotlinType = if (eraseType) realType.upperBound.withNullability(realType.isNullable()) else realType
-        StackValue.local(variableIndex, asmType, kotlinType.toIrBasedKotlinType())
+        StackValue.Local(variableIndex, asmType, kotlinType.toIrBasedKotlinType())
     } else {
-        genToStackValue(expression, type, parameterType, data)
+        gen(expression, type, parameterType, data)
+        StackValue.OnStack(type, parameterType.toIrBasedKotlinType())
     }
 
     // We do not mangle functions if Result is the only parameter of the function. This means that if a function
@@ -1485,7 +1480,7 @@ class ExpressionCodegen(
                     IrConstKind.String -> JAVA_STRING_TYPE
                     IrConstKind.Null -> OBJECT_TYPE
                 }
-                generator.putValueOrProcessConstant(StackValue.constant(arg.value, type, null))
+                generator.putValueOrProcessConstant(arg.value, type)
             } else {
                 val value = arg.accept(this, data)
                 val generatingType = if (value.type == Type.VOID_TYPE) AsmTypes.UNIT_TYPE else value.type

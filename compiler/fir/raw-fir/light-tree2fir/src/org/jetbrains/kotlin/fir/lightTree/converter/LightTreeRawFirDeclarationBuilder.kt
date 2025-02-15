@@ -101,7 +101,10 @@ class LightTreeRawFirDeclarationBuilder(
                 KtNodeTypes.PROPERTY -> firDeclarationList += convertPropertyDeclaration(child)
                 TYPEALIAS -> firDeclarationList += convertTypeAlias(child)
                 OBJECT_DECLARATION -> firDeclarationList += convertClass(child)
-                DESTRUCTURING_DECLARATION -> firDeclarationList += buildErrorTopLevelDestructuringDeclaration(child.toFirSourceElement())
+                DESTRUCTURING_DECLARATION -> {
+                    val initializer = buildFirDestructuringDeclarationInitializer(child)
+                    firDeclarationList += buildErrorTopLevelDestructuringDeclaration(child.toFirSourceElement(), initializer)
+                }
                 SCRIPT -> {
                     // TODO: scripts aren't supported yet
                 }
@@ -918,7 +921,10 @@ class LightTreeRawFirDeclarationBuilder(
                 CLASS_INITIALIZER -> container += convertAnonymousInitializer(node, classWrapper) //anonymousInitializer
                 SECONDARY_CONSTRUCTOR -> container += convertSecondaryConstructor(node, classWrapper)
                 MODIFIER_LIST -> modifierLists += node
-                DESTRUCTURING_DECLARATION -> container += buildErrorTopLevelDestructuringDeclaration(node.toFirSourceElement())
+                DESTRUCTURING_DECLARATION -> {
+                    val initializer = buildFirDestructuringDeclarationInitializer(node)
+                    container += buildErrorTopLevelDestructuringDeclaration(node.toFirSourceElement(), initializer)
+                }
             }
         }
 
@@ -928,6 +934,11 @@ class LightTreeRawFirDeclarationBuilder(
             }
         }
         return firDeclarations
+    }
+
+    private fun buildFirDestructuringDeclarationInitializer(destructuringDeclaration: LighterASTNode): FirExpression {
+        val initializer = destructuringDeclaration.getChildExpression().takeUnless { it?.tokenType == PROPERTY_DELEGATE }
+        return expressionConverter.getAsFirExpression(initializer, "Initializer required for destructuring declaration")
     }
 
     private fun buildErrorTopLevelDeclarationForDanglingModifierList(node: LighterASTNode) = buildDanglingModifierList {
@@ -1890,8 +1901,29 @@ class LightTreeRawFirDeclarationBuilder(
                     label = context.getLastLabel(functionDeclaration)
                     val labelName = label?.name ?: context.calleeNamesForLambda.lastOrNull()?.identifier
                     target = FirFunctionTarget(labelName = labelName, isLambda = false)
-                    if (calculatedModifiers.hasSuspend()) {
-                        status = FirResolvedDeclarationStatusImpl.DEFAULT_STATUS_FOR_SUSPEND_FUNCTION_EXPRESSION
+
+                    val isExpect = calculatedModifiers.hasExpect() || context.containerIsExpect
+                    val isActual = calculatedModifiers.hasActual()
+                    val isOverride = calculatedModifiers.hasOverride()
+                    val isOperator = calculatedModifiers.hasOperator()
+                    val isInfix = calculatedModifiers.hasInfix()
+                    val isInline = calculatedModifiers.hasInline()
+                    val isTailRec = calculatedModifiers.hasTailrec()
+                    val isExternal = calculatedModifiers.hasExternal()
+                    val isSuspend = calculatedModifiers.hasSuspend()
+
+                    if (isExpect || isActual || isOverride || isOperator || isInfix || isInline || isTailRec || isExternal || isSuspend) {
+                        status = FirResolvedDeclarationStatusImpl.DEFAULT_STATUS_FOR_STATUSLESS_DECLARATIONS.copy(
+                            isExpect = isExpect,
+                            isActual = isActual,
+                            isOverride = isOverride,
+                            isOperator = isOperator,
+                            isInfix = isInfix,
+                            isInline = isInline,
+                            isTailRec = isTailRec,
+                            isExternal = isExternal,
+                            isSuspend = isSuspend,
+                        )
                     }
                 }
             } else {
@@ -1932,15 +1964,9 @@ class LightTreeRawFirDeclarationBuilder(
 
                 context.firFunctionTargets += target
                 modifiers?.convertAnnotationsTo(annotations)
+                typeParameters += firTypeParameters
 
-                val actualTypeParameters = if (this is FirSimpleFunctionBuilder) {
-                    typeParameters += firTypeParameters
-                    typeParameters
-                } else {
-                    listOf()
-                }
-
-                withCapturedTypeParameters(true, functionSource, actualTypeParameters) {
+                withCapturedTypeParameters(true, functionSource, typeParameters) {
                     contextParameters.addContextParameters(modifiers?.contextList, functionSymbol)
 
                     valueParametersList?.let { list ->
@@ -1968,9 +1994,7 @@ class LightTreeRawFirDeclarationBuilder(
                 context.firFunctionTargets.removeLast()
             }.build().also {
                 target.bind(it)
-                if (it is FirSimpleFunction) {
-                    fillDanglingConstraintsTo(firTypeParameters, typeConstraints, it)
-                }
+                fillDanglingConstraintsTo(firTypeParameters, typeConstraints, it)
             }
 
             return if (function is FirAnonymousFunction) {

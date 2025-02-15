@@ -355,7 +355,8 @@ include ":kotlin-imports-dumper-compiler-plugin",
 include ":libraries:tools:abi-comparator"
 
 include ":libraries:tools:abi-validation:abi-tools",
-        ":libraries:tools:abi-validation:abi-tools-api"
+        ":libraries:tools:abi-validation:abi-tools-api",
+        ":libraries:tools:abi-validation:kgp-integration-tests"
 
 include ":kotlin-atomicfu-compiler-plugin",
         ":kotlin-atomicfu-compiler-plugin-embeddable",
@@ -510,6 +511,9 @@ include ":native:swift:sir",
         ":native:swift:sir-providers",
         ":native:swift:swift-export-standalone",
         ":native:swift:swift-export-ide",
+        ":native:swift:swift-export-standalone-integration-tests",
+        ":native:swift:swift-export-standalone-integration-tests:simple",
+        ":native:swift:swift-export-standalone-integration-tests:external",
         ":generators:sir-tests-generator"
 
 if (!buildProperties.inJpsBuildIdeaSync) {

@@ -2042,6 +2042,7 @@ internal class ContextParametersWithBackingFieldImpl(
 ) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.ContextParametersWithBackingField
 
 internal class ContextReceiversDeprecatedImpl(
+    override val message: String,
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.ContextReceiversDeprecated
@@ -2564,6 +2565,7 @@ internal class GenericQualifierOnConstructorCallWarningImpl(
 internal class AtomicRefWithoutConsistentIdentityImpl(
     override val atomicRef: ClassId,
     override val argumentType: KaType,
+    override val suggestedType: ClassId?,
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.AtomicRefWithoutConsistentIdentity
@@ -4718,10 +4720,15 @@ internal class DeprecatedAccessToEntriesAsQualifierImpl(
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.DeprecatedAccessToEntriesAsQualifier
 
-internal class DeprecatedDeclarationOfEnumEntryImpl(
+internal class DeclarationOfEnumEntryEntriesErrorImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
-) : KaAbstractFirDiagnostic<KtEnumEntry>(firDiagnostic, token), KaFirDiagnostic.DeprecatedDeclarationOfEnumEntry
+) : KaAbstractFirDiagnostic<KtEnumEntry>(firDiagnostic, token), KaFirDiagnostic.DeclarationOfEnumEntryEntriesError
+
+internal class DeclarationOfEnumEntryEntriesWarningImpl(
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtEnumEntry>(firDiagnostic, token), KaFirDiagnostic.DeclarationOfEnumEntryEntriesWarning
 
 internal class IncompatibleClassImpl(
     override val presentableString: String,

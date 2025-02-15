@@ -12,7 +12,6 @@ import org.jetbrains.kotlin.descriptors.ReceiverParameterDescriptor
 import org.jetbrains.kotlin.ir.AbstractIrFileEntry
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrFileEntry
-import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.symbols.*
@@ -23,7 +22,6 @@ import org.jetbrains.kotlin.name.SpecialNames.IMPLICIT_SET_PARAMETER
 import org.jetbrains.kotlin.renderer.DescriptorRenderer
 import org.jetbrains.kotlin.types.Variance
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
-import org.jetbrains.kotlin.utils.addIfNotNull
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 import org.jetbrains.kotlin.utils.addToStdlib.runIf
 import org.jetbrains.kotlin.utils.addToStdlib.runUnless
@@ -32,8 +30,10 @@ import java.io.File
 fun IrElement.render(options: DumpIrTreeOptions = DumpIrTreeOptions()) =
     accept(RenderIrElementVisitor(options), null)
 
-open class RenderIrElementVisitor(private val options: DumpIrTreeOptions = DumpIrTreeOptions()) :
-    IrVisitor<String, Nothing?>() {
+open class RenderIrElementVisitor(
+    private val options: DumpIrTreeOptions = DumpIrTreeOptions(),
+    private var isUsedForIrDump: Boolean = false,
+) : IrVisitor<String, Nothing?>() {
 
     private val flagsRenderer = FlagsRenderer(options.declarationFlagsFilter, isReference = false)
     private val variableNameData = VariableNameData(options.normalizeNames)
@@ -127,7 +127,7 @@ open class RenderIrElementVisitor(private val options: DumpIrTreeOptions = DumpI
         override fun visitValueParameter(declaration: IrValueParameter, data: Nothing?) =
             buildTrimEnd {
                 runUnless(hideParameterNames) {
-                    append(declaration.renderValueParameterName(options))
+                    append(declaration.renderValueParameterName(options, disambiguate = true))
                     append(": ")
                 }
                 append(declaration.type.renderTypeWithRenderer(null, options))
@@ -156,22 +156,17 @@ open class RenderIrElementVisitor(private val options: DumpIrTreeOptions = DumpI
 
                 renderTypeParameters(declaration)
 
-                appendIterableWith(declaration.valueParameters, "(", ")", ", ") { valueParameter ->
+                appendIterableWith(declaration.nonDispatchParameters, "(", ")", ", ") { valueParameter ->
                     val varargElementType = valueParameter.varargElementType
                     if (varargElementType != null) {
                         append("vararg ")
-                        runUnless(hideParameterNames) {
-                            append(valueParameter.renderValueParameterName(options))
-                            append(": ")
-                        }
-                        append(varargElementType.renderTypeWithRenderer(null, options))
-                    } else {
-                        runUnless(hideParameterNames) {
-                            append(valueParameter.renderValueParameterName(options))
-                            append(": ")
-                        }
-                        append(valueParameter.type.renderTypeWithRenderer(null, options))
                     }
+
+                    runUnless(hideParameterNames) {
+                        append(valueParameter.renderValueParameterName(options))
+                        append(": ")
+                    }
+                    append((varargElementType ?: valueParameter.type).renderTypeWithRenderer(null, options))
                 }
 
                 if (declaration is IrSimpleFunction) {
@@ -309,17 +304,18 @@ open class RenderIrElementVisitor(private val options: DumpIrTreeOptions = DumpI
                     "name:$name " +
                     renderSignatureIfEnabled(options.printSignatures) +
                     "visibility:$visibility modality:$modality " +
-                    renderTypeParameters() + " " +
-                    renderValueParameterTypes() + " " +
+                    (if (!isUsedForIrDump) {
+                        renderTypeParameters() + " " +
+                        renderValueParameterTypes() + " "
+                    } else "") +
                     "returnType:${renderReturnType(this@RenderIrElementVisitor, options)} " +
                     renderSimpleFunctionFlags(flagsRenderer)
         }
 
-    private fun IrFunction.renderValueParameterTypes(): String = buildList {
-        addIfNotNull(dispatchReceiverParameter?.run { "\$this:${renderValueParameterType(options)}" })
-        addIfNotNull(extensionReceiverParameter?.run { "\$receiver:${type.render()}" })
-        valueParameters.mapTo(this) { "${it.renderValueParameterName(options)}:${it.type.render()}" }
-    }.joinToString(separator = ", ", prefix = "(", postfix = ")")
+    private fun IrFunction.renderValueParameterTypes(): String =
+        parameters.joinToString(separator = ", ", prefix = "(", postfix = ")") {
+            "${it.renderValueParameterName(options)}:${it.renderValueParameterType(options)}"
+        }
 
     override fun visitConstructor(declaration: IrConstructor, data: Nothing?): String =
         declaration.runTrimEnd {
@@ -328,8 +324,10 @@ open class RenderIrElementVisitor(private val options: DumpIrTreeOptions = DumpI
                     renderOriginIfNonTrivial(options) +
                     renderSignatureIfEnabled(options.printSignatures) +
                     "visibility:$visibility " +
-                    renderTypeParameters() + " " +
-                    renderValueParameterTypes() + " " +
+                    (if (!isUsedForIrDump) {
+                        renderTypeParameters() + " " +
+                        renderValueParameterTypes() + " "
+                    } else "") +
                     "returnType:${renderReturnType(this@RenderIrElementVisitor, options)} " +
                     renderConstructorFlags(flagsRenderer)
         }
@@ -375,8 +373,9 @@ open class RenderIrElementVisitor(private val options: DumpIrTreeOptions = DumpI
             "VALUE_PARAMETER" +
                     "${renderOffsets(options)} " +
                     renderOriginIfNonTrivial(options) +
+                    "kind:$kind " +
                     "name:${renderValueParameterName(options)} " +
-                    (if (indexInOldValueParameters >= 0) "index:$indexInOldValueParameters " else "") +
+                    (if (indexInParameters >= 0) "index:$indexInParameters " else "") +
                     "type:${renderValueParameterType(options)} " +
                     (varargElementType?.let { "varargElementType:${it.render()} " } ?: "") +
                     renderValueParameterFlags(flagsRenderer)
@@ -631,13 +630,6 @@ open class RenderIrElementVisitor(private val options: DumpIrTreeOptions = DumpI
     override fun visitDynamicMemberExpression(expression: IrDynamicMemberExpression, data: Nothing?): String =
         "DYN_MEMBER${expression.renderOffsets(options)} memberName='${expression.memberName}' type=${expression.type.render()}"
 
-    @OptIn(ObsoleteDescriptorBasedAPI::class)
-    override fun visitErrorDeclaration(declaration: IrErrorDeclaration, data: Nothing?): String =
-        "ERROR_DECL" +
-                "${declaration.renderOffsets(options)} " +
-                "${declaration.descriptor::class.java.simpleName} " +
-                descriptorRendererForErrorDeclarations.renderDescriptor(declaration.descriptor.original)
-
     override fun visitErrorExpression(expression: IrErrorExpression, data: Nothing?): String =
         "ERROR_EXPR${expression.renderOffsets(options)} '${expression.description}' type=${expression.type.render()}"
 
@@ -652,9 +644,6 @@ open class RenderIrElementVisitor(private val options: DumpIrTreeOptions = DumpI
 
     override fun visitConstantPrimitive(expression: IrConstantPrimitive, data: Nothing?): String =
         "CONSTANT_PRIMITIVE${expression.renderOffsets(options)} type=${expression.type.render()}"
-
-
-    private val descriptorRendererForErrorDeclarations = DescriptorRenderer.ONLY_NAMES_WITH_SHORT_TYPES
 }
 
 private fun IrValueParameter.renderValueParameterType(options: DumpIrTreeOptions): String {
@@ -668,9 +657,18 @@ private fun IrValueParameter.renderValueParameterType(options: DumpIrTreeOptions
     }
 }
 
-internal fun IrValueParameter.renderValueParameterName(options: DumpIrTreeOptions): String {
-    val name = runIf(name == IMPLICIT_SET_PARAMETER) { options.replaceImplicitSetterParameterNameWith } ?: name
-    return name.asString()
+internal fun IrValueParameter.renderValueParameterName(options: DumpIrTreeOptions, disambiguate: Boolean = false): String {
+    val name = runIf(name == IMPLICIT_SET_PARAMETER) { options.replaceImplicitSetterParameterNameWith?.asString() } ?: name.asString()
+    if (disambiguate) {
+        val parent = _parent
+        if (parent is IrFunction) {
+            if (parent.parameters.any { it !== this && it.renderValueParameterName(options) == name }) {
+                return "$name(index:${indexInParameters})"
+            }
+        }
+    }
+
+    return name
 }
 
 internal fun DescriptorRenderer.renderDescriptor(descriptor: DeclarationDescriptor): String =
@@ -1023,14 +1021,13 @@ private fun StringBuilder.renderAsAnnotation(
         }
     }
 
-    if (irAnnotation.valueArgumentsCount == 0) return
+    if (irAnnotation.arguments.isEmpty()) return
 
     val valueParameterNames = irAnnotation.getValueParameterNamesForDebug(options)
-
-    appendIterableWith(0 until irAnnotation.valueArgumentsCount, separator = ", ", prefix = "(", postfix = ")") {
+    appendIterableWith(irAnnotation.arguments.indices, separator = ", ", prefix = "(", postfix = ")") {
         append(valueParameterNames[it])
         append(" = ")
-        renderAsAnnotationArgument(irAnnotation.getValueArgument(it), renderer, options)
+        renderAsAnnotationArgument(irAnnotation.arguments[it], renderer, options)
     }
 }
 

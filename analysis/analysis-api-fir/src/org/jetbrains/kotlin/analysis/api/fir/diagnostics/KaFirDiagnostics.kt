@@ -1704,6 +1704,7 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
 
     interface ContextReceiversDeprecated : KaFirDiagnostic<KtElement> {
         override val diagnosticClass get() = ContextReceiversDeprecated::class
+        val message: String
     }
 
     interface ContextClassOrConstructor : KaFirDiagnostic<KtElement> {
@@ -2138,6 +2139,7 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         override val diagnosticClass get() = AtomicRefWithoutConsistentIdentity::class
         val atomicRef: ClassId
         val argumentType: KaType
+        val suggestedType: ClassId?
     }
 
     interface ExtensionInClassReferenceNotAllowed : KaFirDiagnostic<KtExpression> {
@@ -3916,8 +3918,12 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         override val diagnosticClass get() = DeprecatedAccessToEntriesAsQualifier::class
     }
 
-    interface DeprecatedDeclarationOfEnumEntry : KaFirDiagnostic<KtEnumEntry> {
-        override val diagnosticClass get() = DeprecatedDeclarationOfEnumEntry::class
+    interface DeclarationOfEnumEntryEntriesError : KaFirDiagnostic<KtEnumEntry> {
+        override val diagnosticClass get() = DeclarationOfEnumEntryEntriesError::class
+    }
+
+    interface DeclarationOfEnumEntryEntriesWarning : KaFirDiagnostic<KtEnumEntry> {
+        override val diagnosticClass get() = DeclarationOfEnumEntryEntriesWarning::class
     }
 
     interface IncompatibleClass : KaFirDiagnostic<PsiElement> {

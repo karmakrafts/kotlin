@@ -675,7 +675,7 @@ object FirTree : AbstractFirTreeBuilder() {
     }
 
     val errorProperty: Element by element(Declaration) {
-        parent(variable)
+        parent(property)
         parent(diagnosticHolder)
 
         +declaredSymbol(errorPropertySymbolType)
@@ -1014,6 +1014,7 @@ object FirTree : AbstractFirTreeBuilder() {
         parent(expression)
 
         +field("interpolationPrefix", string)
+        +field("isFoldedStrings", boolean)
     }
 
     val throwExpression: Element by element(Expression) {

@@ -32,7 +32,8 @@ abstract class PerformanceManager(private val presentableName: String) {
         BinaryClassFromKotlinFileMeasurement::class to BinaryClassFromKotlinFileMeasurement(0, 0),
     )
 
-    protected var isEnabled: Boolean = false
+    var isEnabled: Boolean = false
+        protected set
     private var isK2: Boolean = true
     private var initStartNanos = currentTime()
     private var analysisStart: Long = 0
@@ -44,7 +45,7 @@ abstract class PerformanceManager(private val presentableName: String) {
     private var irLoweringStart: Long = 0
     private var irGenerationStart: Long = 0
 
-    private var targetDescription: String? = null
+    var targetDescription: String? = null
     protected var files: Int? = null
     protected var lines: Int? = null
 
@@ -72,13 +73,10 @@ abstract class PerformanceManager(private val presentableName: String) {
 
     private fun deltaTime(start: Long): Long = currentTime() - start
 
-    open fun notifyCompilerInitialized(files: Int, lines: Int, targetDescription: String) {
+    open fun notifyCompilerInitialized() {
         if (!isEnabled) return
-        recordInitializationTime()
-
-        this.files = files
-        this.lines = lines
-        this.targetDescription = targetDescription
+        val time = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - initStartNanos)
+        measurements += CompilerInitializationMeasurement(time)
     }
 
     open fun notifyCompilationFinished() {
@@ -154,7 +152,12 @@ abstract class PerformanceManager(private val presentableName: String) {
     }
 
     fun dumpPerformanceReport(destination: File) {
-        destination.writeBytes(createPerformanceReport())
+        destination.writeBytes(createPerformanceReport().toByteArray())
+    }
+
+    fun createPerformanceReport(): String = buildString {
+        append("$presentableName performance report\n")
+        getMeasurementResults().map { it.render() }.sorted().forEach { append("$it\n") }
     }
 
     private fun recordGcTime() {
@@ -177,11 +180,6 @@ abstract class PerformanceManager(private val presentableName: String) {
 
         val bean = ManagementFactory.getCompilationMXBean() ?: return
         measurements += JitCompilationMeasurement(bean.totalCompilationTime)
-    }
-
-    private fun recordInitializationTime() {
-        val time = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - initStartNanos)
-        measurements += CompilerInitializationMeasurement(time)
     }
 
     private fun recordPerfCountersMeasurements() {
@@ -210,11 +208,6 @@ abstract class PerformanceManager(private val presentableName: String) {
             }
         }
     }
-
-    private fun createPerformanceReport(): ByteArray = buildString {
-        append("$presentableName performance report\n")
-        getMeasurementResults().map { it.render() }.sorted().forEach { append("$it\n") }
-    }.toByteArray()
 
     private data class GCData(val name: String, val collectionTime: Long, val collectionCount: Long) {
         constructor(bean: GarbageCollectorMXBean) : this(bean.name, bean.collectionTime, bean.collectionCount)

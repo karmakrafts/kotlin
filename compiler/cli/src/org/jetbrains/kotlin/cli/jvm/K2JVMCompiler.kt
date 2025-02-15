@@ -121,10 +121,6 @@ class K2JVMCompiler : CLICompiler<K2JVMCompilerArguments>() {
                 )
             projectEnvironment.registerExtensionsFromPlugins(configuration)
 
-            if (arguments.useOldBackend) {
-                messageCollector.report(WARNING, "-Xuse-old-backend is no longer supported. Please migrate to the new JVM IR backend")
-            }
-
             if (arguments.script || arguments.expression != null) {
                 val scriptingEvaluator = ScriptEvaluationExtension.getInstances(projectEnvironment.project).find { it.isAccepted(arguments) }
                 if (scriptingEvaluator == null) {
@@ -142,12 +138,6 @@ class K2JVMCompiler : CLICompiler<K2JVMCompilerArguments>() {
             }
         }
 
-        if (arguments.useOldBackend) {
-            val severity = if (isUseOldBackendAllowed()) WARNING else ERROR
-            messageCollector.report(severity, "-Xuse-old-backend is no longer supported. Please migrate to the new JVM IR backend")
-            if (severity == ERROR) return COMPILATION_ERROR
-        }
-
         messageCollector.report(LOGGING, "Configuring the compilation environment")
         try {
             val buildFile = arguments.buildFile?.let { File(it) }
@@ -162,7 +152,10 @@ class K2JVMCompiler : CLICompiler<K2JVMCompilerArguments>() {
             val environment = createCoreEnvironment(
                 rootDisposable, configuration, messageCollector,
                 moduleChunk.targetDescription()
-            ) ?: return COMPILATION_ERROR
+            ) ?: run {
+                configuration.perfManager?.notifyCompilerInitialized()
+                return COMPILATION_ERROR
+            }
             environment.registerJavacIfNeeded(arguments).let {
                 if (!it) return COMPILATION_ERROR
             }
@@ -249,14 +242,15 @@ class K2JVMCompiler : CLICompiler<K2JVMCompilerArguments>() {
             messageCollector: MessageCollector,
             targetDescription: String
         ): KotlinCoreEnvironment? {
+            val perfManager = configuration.perfManager
+            perfManager?.targetDescription = targetDescription
+
             if (messageCollector.hasErrors()) return null
 
             val environment = KotlinCoreEnvironment.createForProduction(rootDisposable, configuration, EnvironmentConfigFiles.JVM_CONFIG_FILES)
 
             val sourceFiles = environment.getSourceFiles()
-            configuration[CLIConfigurationKeys.PERF_MANAGER]?.notifyCompilerInitialized(
-                sourceFiles.size, environment.countLinesOfCode(sourceFiles), targetDescription
-            )
+            perfManager?.addSourcesStats(sourceFiles.size, environment.countLinesOfCode(sourceFiles))
 
             return if (messageCollector.hasErrors()) null else environment
         }
@@ -281,9 +275,6 @@ class K2JVMCompiler : CLICompiler<K2JVMCompilerArguments>() {
     override fun createPerformanceManager(arguments: K2JVMCompilerArguments, services: Services): PerformanceManager {
         return createCustomPerformanceManagerOrNull(arguments, services) ?: defaultPerformanceManager
     }
-
-    private fun isUseOldBackendAllowed(): Boolean =
-        K2JVMCompiler::class.java.classLoader.getResource("META-INF/unsafe-allow-use-old-backend") != null
 }
 
 fun CompilerConfiguration.configureModuleChunk(

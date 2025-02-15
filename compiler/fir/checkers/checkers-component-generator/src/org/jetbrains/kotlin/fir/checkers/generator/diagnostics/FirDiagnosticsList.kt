@@ -768,7 +768,9 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         val UNSUPPORTED_CONTEXTUAL_DECLARATION_CALL by error<KtElement>(PositioningStrategy.NAME_IDENTIFIER)
         val SUBTYPING_BETWEEN_CONTEXT_RECEIVERS by error<KtElement>(PositioningStrategy.DEFAULT)
         val CONTEXT_PARAMETERS_WITH_BACKING_FIELD by error<KtElement>(PositioningStrategy.DEFAULT)
-        val CONTEXT_RECEIVERS_DEPRECATED by warning<KtElement>(PositioningStrategy.CONTEXT_KEYWORD)
+        val CONTEXT_RECEIVERS_DEPRECATED by warning<KtElement>(PositioningStrategy.CONTEXT_KEYWORD) {
+            parameter<String>("message")
+        }
         val CONTEXT_CLASS_OR_CONSTRUCTOR by warning<KtElement>(PositioningStrategy.CONTEXT_KEYWORD)
 
         val CONTEXT_PARAMETER_WITHOUT_NAME by error<KtContextReceiver>()
@@ -1013,6 +1015,7 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         val ATOMIC_REF_WITHOUT_CONSISTENT_IDENTITY by warning<PsiElement> {
             parameter<ClassId>("atomicRef")
             parameter<ConeKotlinType>("argumentType")
+            parameter<ClassId?>("suggestedType")
         }
     }
 
@@ -1980,7 +1983,9 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         val DEPRECATED_ACCESS_TO_ENTRIES_PROPERTY by warning<PsiElement>()
         val DEPRECATED_ACCESS_TO_ENUM_ENTRY_PROPERTY_AS_REFERENCE by warning<PsiElement>(PositioningStrategy.REFERENCED_NAME_BY_QUALIFIED)
         val DEPRECATED_ACCESS_TO_ENTRIES_AS_QUALIFIER by warning<PsiElement>()
-        val DEPRECATED_DECLARATION_OF_ENUM_ENTRY by warning<KtEnumEntry>(PositioningStrategy.DECLARATION_NAME)
+        val DECLARATION_OF_ENUM_ENTRY_ENTRIES by deprecationError<KtEnumEntry>(
+            LanguageFeature.ForbidEnumEntryNamedEntries, PositioningStrategy.DECLARATION_NAME
+        )
     }
 
     val COMPATIBILITY_ISSUES by object : DiagnosticGroup("Compatibility issues") {

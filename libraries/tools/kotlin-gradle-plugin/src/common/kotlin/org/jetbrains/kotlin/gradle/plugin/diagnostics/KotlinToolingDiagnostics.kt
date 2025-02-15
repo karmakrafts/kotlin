@@ -9,6 +9,7 @@ import org.gradle.api.Project
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.*
 import org.jetbrains.kotlin.gradle.dsl.KotlinSourceSetConvention.isAccessedByKotlinSourceSetConventionAt
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.internal.KOTLIN_BUILD_TOOLS_API_IMPL
 import org.jetbrains.kotlin.gradle.internal.KOTLIN_MODULE_GROUP
 import org.jetbrains.kotlin.gradle.internal.properties.NativeProperties
@@ -30,9 +31,7 @@ import org.jetbrains.kotlin.utils.addToStdlib.flatGroupBy
 import java.io.File
 import java.net.URI
 
-
-@InternalKotlinGradlePluginApi // used in integration tests
-object KotlinToolingDiagnostics {
+internal object KotlinToolingDiagnostics {
     /**
      * This diagnostic is suppressed in kotlin-test and kotlin-stdlib.
      * We should migrate the stdlib and kotlin-test from deprecated flags and then completely remove the support.
@@ -923,13 +922,13 @@ object KotlinToolingDiagnostics {
     object KotlinTargetAlreadyDeclaredWarning : KotlinTargetAlreadyDeclared(WARNING)
     object KotlinTargetAlreadyDeclaredError : KotlinTargetAlreadyDeclared(ERROR)
 
-    object KotlinCompilationSourceDeprecation : ToolingDiagnosticFactory(WARNING, DiagnosticGroups.KGP.Deprecation) {
+    object KotlinCompilationSourceDeprecation : ToolingDiagnosticFactory(ERROR, DiagnosticGroups.KGP.Deprecation) {
         operator fun invoke(trace: Throwable?) = build(throwable = trace) {
             title("`KotlinCompilation.source(KotlinSourceSet)` Method Deprecated")
                 .description {
                     """
                     `KotlinCompilation.source(KotlinSourceSet)` method is deprecated
-                    and will be removed in upcoming Kotlin releases.
+                    and will be removed in Kotlin 2.3
                     """.trimIndent()
                 }
                 .solution {
@@ -1348,7 +1347,7 @@ object KotlinToolingDiagnostics {
         }
     }
 
-    object DeprecatedJvmHistoryBasedIncrementalCompilationDiagnostic : ToolingDiagnosticFactory(WARNING, DiagnosticGroups.KGP.Deprecation) {
+    object DeprecatedJvmHistoryBasedIncrementalCompilationDiagnostic : ToolingDiagnosticFactory(ERROR, DiagnosticGroups.KGP.Deprecation) {
         operator fun invoke(): ToolingDiagnostic = build {
             title("History-Based Incremental Compilation Deprecated for JVM Platform")
                 .description {
@@ -1525,6 +1524,74 @@ object KotlinToolingDiagnostics {
                 }
                 .solution {
                     "Please remove the 'kotlin-android-extensions' Gradle plugin from your build script."
+                }
+        }
+    }
+
+    internal object KotlinScriptingMisconfiguration : ToolingDiagnosticFactory(
+        predefinedSeverity = WARNING,
+        predefinedGroup = DiagnosticGroups.KGP.Misconfiguration
+    ) {
+        operator fun invoke(
+            taskPath: String,
+            discoveryResultsConfigurationName: String,
+        ) = build {
+            title("Kotlin scripting misconfiguration")
+                .description {
+                    "Scripting configuration for task '${taskPath}' is not found: $discoveryResultsConfigurationName"
+                }
+                .solution {
+                    "Please create a new Kotlin issue with reproduction project: https://kotl.in/issue"
+                }
+        }
+    }
+
+    object IcFirMisconfigurationLV : ToolingDiagnosticFactory(
+        predefinedSeverity = FATAL,
+        predefinedGroup = DiagnosticGroups.KGP.Misconfiguration
+    ) {
+        operator fun invoke(
+            taskPath: String,
+            languageVersion: KotlinVersion,
+        ) = build {
+            title("FIR based incremental compilation Kotlin version 1.x compatibility")
+                .description {
+                    "FIR based incremental compilation is enabled for '$taskPath'" +
+                            " alongside with '${languageVersion.version}' Kotlin language version."
+                }
+                .solution {
+                    "Please update Kotlin language version in your build scripts at least to 2.0"
+                }
+        }
+    }
+
+    object IcFirMisconfigurationRequireClasspathSnapshots : ToolingDiagnosticFactory(
+        predefinedSeverity = FATAL,
+        predefinedGroup = DiagnosticGroups.KGP.Misconfiguration,
+    ) {
+        operator fun invoke(
+            taskPath: String
+        ) = build {
+            title("FIR based incremental compilation mode compatibility")
+                .description {
+                    "FIR based incremental compilation is only working in the classpath snapshots based mode while task '$taskPath' " +
+                            "has it disabled."
+                }
+                .solution {
+                    "Please remove '${PropertiesProvider.PropertyNames.KOTLIN_INCREMENTAL_USE_CLASSPATH_SNAPSHOT}' from your " +
+                            "Gradle properties."
+                }
+        }
+    }
+
+    object AbiValidationUnsupportedTarget : ToolingDiagnosticFactory(WARNING, DiagnosticGroups.KGP.Experimental) {
+        operator fun invoke(targetName: String): ToolingDiagnostic = build {
+            title("ABI Validation: unsupported target")
+                .description {
+                    "Target $targetName is not supported by the host compiler and a KLib ABI dump could not be directly generated for it."
+                }
+                .solution {
+                    "Build project on suitable machine"
                 }
         }
     }
