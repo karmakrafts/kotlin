@@ -156,8 +156,12 @@ abstract class FirAbstractContractResolveTransformerDispatcher(
             contractDescription: FirLegacyRawContractDescription,
             hasBodyContract: Boolean
         ): T {
-            val valueParameters = owner.valueParameters
-            for (valueParameter in valueParameters) {
+            val valueAndContextParameters = when (owner) {
+                is FirPropertyAccessor -> owner.valueParameters + owner.propertySymbol.resolvedContextParameters
+                is FirFunction -> owner.valueParameters + owner.contextParameters
+            }
+
+            for (valueParameter in valueAndContextParameters) {
                 context.storeVariable(valueParameter, session)
             }
 
@@ -172,7 +176,7 @@ abstract class FirAbstractContractResolveTransformerDispatcher(
             // to a normal call.
             if (resolvedContractCall.toResolvedCallableSymbol()?.callableId != FirContractsDslNames.CONTRACT) {
                 if (hasBodyContract) {
-                    owner.body.replaceFirstStatement<FirContractCallBlock> { contractDescription.contractCall }
+                    owner.body!!.replaceFirstStatement<FirContractCallBlock> { contractDescription.contractCall }
                 }
 
                 owner.replaceContractDescription(newContractDescription = null)
@@ -191,7 +195,7 @@ abstract class FirAbstractContractResolveTransformerDispatcher(
                 ?: return transformOwnerOfErrorContract(owner, contractDescription, hasBodyContract)
 
             val resolvedContractDescription = buildResolvedContractDescription {
-                val effectExtractor = ConeEffectExtractor(session, owner, valueParameters)
+                val effectExtractor = ConeEffectExtractor(session, owner, valueAndContextParameters)
                 for (statement in lambdaBody.statements) {
                     if (statement.source?.kind is KtFakeSourceElementKind.ImplicitReturn) continue
                     when (val effect = statement.accept(effectExtractor, null)) {
@@ -379,7 +383,7 @@ abstract class FirAbstractContractResolveTransformerDispatcher(
 
             // Error contract should be unwrapped to properly resolve it later
             if (hasBodyContract) {
-                owner.body.replaceFirstStatement<FirContractCallBlock> { description.contractCall }
+                owner.body!!.replaceFirstStatement<FirContractCallBlock> { description.contractCall }
             }
 
             dataFlowAnalyzer.exitContractDescription()
@@ -390,15 +394,3 @@ abstract class FirAbstractContractResolveTransformerDispatcher(
             get() = contractDescription is FirLegacyRawContractDescription || contractDescription is FirRawContractDescription
     }
 }
-
-private val FirContractDescriptionOwner.valueParameters: List<FirValueParameter>
-    get() = when (this) {
-        is FirFunction -> valueParameters
-    }
-
-private val FirContractDescriptionOwner.body: FirBlock
-    get() = when (this) {
-        is FirFunction -> body!!
-    }
-
-private fun FirContractDescriptionOwner.error(): Nothing = throw IllegalStateException("${this::class} can not be a contract owner")

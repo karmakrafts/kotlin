@@ -246,12 +246,6 @@ interface KotlinHierarchyBuilder {
     fun withJvm()
 
     /**
-     * @suppress
-     */
-    @Deprecated("Renamed to 'withAndroidTarget''", replaceWith = ReplaceWith("withAndroidTarget()"))
-    fun withAndroid()
-
-    /**
      * Only includes Kotlin's Android targets in this [group].
      */
     fun withAndroidTarget()
@@ -395,46 +389,4 @@ interface KotlinHierarchyBuilder {
      * For more information, see [Native targets overview](https://kotlinlang.org/docs/native-target-support.html).
      */
     fun withLinuxArm64()
-
-    /**
-     * @suppress
-     */
-    @Deprecated(message = REMOVED_TARGET_MESSAGE, level = DeprecationLevel.ERROR)
-    fun withIosArm32()
-
-    /**
-     * @suppress
-     */
-    @Deprecated(REMOVED_TARGET_MESSAGE, level = DeprecationLevel.ERROR)
-    fun withWatchosX86()
-
-    /**
-     * @suppress
-     */
-    @Deprecated(REMOVED_TARGET_MESSAGE, level = DeprecationLevel.ERROR)
-    fun withMingwX86()
-
-    /**
-     * @suppress
-     */
-    @Deprecated(REMOVED_TARGET_MESSAGE, level = DeprecationLevel.ERROR)
-    fun withLinuxArm32Hfp()
-
-    /**
-     * @suppress
-     */
-    @Deprecated(REMOVED_TARGET_MESSAGE, level = DeprecationLevel.ERROR)
-    fun withLinuxMips32()
-
-    /**
-     * @suppress
-     */
-    @Deprecated(REMOVED_TARGET_MESSAGE, level = DeprecationLevel.ERROR)
-    fun withLinuxMipsel32()
-
-    /**
-     * @suppress
-     */
-    @Deprecated(REMOVED_TARGET_MESSAGE, level = DeprecationLevel.ERROR)
-    fun withWasm32()
 }

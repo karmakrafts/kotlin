@@ -1883,6 +1883,12 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
         }
 
         @Test
+        @TestMetadata("genericContextAmbiguity.kt")
+        public void testGenericContextAmbiguity() {
+          runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/declarationAndUsages/genericContextAmbiguity.kt");
+        }
+
+        @Test
         @TestMetadata("inFunctionDeclaration.kt")
         public void testInFunctionDeclaration() {
           runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/declarationAndUsages/inFunctionDeclaration.kt");
@@ -2244,6 +2250,12 @@ public class LLFirPreresolvedReversedDiagnosticCompilerFirTestDataTestGenerated 
         @TestMetadata("orderAndTypeOfContextsInOverride.kt")
         public void testOrderAndTypeOfContextsInOverride() {
           runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/overrides/orderAndTypeOfContextsInOverride.kt");
+        }
+
+        @Test
+        @TestMetadata("overrideWithFlexibleBaseReceiver.kt")
+        public void testOverrideWithFlexibleBaseReceiver() {
+          runTest("compiler/fir/analysis-tests/testData/resolve/contextParameters/overrides/overrideWithFlexibleBaseReceiver.kt");
         }
 
         @Test

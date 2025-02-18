@@ -1,4 +1,4 @@
-// RUN_PIPELINE_TILL: FRONTEND
+// RUN_PIPELINE_TILL: BACKEND
 // ISSUE: KT-74572
 // LANGUAGE: +ContextParameters
 import kotlin.contracts.ExperimentalContracts
@@ -8,7 +8,7 @@ context(a: String?)
 @ExperimentalContracts
 fun validate() {
     contract {
-        <!ERROR_IN_CONTRACT_DESCRIPTION!>returns() implies (a!= null)<!>
+        returns() implies (a!= null)
     }
 }
 
@@ -16,5 +16,5 @@ context(a: String?)
 @ExperimentalContracts
 fun process() {
     validate()
-    a<!UNSAFE_CALL!>.<!>length
+    a.length
 }
