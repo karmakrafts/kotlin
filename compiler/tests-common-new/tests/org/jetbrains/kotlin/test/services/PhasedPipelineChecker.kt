@@ -26,7 +26,7 @@ import org.jetbrains.kotlin.utils.addToStdlib.shouldNotBeCalled
 
 class PhasedPipelineChecker(
     testServices: TestServices,
-    val defaultRunPipelineTill: TestPhaseLabel? = null,
+    val defaultRunPipelineTill: TestPhase? = null,
 ) : AfterAnalysisChecker(testServices) {
     override val order: Order
         get() = Order.P4
@@ -41,22 +41,22 @@ class PhasedPipelineChecker(
             return failedAssertions + reportMissingDirective(failedAssertions)
         }
 
-        val (suppressibleFailures, nonSuppressibleFailures, hasFailuresInNonLeafModule) = sortFailures(failedAssertions)
+        val (suppressibleFailures, nonSuppressibleFailures, hasFailuresInNonLeafModule, hasNonSuppressibleFailuresFromFacade) = sortFailures(failedAssertions)
 
         return nonSuppressibleFailures + when {
-            suppressibleFailures.isEmpty() && !hasFailuresInNonLeafModule -> checkPhaseConsistency()
+            suppressibleFailures.isEmpty() && !hasNonSuppressibleFailuresFromFacade && !hasFailuresInNonLeafModule -> checkPhaseConsistency()
             else -> emptyList()
         }
     }
 
-    private fun getTargetedPhase(): TestPhaseLabel? {
+    private fun getTargetedPhase(): TestPhase? {
         return testServices.moduleStructure.allDirectives[RUN_PIPELINE_TILL].firstOrNull() ?: defaultRunPipelineTill
     }
 
-    private fun TestArtifactKind<*>.toPhase(): TestPhaseLabel? = when (this) {
-        is FrontendKind -> TestPhaseLabel.FRONTEND
-        is BackendKind -> TestPhaseLabel.FIR2IR
-        is ArtifactKind -> TestPhaseLabel.BACKEND
+    private fun TestArtifactKind<*>.toPhase(): TestPhase? = when (this) {
+        is FrontendKind -> TestPhase.FRONTEND
+        is BackendKind -> TestPhase.FIR2IR
+        is ArtifactKind -> TestPhase.BACKEND
         else -> null
     }
 
@@ -147,6 +147,7 @@ class PhasedPipelineChecker(
         val suppressibleFailures: List<WrappedException>,
         val nonSuppressibleFailures: List<WrappedException>,
         val hasFailuresInNonLeafModule: Boolean,
+        val hasNonSuppressibleFailuresFromFacade: Boolean,
     )
 
     private fun sortFailures(failedAssertions: List<WrappedException>): SortedFailures {
@@ -154,6 +155,7 @@ class PhasedPipelineChecker(
         val nonSuppressibleFailures = mutableListOf<WrappedException>()
         val targetedPhase = getTargetedPhase()!!
         var hasFailuresInNonLeafModule = false
+        var hasNonSuppressibleFailuresFromFacade = false
 
         fun processFailure(module: TestModule?, kind: TestArtifactKind<*>, exception: WrappedException): MutableList<WrappedException> {
             val actualPhase = kind.toPhase()
@@ -165,10 +167,19 @@ class PhasedPipelineChecker(
                 actualPhase == null -> nonSuppressibleFailures
                 actualPhase == targetedPhase -> when {
                     exception is WrappedException.FromHandler && exception.failureDisablesNextSteps -> suppressibleFailures
+                    exception is WrappedException.FromFacade -> {
+                        hasNonSuppressibleFailuresFromFacade = true
+                        nonSuppressibleFailures
+                    }
                     else -> nonSuppressibleFailures
                 }
                 actualPhase > targetedPhase -> suppressibleFailures
-                actualPhase < targetedPhase -> nonSuppressibleFailures
+                actualPhase < targetedPhase -> {
+                    if (exception is WrappedException.FromFacade) {
+                        hasNonSuppressibleFailuresFromFacade = true
+                    }
+                    nonSuppressibleFailures
+                }
                 else -> shouldNotBeCalled()
             }
         }
@@ -188,7 +199,8 @@ class PhasedPipelineChecker(
         return SortedFailures(
             suppressibleFailures = suppressibleFailures,
             nonSuppressibleFailures = nonSuppressibleFailures,
-            hasFailuresInNonLeafModule
+            hasFailuresInNonLeafModule,
+            hasNonSuppressibleFailuresFromFacade
         )
     }
 }

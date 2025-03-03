@@ -38,8 +38,12 @@ import org.jetbrains.kotlin.js.config.*
 import org.jetbrains.kotlin.library.impl.BuiltInsPlatform
 import org.jetbrains.kotlin.metadata.deserialization.BinaryVersion
 import org.jetbrains.kotlin.metadata.deserialization.MetadataVersion
+import org.jetbrains.kotlin.platform.TargetPlatform
+import org.jetbrains.kotlin.platform.js.JsPlatforms
 import org.jetbrains.kotlin.platform.wasm.WasmTarget
-import org.jetbrains.kotlin.util.PerformanceManager
+import org.jetbrains.kotlin.util.PotentiallyIncorrectPhaseTimeMeasurement
+import org.jetbrains.kotlin.util.PhaseType
+import org.jetbrains.kotlin.util.tryMeasurePhaseTime
 import org.jetbrains.kotlin.utils.KotlinPaths
 import org.jetbrains.kotlin.utils.PathUtil
 import org.jetbrains.kotlin.wasm.config.WasmConfigurationKeys
@@ -47,9 +51,8 @@ import java.io.File
 
 
 class K2JSCompiler : CLICompiler<K2JSCompilerArguments>() {
-    class K2JSCompilerPerformanceManager : PerformanceManager("Kotlin to JS Compiler")
-
-    override val defaultPerformanceManager: PerformanceManager = K2JSCompilerPerformanceManager()
+    override val platform: TargetPlatform
+        get() = JsPlatforms.defaultJsPlatform
 
     override fun createArguments(): K2JSCompilerArguments {
         return K2JSCompilerArguments()
@@ -147,7 +150,7 @@ class K2JSCompiler : CLICompiler<K2JSCompilerArguments>() {
         }
 
         if (!arguments.irProduceJs) {
-            performanceManager?.notifyIRTranslationFinished()
+            performanceManager?.notifyPhaseFinished(PhaseType.TranslationToIr)
             return OK
         }
 
@@ -235,28 +238,30 @@ class K2JSCompiler : CLICompiler<K2JSCompilerArguments>() {
         outputKlibPath: String,
     ): ModulesStructure {
         val performanceManager = environmentForJS.configuration.get(CLIConfigurationKeys.PERF_MANAGER)
-        performanceManager?.notifyAnalysisStarted()
+        @OptIn(PotentiallyIncorrectPhaseTimeMeasurement::class)
+        performanceManager?.notifyCurrentPhaseFinishedIfNeeded()
         lateinit var sourceModule: ModulesStructure
-        do {
-            val analyzerFacade = when (arguments.wasm) {
-                true -> TopDownAnalyzerFacadeForWasm.facadeFor(environmentForJS.configuration.get(WasmConfigurationKeys.WASM_TARGET))
-                else -> TopDownAnalyzerFacadeForJSIR
-            }
-            sourceModule = prepareAnalyzedSourceModule(
-                environmentForJS.project,
-                environmentForJS.getSourceFiles(),
-                environmentForJS.configuration,
-                libraries,
-                friendLibraries,
-                AnalyzerWithCompilerReport(environmentForJS.configuration),
-                analyzerFacade = analyzerFacade
-            )
-            val result = sourceModule.jsFrontEndResult.jsAnalysisResult
-            if (result is JsAnalysisResult.RetryWithAdditionalRoots) {
-                environmentForJS.addKotlinSourceRoots(result.additionalKotlinRoots)
-            }
-        } while (result is JsAnalysisResult.RetryWithAdditionalRoots)
-        performanceManager?.notifyAnalysisFinished()
+        performanceManager.tryMeasurePhaseTime(PhaseType.Analysis) {
+            do {
+                val analyzerFacade = when (arguments.wasm) {
+                    true -> TopDownAnalyzerFacadeForWasm.facadeFor(environmentForJS.configuration.get(WasmConfigurationKeys.WASM_TARGET))
+                    else -> TopDownAnalyzerFacadeForJSIR
+                }
+                sourceModule = prepareAnalyzedSourceModule(
+                    environmentForJS.project,
+                    environmentForJS.getSourceFiles(),
+                    environmentForJS.configuration,
+                    libraries,
+                    friendLibraries,
+                    AnalyzerWithCompilerReport(environmentForJS.configuration),
+                    analyzerFacade = analyzerFacade
+                )
+                val result = sourceModule.jsFrontEndResult.jsAnalysisResult
+                if (result is JsAnalysisResult.RetryWithAdditionalRoots) {
+                    environmentForJS.addKotlinSourceRoots(result.additionalKotlinRoots)
+                }
+            } while (result is JsAnalysisResult.RetryWithAdditionalRoots)
+        }
 
         if (sourceModule.jsFrontEndResult.jsAnalysisResult.shouldGenerateCode && (arguments.irProduceKlibDir || arguments.irProduceKlibFile)) {
             val moduleSourceFiles = (sourceModule.mainModule as MainModule.SourceFiles).files

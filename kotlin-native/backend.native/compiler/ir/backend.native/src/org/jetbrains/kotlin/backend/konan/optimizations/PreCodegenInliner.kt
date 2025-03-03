@@ -40,7 +40,7 @@ internal class PreCodegenInliner(
         val callGraph: CallGraph,
 ) {
     private val context = generationState.context
-    private val symbols = context.ir.symbols
+    private val symbols = context.symbols
     private val noInline = symbols.noInline
     private val string = symbols.string
     private val throwable = symbols.throwable
@@ -106,7 +106,7 @@ internal class PreCodegenInliner(
                             || irFunction.konanLibrary?.isCInteropLibrary() == true
                             || irFunction.originalConstructor?.let { constructor ->
                                 // To support IR pattern recognition in IrToBitcode.kt on IrConstantObject generation.
-                                constructor.valueParameters.isEmpty()
+                                constructor.parameters.isEmpty()
                                         && constructor.constructedClass.superTypes.any {
                                     it.classOrNull == kFunctionImpl || it.classOrNull == kSuspendFunctionImpl
                                 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -779,24 +779,26 @@ open class PsiRawFirBuilder(
 
                     this.status = status
                     getter = FirDefaultPropertyGetter(
-                        defaultAccessorSource,
-                        baseModuleData,
-                        FirDeclarationOrigin.Source,
-                        returnTypeRef.copyWithNewSourceKind(KtFakeSourceElementKind.DefaultAccessor),
-                        getVisibility(),
-                        symbol,
+                        source = defaultAccessorSource,
+                        moduleData = baseModuleData,
+                        origin = FirDeclarationOrigin.Source,
+                        propertyTypeRef = returnTypeRef.copyWithNewSourceKind(KtFakeSourceElementKind.DefaultAccessor),
+                        visibility = status.visibility,
+                        propertySymbol = symbol,
+                        modality = status.modality,
                         isInline = hasModifier(INLINE_KEYWORD),
                     ).also { getter ->
                         getter.initContainingClassAttr()
                         getter.replaceAnnotations(parameterAnnotations.filterUseSiteTarget(PROPERTY_GETTER))
                     }
                     setter = if (isMutable) FirDefaultPropertySetter(
-                        defaultAccessorSource,
-                        baseModuleData,
-                        FirDeclarationOrigin.Source,
-                        returnTypeRef.copyWithNewSourceKind(KtFakeSourceElementKind.DefaultAccessor),
-                        getVisibility(),
-                        symbol,
+                        source = defaultAccessorSource,
+                        moduleData = baseModuleData,
+                        origin = FirDeclarationOrigin.Source,
+                        propertyTypeRef = returnTypeRef.copyWithNewSourceKind(KtFakeSourceElementKind.DefaultAccessor),
+                        visibility = status.visibility,
+                        propertySymbol = symbol,
+                        modality = status.modality,
                         parameterAnnotations = parameterAnnotations.filterUseSiteTarget(SETTER_PARAMETER),
                         isInline = hasModifier(INLINE_KEYWORD),
                     ).also { setter ->
@@ -1433,6 +1435,7 @@ open class PsiRawFirBuilder(
                     symbol = snippetSymbol
 
                     body = buildOrLazyBlock {
+                        // see KT-75301 for discussion about `isLocal` here
                         withContainerSymbol(snippetSymbol, isLocal = true) {
                             buildBlock {
                                 script.declarations.forEach { declaration ->
@@ -1610,6 +1613,7 @@ open class PsiRawFirBuilder(
                                                 emptyArray(),
                                                 isMarkedNullable = false
                                             )
+                                        source = toFirSourceElement(KtFakeSourceElementKind.ClassSelfTypeRef)
                                     }
                                     registerSelfType(delegatedEntrySelfType)
 
@@ -1617,6 +1621,7 @@ open class PsiRawFirBuilder(
                                     val superTypeCallEntry = superTypeListEntries.firstIsInstanceOrNull<KtSuperTypeCallEntry>()
                                     val correctedEnumSelfTypeRef = buildResolvedTypeRef {
                                         source = superTypeCallEntry?.calleeExpression?.typeReference?.toFirSourceElement()
+                                            ?: delegatedEntrySelfType.source
                                         coneType = delegatedEnumSelfTypeRef.coneType
                                     }
                                     declarations += primaryConstructor.toFirConstructor(
@@ -2850,7 +2855,7 @@ open class PsiRawFirBuilder(
                 is KtVariableDeclaration -> ktSubjectExpression.initializer
                 else -> ktSubjectExpression
             }?.toFirExpression("Incorrect when subject expression: ${ktSubjectExpression?.text}")
-            val subjectVariable = when (ktSubjectExpression) {
+            var subjectVariable = when (ktSubjectExpression) {
                 is KtVariableDeclaration -> {
                     val name = ktSubjectExpression.nameAsSafeName
                     buildProperty {
@@ -2875,12 +2880,28 @@ open class PsiRawFirBuilder(
             }
             val hasSubject = subjectExpression != null
 
+            if (hasSubject && subjectVariable == null) {
+                val name = SpecialNames.WHEN_SUBJECT
+                subjectVariable = buildProperty {
+                    source = subjectExpression.source?.fakeElement(KtFakeSourceElementKind.WhenGeneratedSubject)
+                    moduleData = baseModuleData
+                    origin = FirDeclarationOrigin.Synthetic.ImplicitWhenSubject
+                    returnTypeRef = FirImplicitTypeRefImplWithoutSource
+                    this.name = name
+                    initializer = subjectExpression
+                    delegate = null
+                    isVar = false
+                    symbol = FirPropertySymbol(name)
+                    isLocal = true
+                    status = FirDeclarationStatusImpl(Visibilities.Local, Modality.FINAL)
+                }
+            }
+
             @OptIn(FirContractViolation::class)
             val ref = FirExpressionRef<FirWhenExpression>()
             var shouldBind = hasSubject
             return buildWhenExpression {
                 source = expression.toFirSourceElement()
-                this.subject = subjectExpression
                 this.subjectVariable = subjectVariable
                 usedAsExpression = expression.usedAsExpression
 

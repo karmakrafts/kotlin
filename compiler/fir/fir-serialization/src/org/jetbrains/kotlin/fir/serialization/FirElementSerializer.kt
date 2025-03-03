@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -590,7 +590,15 @@ class FirElementSerializer private constructor(
                 // since we generate the default accessor on fir2ir anyway (Fir2IrDeclarationStorage.createIrProperty), we have to
                 // serialize it accordingly at least for delegates to fix issues like #KT-57373
                 // TODO: rewrite accordingly after fixing #KT-58233
-                FirDefaultPropertyGetter(source = null, moduleData, origin, returnTypeRef, visibility, symbol)
+                FirDefaultPropertyGetter(
+                    source = null,
+                    moduleData = moduleData,
+                    origin = origin,
+                    propertyTypeRef = returnTypeRef,
+                    visibility = visibility,
+                    propertySymbol = symbol,
+                    modality = modality,
+                )
             } else null
         }
         if (getter != null) {
@@ -606,7 +614,15 @@ class FirElementSerializer private constructor(
                 // since we generate the default accessor on fir2ir anyway (Fir2IrDeclarationStorage.createIrProperty), we have to
                 // serialize it accordingly at least for delegates to fix issues like #KT-57373
                 // TODO: rewrite accordingly after fixing #KT-58233
-                FirDefaultPropertySetter(source = null, moduleData, origin, returnTypeRef, visibility, symbol)
+                FirDefaultPropertySetter(
+                    source = null,
+                    moduleData = moduleData,
+                    origin = origin,
+                    propertyTypeRef = returnTypeRef,
+                    visibility = visibility,
+                    propertySymbol = symbol,
+                    modality = modality,
+                )
             } else null
         }
         if (setter != null) {
@@ -660,6 +676,13 @@ class FirElementSerializer private constructor(
             } else {
                 builder.addContextReceiverType(local.typeProto(contextParameter.returnTypeRef))
             }
+            builder.addContextParameter(
+                local.valueParameterProto(
+                    contextParameter,
+                    additionalAnnotations = emptyList(),
+                    declaresDefaultValue = false
+                )
+            )
         }
 
         val receiverParameter = property.receiverParameter
@@ -746,6 +769,13 @@ class FirElementSerializer private constructor(
             } else {
                 builder.addContextReceiverType(local.typeProto(contextParameter.returnTypeRef))
             }
+            builder.addContextParameter(
+                local.valueParameterProto(
+                    contextParameter,
+                    additionalAnnotations = emptyList(),
+                    declaresDefaultValue = false
+                )
+            )
         }
 
         val receiverParameter = function.receiverParameter
@@ -895,8 +925,6 @@ class FirElementSerializer private constructor(
         function: FirFunction,
         additionalAnnotations: List<FirAnnotation> = emptyList(),
     ): ProtoBuf.ValueParameter.Builder = whileAnalysing(session, parameter) {
-        val builder = ProtoBuf.ValueParameter.newBuilder()
-
         val declaresDefaultValue = if (
             stdLibCompilation &&
             function is FirConstructor &&
@@ -906,6 +934,16 @@ class FirElementSerializer private constructor(
         } else {
             function.itOrExpectHasDefaultParameterValue(index)
         }
+
+        return valueParameterProto(parameter, additionalAnnotations, declaresDefaultValue)
+    }
+
+    private fun valueParameterProto(
+        parameter: FirValueParameter,
+        additionalAnnotations: List<FirAnnotation>,
+        declaresDefaultValue: Boolean,
+    ): ProtoBuf.ValueParameter.Builder {
+        val builder = ProtoBuf.ValueParameter.newBuilder()
 
         val flags = Flags.getValueParameterFlags(
             additionalAnnotations.isNotEmpty()

@@ -18,10 +18,17 @@
             </array>
           </value>
         </entry>
-        <entry key="$PROJECT_DIR$/compiler/testData/debug">
+        <entry key="$PROJECT_DIR$/compiler/testData/debug/stepping">
           <value>
             <array>
-              <option value="$PROJECT_DIR$/js/js.tests/build/node/{out,out-min,out-per-module,out-per-module-min}/debug/$TEST_DATA_FILE$_v5.js" />
+              <option value="$PROJECT_DIR$/js/js.tests/build/node/{out,out-min,out-per-module,out-per-module-min}/debug/{firStepping,irStepping}/$TEST_DATA_FILE$_v5.js" />
+            </array>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/compiler/testData/debug/localVariables">
+          <value>
+            <array>
+              <option value="$PROJECT_DIR$/js/js.tests/build/node/{out,out-min,out-per-module,out-per-module-min}/debug/localVariables/$TEST_DATA_FILE$_v5.js" />
             </array>
           </value>
         </entry>
@@ -133,13 +140,6 @@
           <value>
             <array>
               <option value="K1" />
-            </array>
-          </value>
-        </entry>
-        <entry key="DiagnosticCompilerTest.*TestdataTestGenerated">
-          <value>
-            <array>
-              <option value="AA" />
             </array>
           </value>
         </entry>
@@ -331,14 +331,7 @@
             </array>
           </value>
         </entry>
-        <entry key="LL.*BoxCodegen.*">
-          <value>
-            <array>
-              <option value="AA" />
-            </array>
-          </value>
-        </entry>
-        <entry key="LLFirPreresolved.*TestGenerated">
+        <entry key="LL.*Generated">
           <value>
             <array>
               <option value="AA" />

@@ -282,7 +282,7 @@ class Kapt3GradleSubplugin @Inject internal constructor(private val registry: To
 
             kotlinCompilation.compileTaskProvider.configure { task ->
                 with(task as AbstractKotlinCompile<*>) {
-                    setSource(sourcesOutputDir, kotlinSourcesOutputDir)
+                    source(sourcesOutputDir, kotlinSourcesOutputDir)
                     libraries.from(classesOutputDir)
                 }
             }
@@ -317,12 +317,13 @@ class Kapt3GradleSubplugin @Inject internal constructor(private val registry: To
             task.kaptClasspathConfigurationNames.value(kaptClasspathConfigurations.map { it.name }).disallowChanges()
 
             KaptWithAndroid.androidVariantData(this)?.annotationProcessorOptionProviders?.let {
-                task.annotationProcessorOptionProviders.add(it)
+                task.annotationProcessorOptionsProviders.addAll(it)
             }
 
             val pluginOptions: Provider<CompilerPluginOptions> = getDslKaptApOptions().toCompilerPluginOptions()
 
             task.kaptPluginOptions.add(pluginOptions)
+            task.annotationProcessorOptionsProviders.finalizeValueOnRead()
         }
 
         return project.registerTask(taskName, KaptWithoutKotlincTask::class.java, emptyList()).also {
@@ -429,7 +430,7 @@ internal fun buildKaptSubpluginOptions(
     pluginOptions += FilesSubpluginOption("classes", generatedClassesDir)
     pluginOptions += FilesSubpluginOption("incrementalData", incrementalDataDir)
 
-    @Suppress("DEPRECATION") val annotationProcessors = kaptExtension.processors
+    @Suppress("DEPRECATION_ERROR") val annotationProcessors = kaptExtension.processors
     if (annotationProcessors.isNotEmpty()) {
         pluginOptions += SubpluginOption("processors", annotationProcessors)
     }

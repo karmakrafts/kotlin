@@ -7,6 +7,8 @@ package org.jetbrains.kotlin.gradle.targets.js
 
 import org.gradle.internal.hash.FileHasher
 import org.gradle.internal.hash.Hashing.defaultFunction
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrCompilation
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget
 import org.jetbrains.kotlin.gradle.utils.appendLine
 import java.io.File
 import java.nio.file.Files
@@ -38,7 +40,7 @@ fun ByteArray.toHex(): String {
 }
 
 fun FileHasher.calculateDirHash(
-    dir: File
+    dir: File,
 ): String? {
     if (!dir.isDirectory) return null
 
@@ -80,4 +82,60 @@ internal fun writeWasmUnitTestRunner(workingDir: File, compiledFile: File): File
         """.trimIndent()
     )
     return testRunnerFile
+}
+
+/**
+ * Determines the appropriate variant (JavaScript or WebAssembly) to use based on the compilation configuration.
+ *
+ * @param jsVariant The variant to be used if the target is JavaScript.
+ * @param wasmVariant The variant to be used if the target is WebAssembly.
+ * @return The appropriate variant (either the result of `jsVariant` or `wasmVariant`), depending on the compilation configuration.
+ */
+internal fun <T> KotlinJsIrCompilation.webTargetVariant(
+    jsVariant: T,
+    wasmVariant: T,
+): T = target.webTargetVariant(jsVariant, wasmVariant)
+
+/**
+ * Determines the appropriate variant (JavaScript or WebAssembly) to use based on the compilation configuration.
+ *
+ * @param jsVariant A lambda that returns the JavaScript-specific variant.
+ * @param wasmVariant A lambda that returns the WebAssembly-specific variant.
+ * @return The appropriate variant (either the result of `jsVariant` or `wasmVariant`), depending on the compilation configuration.
+ */
+internal fun <T> KotlinJsIrCompilation.webTargetVariant(
+    jsVariant: () -> T,
+    wasmVariant: () -> T,
+): T = target.webTargetVariant(jsVariant, wasmVariant)
+
+/**
+ * Determines the appropriate variant (JavaScript or WebAssembly) to use based on the target configuration.
+ *
+ * @param jsVariant A lambda that returns the JavaScript-specific variant.
+ * @param wasmVariant A lambda that returns the WebAssembly-specific variant.
+ * @return The appropriate variant (either the result of `jsVariant` or `wasmVariant`), depending on the target configuration.
+ */
+internal fun <T> KotlinJsIrTarget.webTargetVariant(
+    jsVariant: () -> T,
+    wasmVariant: () -> T,
+): T = if (wasmTargetType == null) {
+    jsVariant()
+} else {
+    wasmVariant()
+}
+
+/**
+ * Determines the appropriate variant (JavaScript or WebAssembly) to use based on the target configuration.
+ *
+ * @param jsVariant The variant to be used if the target is JavaScript.
+ * @param wasmVariant The variant to be used if the target is WebAssembly.
+ * @return The appropriate variant (either the result of `jsVariant` or `wasmVariant`), depending on the target configuration.
+ */
+internal fun <T> KotlinJsIrTarget.webTargetVariant(
+    jsVariant: T,
+    wasmVariant: T,
+): T = if (wasmTargetType == null) {
+    jsVariant
+} else {
+    wasmVariant
 }

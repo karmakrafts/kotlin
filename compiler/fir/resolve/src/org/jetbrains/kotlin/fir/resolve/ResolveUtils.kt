@@ -6,6 +6,7 @@
 package org.jetbrains.kotlin.fir.resolve
 
 import org.jetbrains.kotlin.KtFakeSourceElementKind
+import org.jetbrains.kotlin.KtRealSourceElementKind
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.builtins.functions.FunctionTypeKind
 import org.jetbrains.kotlin.descriptors.ClassKind
@@ -145,10 +146,20 @@ internal fun FirAnonymousFunction.computeReturnType(
         return commonSuperType
     }
 
-    return if (isPassedAsFunctionArgument && !commonSuperType.fullyExpandedType(session).isUnit) {
-        expectedReturnType ?: commonSuperType
-    } else {
-        commonSuperType
+    return when {
+        // For `fun(): ExplicitType = ...` we choose it
+        !isLambda && returnTypeRef is FirResolvedTypeRef && returnTypeRef.source?.kind is KtRealSourceElementKind -> {
+            // Currently, in the case of a known return type, it's always chosen as `expectedReturnType`
+            // Probably, we should simplify this piece later
+            check(expectedReturnType === returnTypeRef.coneType) {
+                "Found $expectedReturnType and ${returnTypeRef.coneType}"
+            }
+
+            returnTypeRef.coneType
+        }
+        isPassedAsFunctionArgument && !commonSuperType.fullyExpandedType(session).isUnit ->
+            expectedReturnType ?: commonSuperType
+        else -> commonSuperType
     }
 }
 
@@ -533,11 +544,13 @@ fun BodyResolveComponents.transformExpressionUsingSmartcastInfo(expression: FirE
         //   the dynamic type will "consume" all other, erasing information.
         // Example (2): if (x == null) { ... },
         //   we need to track the type without `Nothing?` so that resolution with this as receiver can go through properly.
+        val nonNothingTypes = allTypes.filter { !it.isKindOfNothing }
         if (
             intersectedType.isKindOfNothing &&
             !originalType.isNullableNothing &&
             !originalType.isNothing &&
-            originalType !is ConeStubType
+            originalType !is ConeStubType &&
+            nonNothingTypes.isNotEmpty()
         ) {
             smartcastTypeWithoutNullableNothing = buildResolvedTypeRef {
                 source = expression.source?.fakeElement(KtFakeSourceElementKind.SmartCastedTypeRef)

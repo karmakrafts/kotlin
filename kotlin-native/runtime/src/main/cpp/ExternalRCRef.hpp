@@ -17,8 +17,6 @@
 
 namespace kotlin::mm {
 
-// TODO(KT-67741): Unify different ExternalRCRefs
-
 class ExternalRCRefRegistry;
 
 // `RawExternalRCRef*` is `kotlin.native.internal.ref.ExternalRCRef`.
@@ -271,7 +269,6 @@ public:
     KRef ref() const noexcept { return dereferenceExternalRCRef(get()); }
 
     KRef operator*() const noexcept { return ref(); }
-    KRef* operator->() const noexcept { return &*this; }
 
     // Return the underlying object.
     // May only be called when reference count is >0, or there is a guarantee
@@ -293,3 +290,11 @@ using OwningExternalRCRef = ExternalRCRef<internal::OwningTraits>;
 using WeakExternalRCRef = ExternalRCRef<internal::WeakTraits>;
 
 } // namespace kotlin::mm
+
+extern "C" {
+
+RUNTIME_NOTHROW kotlin::mm::RawExternalRCRef* Kotlin_mm_createRetainedExternalRCRef(KRef);
+RUNTIME_NOTHROW void Kotlin_mm_releaseExternalRCRef(kotlin::mm::RawExternalRCRef*);
+RUNTIME_NOTHROW void Kotlin_mm_disposeExternalRCRef(kotlin::mm::RawExternalRCRef*);
+
+}

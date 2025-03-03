@@ -106,7 +106,7 @@ open class UpgradeCallableReferences(
             return element
         }
 
-        // IrElementTransformer defines this to not calling visitElement, which leads to incorrect parent creation
+        // IrTransformer defines this to not calling visitElement, which leads to incorrect parent creation
         override fun visitDeclaration(declaration: IrDeclarationBase, data: IrDeclarationParent): IrStatement {
             return visitElement(declaration, data) as IrStatement
         }
@@ -118,8 +118,8 @@ open class UpgradeCallableReferences(
         private fun IrType.arrayDepth(): Int {
             if (this !is IrSimpleType) return 0
             return when (classOrNull) {
-                context.ir.symbols.array -> 1 + (arguments[0].typeOrNull?.arrayDepth() ?: 0)
-                in context.ir.symbols.arrays -> 1
+                context.symbols.array -> 1 + (arguments[0].typeOrNull?.arrayDepth() ?: 0)
+                in context.symbols.arrays -> 1
                 else -> 0
             }
         }

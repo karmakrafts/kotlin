@@ -8,23 +8,18 @@ package org.jetbrains.kotlin.serialization.builtins
 import com.intellij.openapi.util.Disposer
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
 import org.jetbrains.kotlin.cli.common.config.addKotlinSourceRoots
-import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
-import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
-import org.jetbrains.kotlin.cli.common.messages.GroupingMessageCollector
-import org.jetbrains.kotlin.cli.common.messages.MessageRenderer
-import org.jetbrains.kotlin.cli.common.messages.PrintingMessageCollector
+import org.jetbrains.kotlin.cli.common.messages.*
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.config.addJvmClasspathRoots
 import org.jetbrains.kotlin.cli.jvm.config.configureJdkClasspathRoots
 import org.jetbrains.kotlin.cli.metadata.AbstractMetadataSerializer.OutputInfo
-import org.jetbrains.kotlin.config.AnalysisFlags
-import org.jetbrains.kotlin.config.ApiVersion
-import org.jetbrains.kotlin.config.CommonConfigurationKeys
-import org.jetbrains.kotlin.config.CompilerConfiguration
-import org.jetbrains.kotlin.config.LanguageVersion
-import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
-import org.jetbrains.kotlin.config.messageCollector
+import org.jetbrains.kotlin.cli.pipeline.ConfigurationPipelineArtifact
+import org.jetbrains.kotlin.cli.pipeline.metadata.MetadataBuiltinsSerializerPhase
+import org.jetbrains.kotlin.cli.pipeline.metadata.MetadataFrontendPipelinePhase
+import org.jetbrains.kotlin.config.*
+import org.jetbrains.kotlin.diagnostics.DiagnosticReporterFactory
+import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 import org.jetbrains.kotlin.util.PerformanceManager
 import java.io.File
 
@@ -39,7 +34,7 @@ object BuiltInsSerializer {
     ) {
         val rootDisposable = Disposer.newDisposable("Disposable for ${K1BuiltInsSerializer::class.simpleName}.analyzeAndSerialize")
         val messageCollector = createMessageCollector()
-        val performanceManager = object : PerformanceManager(presentableName = "test") {}
+        val performanceManager = object : PerformanceManager(JvmPlatforms.defaultJvmPlatform, "test") {}
         try {
             val configuration = CompilerConfiguration().apply {
                 this.messageCollector = messageCollector
@@ -67,12 +62,23 @@ object BuiltInsSerializer {
 
             val environment = KotlinCoreEnvironment.Companion.createForProduction(rootDisposable, configuration, EnvironmentConfigFiles.JVM_CONFIG_FILES)
 
-            val serializer = when (useK2) {
-                false -> K1BuiltInsSerializer(configuration, environment, dependOnOldBuiltIns)
-                true -> FirBuiltInsSerializer(configuration, environment)
-            }
-
-            val (totalSize, totalFiles) = serializer.analyzeAndSerialize() ?: OutputInfo(totalSize = 0, totalFiles = 0)
+            val (totalSize, totalFiles) = when (useK2) {
+                false -> {
+                    val serializer = K1BuiltInsSerializer(configuration, environment, dependOnOldBuiltIns)
+                    serializer.analyzeAndSerialize()
+                }
+                true -> {
+                    val diagnosticCollector = DiagnosticReporterFactory.createPendingReporter(messageCollector)
+                    val input = ConfigurationPipelineArtifact(
+                        configuration,
+                        diagnosticCollector,
+                        rootDisposable
+                    )
+                    val frontendOutput = MetadataFrontendPipelinePhase.executePhase(input)
+                    val metadataOutput = MetadataBuiltinsSerializerPhase.executePhase(frontendOutput)
+                    metadataOutput.outputInfo
+                }
+            } ?: OutputInfo(totalSize = 0, totalFiles = 0)
 
             onComplete(totalSize, totalFiles)
         } finally {

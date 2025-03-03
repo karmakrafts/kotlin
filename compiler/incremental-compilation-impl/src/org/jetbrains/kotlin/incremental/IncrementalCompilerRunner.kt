@@ -27,7 +27,7 @@ import org.jetbrains.kotlin.build.report.metrics.GradleBuildPerformanceMetric
 import org.jetbrains.kotlin.build.report.metrics.GradleBuildTime
 import org.jetbrains.kotlin.build.report.metrics.measure
 import org.jetbrains.kotlin.build.report.warn
-import org.jetbrains.kotlin.cli.common.*
+import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.common.messages.MessageCollectorImpl
@@ -41,7 +41,6 @@ import org.jetbrains.kotlin.incremental.components.ExpectActualTracker
 import org.jetbrains.kotlin.incremental.components.LookupTracker
 import org.jetbrains.kotlin.incremental.dirtyFiles.DirtyFilesContainer
 import org.jetbrains.kotlin.incremental.dirtyFiles.DirtyFilesProvider
-import org.jetbrains.kotlin.incremental.parsing.classesFqNames
 import org.jetbrains.kotlin.incremental.storage.BasicFileToPathConverter
 import org.jetbrains.kotlin.incremental.storage.FileLocations
 import org.jetbrains.kotlin.incremental.util.ExceptionLocation
@@ -49,13 +48,8 @@ import org.jetbrains.kotlin.incremental.util.reportException
 import org.jetbrains.kotlin.metadata.deserialization.MetadataVersion
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.progress.CompilationCanceledStatus
-import org.jetbrains.kotlin.util.CodeAnalysisMeasurement
-import org.jetbrains.kotlin.util.CodeGenerationMeasurement
-import org.jetbrains.kotlin.util.PerformanceManager
-import org.jetbrains.kotlin.util.CompilerInitializationMeasurement
-import org.jetbrains.kotlin.util.IRMeasurement
-import org.jetbrains.kotlin.util.removeSuffixIfPresent
-import org.jetbrains.kotlin.util.toMetadataVersion
+import org.jetbrains.kotlin.util.BackendMeasurement
+import org.jetbrains.kotlin.util.*
 import java.io.File
 import java.nio.file.Files
 
@@ -660,42 +654,36 @@ abstract class IncrementalCompilerRunner<
     }
 
     protected fun reportPerformanceData(defaultPerformanceManager: PerformanceManager) {
-        defaultPerformanceManager.getMeasurementResults().forEach {
+        val lines = defaultPerformanceManager.lines.takeIf { it > 0 }
+        if (lines != null) {
+            reporter.addMetric(GradleBuildPerformanceMetric.SOURCE_LINES_NUMBER, lines.toLong())
+        }
+        defaultPerformanceManager.measurements.forEach {
             when (it) {
                 is CompilerInitializationMeasurement -> reporter.addTimeMetricMs(GradleBuildTime.COMPILER_INITIALIZATION, it.milliseconds)
                 is CodeAnalysisMeasurement -> {
                     reporter.addTimeMetricMs(GradleBuildTime.CODE_ANALYSIS, it.milliseconds)
-                    it.lines?.apply {
-                        reporter.addMetric(GradleBuildPerformanceMetric.ANALYZED_LINES_NUMBER, this.toLong())
-                        if (it.milliseconds > 0) {
-                            reporter.addMetric(GradleBuildPerformanceMetric.ANALYSIS_LPS, this * 1000 / it.milliseconds)
-                        }
+                    if (lines != null && it.milliseconds > 0) {
+                        reporter.addMetric(GradleBuildPerformanceMetric.ANALYSIS_LPS, lines * 1000 / it.milliseconds)
                     }
                 }
-                is CodeGenerationMeasurement -> {
-                    reporter.addTimeMetricMs(GradleBuildTime.CODE_GENERATION, it.milliseconds)
-                    it.lines?.apply {
-                        reporter.addMetric(GradleBuildPerformanceMetric.CODE_GENERATED_LINES_NUMBER, this.toLong())
-                        if (it.milliseconds > 0) {
-                            reporter.addMetric(GradleBuildPerformanceMetric.CODE_GENERATION_LPS, this * 1000 / it.milliseconds)
-                        }
-                    }
+                is TranslationToIrMeasurement -> {
+                    reporter.addTimeMetricMs(GradleBuildTime.TRANSLATION_TO_IR, it.milliseconds)
                 }
-                is IRMeasurement -> {
-                    when (it.kind) {
-                        IRMeasurement.Kind.TRANSLATION -> reportIrMeasurements(it, GradleBuildTime.IR_TRANSLATION, GradleBuildPerformanceMetric.IR_TRANSLATION_LINES_NUMBER)
-                        IRMeasurement.Kind.LOWERING -> reportIrMeasurements(it, GradleBuildTime.IR_LOWERING, GradleBuildPerformanceMetric.IR_LOWERING_LINES_NUMBER)
-                        IRMeasurement.Kind.GENERATION -> reportIrMeasurements(it, GradleBuildTime.IR_GENERATION, GradleBuildPerformanceMetric.IR_GENERATION_LINES_NUMBER)
-                    }
+                is IrLoweringMeasurement -> {
+                    reporter.addTimeMetricMs(GradleBuildTime.IR_LOWERING, it.milliseconds)
+                }
+                is BackendMeasurement -> {
+                    reporter.addTimeMetricMs(GradleBuildTime.BACKEND, it.milliseconds)
                 }
             }
         }
-    }
-
-    private fun reportIrMeasurements(it: IRMeasurement, timeMetric: GradleBuildTime, lineMetric: GradleBuildPerformanceMetric) {
-        reporter.addTimeMetricMs(timeMetric, it.milliseconds)
-        it.lines?.also {
-            reporter.addMetric(lineMetric, it.toLong())
+        val loweringAndBackendTimeMs = defaultPerformanceManager.getLoweringAndBackendTimeMs()
+        if (loweringAndBackendTimeMs > 0) {
+            reporter.addTimeMetricMs(GradleBuildTime.CODE_GENERATION, loweringAndBackendTimeMs)
+            if (lines != null) {
+                reporter.addMetric(GradleBuildPerformanceMetric.CODE_GENERATION_LPS, lines * 1000 / loweringAndBackendTimeMs)
+            }
         }
     }
 }

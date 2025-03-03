@@ -380,8 +380,7 @@ class FirRenderer(
         }
 
         override fun visitErrorFunction(errorFunction: FirErrorFunction) {
-            print("<ERROR FUNCTION: ${errorFunction.diagnostic.reason}>")
-            printer.newLine()
+            visitFunction(errorFunction)
         }
 
         override fun visitBackingField(backingField: FirBackingField) {
@@ -406,11 +405,7 @@ class FirRenderer(
         }
 
         override fun visitSimpleFunction(simpleFunction: FirSimpleFunction) {
-            visitCallableDeclaration(simpleFunction)
-            bodyRenderer?.render(simpleFunction)
-            if (simpleFunction.body == null) {
-                printer.newLine()
-            }
+            visitFunction(simpleFunction)
         }
 
         override fun visitConstructor(constructor: FirConstructor) {
@@ -481,9 +476,11 @@ class FirRenderer(
         }
 
         override fun visitFunction(function: FirFunction) {
-            callableSignatureRenderer?.renderParameters(function.valueParameters)
-            declarationRenderer?.render(function)
+            visitCallableDeclaration(function)
             bodyRenderer?.render(function)
+            if (function.body == null) {
+                printer.newLine()
+            }
         }
 
         override fun visitAnonymousInitializer(anonymousInitializer: FirAnonymousInitializer) {
@@ -597,7 +594,7 @@ class FirRenderer(
             if (subjectVariable != null) {
                 subjectVariable.accept(this)
             } else {
-                whenExpression.subject?.accept(this)
+                whenExpression.subjectVariable?.initializer?.accept(this)
             }
             printer.println(") {")
             printer.pushIndent()
@@ -833,6 +830,10 @@ class FirRenderer(
 
         override fun visitTypeRef(typeRef: FirTypeRef) {
             annotationRenderer?.render(typeRef)
+            if (typeRef.customRenderer) {
+                print(typeRef.toString())
+                return
+            }
             visitElement(typeRef)
         }
 
@@ -845,8 +846,8 @@ class FirRenderer(
             print("<implicit>")
         }
 
-        override fun visitTypeRefWithNullability(typeRefWithNullability: FirTypeRefWithNullability) {
-            if (typeRefWithNullability.isMarkedNullable) {
+        override fun visitUnresolvedTypeRef(unresolvedTypeRef: FirUnresolvedTypeRef) {
+            if (unresolvedTypeRef.isMarkedNullable) {
                 print("?")
             }
         }
@@ -854,7 +855,7 @@ class FirRenderer(
         override fun visitDynamicTypeRef(dynamicTypeRef: FirDynamicTypeRef) {
             annotationRenderer?.render(dynamicTypeRef)
             print("<dynamic>")
-            visitTypeRefWithNullability(dynamicTypeRef)
+            visitUnresolvedTypeRef(dynamicTypeRef)
         }
 
         override fun visitFunctionTypeRef(functionTypeRef: FirFunctionTypeRef) {
@@ -888,7 +889,7 @@ class FirRenderer(
             print(" -> ")
             functionTypeRef.returnTypeRef.accept(this)
             print(" )")
-            visitTypeRefWithNullability(functionTypeRef)
+            visitUnresolvedTypeRef(functionTypeRef)
         }
 
         @OptIn(AllowedToUsedOnlyInK1::class)
@@ -905,10 +906,6 @@ class FirRenderer(
 
         override fun visitUserTypeRef(userTypeRef: FirUserTypeRef) {
             annotationRenderer?.render(userTypeRef)
-            if (userTypeRef.customRenderer) {
-                print(userTypeRef.toString())
-                return
-            }
             for ((index, qualifier) in userTypeRef.qualifier.withIndex()) {
                 if (index != 0) {
                     print(".")
@@ -920,7 +917,7 @@ class FirRenderer(
                     print(">")
                 }
             }
-            visitTypeRefWithNullability(userTypeRef)
+            visitUnresolvedTypeRef(userTypeRef)
         }
 
         override fun visitTypeProjection(typeProjection: FirTypeProjection) {

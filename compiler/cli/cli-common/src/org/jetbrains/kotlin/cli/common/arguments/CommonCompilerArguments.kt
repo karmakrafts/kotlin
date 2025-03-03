@@ -822,9 +822,23 @@ The corresponding calls' declarations may not be marked with @BuilderInference."
     @Argument(
         value = "-Xsuppress-warning",
         valueDescription = "<WARNING_NAME>",
-        description = "Suppress specified warning module-wide."
+        description = """Suppress specified warning module-wide. This option is deprecated in favor of "-Xwarning-level" flag"""
     )
     var suppressedDiagnostics: Array<String>? = null
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Argument(
+        value = "-Xwarning-level",
+        valueDescription = "<WARNING_NAME>:(error|warning|disabled)",
+        description = """Set the severity of the given warning.
+- `error` level raises the severity of a warning to error level (similar to -Werror but more granular)
+- `disabled` level suppresses reporting of a warning (similar to -nowarn but more granular)
+- `warning` level overrides -nowarn and -Werror for this specific warning (the warning will be reported/won't be considered as an error)"""
+    )
+    var warningLevels: Array<String>? = null
         set(value) {
             checkFrozen()
             field = value
@@ -894,8 +908,48 @@ default: 'first-only-warn' in language version 2.2+, 'first-only' in version 2.1
             put(AnalysisFlags.muteExpectActualClassesWarning, expectActualClasses)
             put(AnalysisFlags.allowFullyQualifiedNameInKClass, true)
             put(AnalysisFlags.dontWarnOnErrorSuppression, dontWarnOnErrorSuppression)
-            put(AnalysisFlags.globallySuppressedDiagnostics, suppressedDiagnostics?.toList().orEmpty())
+            fillWarningLevelMap(collector)
         }
+    }
+
+    private fun HashMap<AnalysisFlag<*>, Any>.fillWarningLevelMap(collector: MessageCollector) {
+        val result = buildMap {
+            suppressedDiagnostics.orEmpty().associateWithTo(this) { WarningLevel.Disabled }
+            if (suppressedDiagnostics.orEmpty().isNotEmpty()) {
+                val replacement = "-Xwarning-level=${suppressedDiagnostics!!.first()}:disabled"
+                val suffix = if (suppressedDiagnostics!!.size > 1) " (and the same for other warnings)" else ""
+                collector.report(
+                    CompilerMessageSeverity.STRONG_WARNING,
+                    """Argument "-Xsuppress-warning" is deprecated. Use "$replacement" instead$suffix"""
+                )
+            }
+            for (rawArgument in warningLevels.orEmpty()) {
+                val split = rawArgument.split(":", limit = 2)
+                if (split.size < 2) {
+                    collector.report(
+                        CompilerMessageSeverity.ERROR,
+                        "Invalid argument for -Xwarning-level=$rawArgument"
+                    )
+                    continue
+                }
+                val (name, rawLevel) = split
+                val level = WarningLevel.fromString(rawLevel) ?: run {
+                    collector.report(
+                        CompilerMessageSeverity.ERROR,
+                        "Incorrect value for warning level: $rawLevel. Available values are: ${WarningLevel.entries.joinToString { it.cliOption }}"
+                    )
+                    continue
+                }
+                val existing = put(name, level)
+                if (existing != null) {
+                    collector.report(
+                        CompilerMessageSeverity.ERROR,
+                        "-Xwarning-level is duplicated for warning $name"
+                    )
+                }
+            }
+        }
+        put(AnalysisFlags.warningLevels, result)
     }
 
     open fun configureLanguageFeatures(collector: MessageCollector): MutableMap<LanguageFeature, LanguageFeature.State> =

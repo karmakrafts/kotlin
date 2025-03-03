@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -48,7 +48,6 @@ import org.jetbrains.kotlin.psi.KtScript
 import org.jetbrains.kotlin.scripting.definitions.annotationsForSamWithReceivers
 import org.jetbrains.kotlin.scripting.resolve.KtFileScriptSource
 import org.jetbrains.kotlin.scripting.resolve.VirtualFileScriptSource
-import java.io.File
 import kotlin.script.experimental.api.*
 import kotlin.script.experimental.host.FileScriptSource
 import kotlin.script.experimental.host.ScriptingHostConfiguration
@@ -78,7 +77,7 @@ class FirScriptConfiguratorExtensionImpl(
 
         configuration.getNoDefault(ScriptCompilationConfiguration.baseClass)?.let { baseClass ->
             val baseClassTypeRef =
-                tryResolveOrBuildParameterTypeRefFromKotlinType(baseClass, source?.fakeElement(KtFakeSourceElementKind.ScriptBaseClass))
+                tryResolveOrBuildParameterTypeRefFromKotlinType(baseClass, source.fakeElement(KtFakeSourceElementKind.ScriptBaseClass))
 
             receivers.add(
                 buildScriptReceiverParameter {
@@ -185,13 +184,15 @@ class FirScriptConfiguratorExtensionImpl(
                         initializer = lastExpression
                         returnTypeRef = lastExpressionTypeRef
                         getter = FirDefaultPropertyGetter(
-                            lastScriptBlock?.source?.fakeElement(KtFakeSourceElementKind.DefaultAccessor),
-                            session.moduleData,
-                            FirDeclarationOrigin.ScriptCustomization.ResultProperty,
-                            lastExpressionTypeRef,
-                            Visibilities.Public,
-                            this.symbol,
+                            source = lastScriptBlock?.source?.fakeElement(KtFakeSourceElementKind.DefaultAccessor),
+                            moduleData = session.moduleData,
+                            origin = FirDeclarationOrigin.ScriptCustomization.ResultProperty,
+                            propertyTypeRef = lastExpressionTypeRef,
+                            visibility = Visibilities.Public,
+                            propertySymbol = this.symbol,
+                            modality = Modality.FINAL,
                         )
+
                         status = FirDeclarationStatusImpl(Visibilities.Public, Modality.FINAL)
                         isLocal = false
                         isVar = false
@@ -207,7 +208,7 @@ class FirScriptConfiguratorExtensionImpl(
 
     private fun FirScriptBuilder.tryResolveOrBuildParameterTypeRefFromKotlinType(
         kotlinType: KotlinType,
-        sourceElement: KtSourceElement? = source?.fakeElement(KtFakeSourceElementKind.ScriptParameter),
+        sourceElement: KtSourceElement = source.fakeElement(KtFakeSourceElementKind.ScriptParameter),
     ): FirTypeRef {
         // TODO: check/support generics and other cases (KT-72638)
         // such a conversion by simple splitting by a '.', is overly simple and does not support all cases, e.g. generics or backticks

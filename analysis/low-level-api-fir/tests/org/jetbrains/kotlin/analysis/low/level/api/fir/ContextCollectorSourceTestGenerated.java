@@ -280,6 +280,18 @@ public class ContextCollectorSourceTestGenerated extends AbstractContextCollecto
     }
 
     @Test
+    @TestMetadata("innerClass.kt")
+    public void testInnerClass() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/classHeaderPositions/innerClass.kt");
+    }
+
+    @Test
+    @TestMetadata("nestedClass.kt")
+    public void testNestedClass() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/classHeaderPositions/nestedClass.kt");
+    }
+
+    @Test
     @TestMetadata("primaryConstructorParameter_initializerExpression.kt")
     public void testPrimaryConstructorParameter_initializerExpression() {
       runTest("analysis/low-level-api-fir/testData/contextCollector/classHeaderPositions/primaryConstructorParameter_initializerExpression.kt");
@@ -295,6 +307,12 @@ public class ContextCollectorSourceTestGenerated extends AbstractContextCollecto
     @TestMetadata("superTypeCallArgumentsExpression.kt")
     public void testSuperTypeCallArgumentsExpression() {
       runTest("analysis/low-level-api-fir/testData/contextCollector/classHeaderPositions/superTypeCallArgumentsExpression.kt");
+    }
+
+    @Test
+    @TestMetadata("superTypeCallArgumentsExpressionInnerClass.kt")
+    public void testSuperTypeCallArgumentsExpressionInnerClass() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/classHeaderPositions/superTypeCallArgumentsExpressionInnerClass.kt");
     }
 
     @Test
@@ -392,6 +410,12 @@ public class ContextCollectorSourceTestGenerated extends AbstractContextCollecto
     }
 
     @Test
+    @TestMetadata("anonymousFunctionContextParameter.kt")
+    public void testAnonymousFunctionContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/anonymousFunctionContextParameter.kt");
+    }
+
+    @Test
     @TestMetadata("anonymousFunctionContextReceiver.kt")
     public void testAnonymousFunctionContextReceiver() {
       runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/anonymousFunctionContextReceiver.kt");
@@ -413,6 +437,54 @@ public class ContextCollectorSourceTestGenerated extends AbstractContextCollecto
     @TestMetadata("anonymousFunctionContextReceiverExpression.kt")
     public void testAnonymousFunctionContextReceiverExpression() {
       runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/anonymousFunctionContextReceiverExpression.kt");
+    }
+
+    @Test
+    @TestMetadata("anonymousFunctionReceiverParameterWithContextParameter.kt")
+    public void testAnonymousFunctionReceiverParameterWithContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/anonymousFunctionReceiverParameterWithContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("anonymousFunctionReceiverParameterWithContextReceiver.kt")
+    public void testAnonymousFunctionReceiverParameterWithContextReceiver() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/anonymousFunctionReceiverParameterWithContextReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("anonymousFunctionTypeParameterWithContextParameter.kt")
+    public void testAnonymousFunctionTypeParameterWithContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/anonymousFunctionTypeParameterWithContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("anonymousFunctionTypeParameterWithContextReceiver.kt")
+    public void testAnonymousFunctionTypeParameterWithContextReceiver() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/anonymousFunctionTypeParameterWithContextReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("anonymousFunctionValueParameterWithContextParameter.kt")
+    public void testAnonymousFunctionValueParameterWithContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/anonymousFunctionValueParameterWithContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("anonymousFunctionValueParameterWithContextParameterWithDefaultValue.kt")
+    public void testAnonymousFunctionValueParameterWithContextParameterWithDefaultValue() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/anonymousFunctionValueParameterWithContextParameterWithDefaultValue.kt");
+    }
+
+    @Test
+    @TestMetadata("anonymousFunctionValueParameterWithContextReceiver.kt")
+    public void testAnonymousFunctionValueParameterWithContextReceiver() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/anonymousFunctionValueParameterWithContextReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("anonymousFunctionValueParameterWithContextReceiverWithDefaultValue.kt")
+    public void testAnonymousFunctionValueParameterWithContextReceiverWithDefaultValue() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/anonymousFunctionValueParameterWithContextReceiverWithDefaultValue.kt");
     }
 
     @Test
@@ -440,9 +512,75 @@ public class ContextCollectorSourceTestGenerated extends AbstractContextCollecto
     }
 
     @Test
+    @TestMetadata("functionContextParameter.kt")
+    public void testFunctionContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/functionContextParameter.kt");
+    }
+
+    @Test
     @TestMetadata("functionContextReceiver.kt")
     public void testFunctionContextReceiver() {
       runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/functionContextReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("functionReceiverParameterWithContextParameter.kt")
+    public void testFunctionReceiverParameterWithContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/functionReceiverParameterWithContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("functionReceiverParameterWithContextReceiver.kt")
+    public void testFunctionReceiverParameterWithContextReceiver() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/functionReceiverParameterWithContextReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("functionTypeParameterWithContextParameter.kt")
+    public void testFunctionTypeParameterWithContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/functionTypeParameterWithContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("functionTypeParameterWithContextReceiver.kt")
+    public void testFunctionTypeParameterWithContextReceiver() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/functionTypeParameterWithContextReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("functionValueParameterWithContextParameter.kt")
+    public void testFunctionValueParameterWithContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/functionValueParameterWithContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("functionValueParameterWithContextParameterWithDefaultValue.kt")
+    public void testFunctionValueParameterWithContextParameterWithDefaultValue() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/functionValueParameterWithContextParameterWithDefaultValue.kt");
+    }
+
+    @Test
+    @TestMetadata("functionValueParameterWithContextReceiver.kt")
+    public void testFunctionValueParameterWithContextReceiver() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/functionValueParameterWithContextReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("functionValueParameterWithContextReceiverWithDefaultValue.kt")
+    public void testFunctionValueParameterWithContextReceiverWithDefaultValue() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/functionValueParameterWithContextReceiverWithDefaultValue.kt");
+    }
+
+    @Test
+    @TestMetadata("functionWithContextParameter.kt")
+    public void testFunctionWithContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/functionWithContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("functionWithContextReceiver.kt")
+    public void testFunctionWithContextReceiver() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/functionWithContextReceiver.kt");
     }
 
     @Test
@@ -530,6 +668,12 @@ public class ContextCollectorSourceTestGenerated extends AbstractContextCollecto
     }
 
     @Test
+    @TestMetadata("namedPropertyContextParameterWithDefaultAccessor.kt")
+    public void testNamedPropertyContextParameterWithDefaultAccessor() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/namedPropertyContextParameterWithDefaultAccessor.kt");
+    }
+
+    @Test
     @TestMetadata("nestedContextParameter.kt")
     public void testNestedContextParameter() {
       runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/nestedContextParameter.kt");
@@ -542,9 +686,69 @@ public class ContextCollectorSourceTestGenerated extends AbstractContextCollecto
     }
 
     @Test
+    @TestMetadata("propertyContextParameter.kt")
+    public void testPropertyContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/propertyContextParameter.kt");
+    }
+
+    @Test
     @TestMetadata("propertyContextReceiver.kt")
     public void testPropertyContextReceiver() {
       runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/propertyContextReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyContextReceiverWithDefaultAccessor.kt")
+    public void testPropertyContextReceiverWithDefaultAccessor() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/propertyContextReceiverWithDefaultAccessor.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyReceiverParameterWithContextParameter.kt")
+    public void testPropertyReceiverParameterWithContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/propertyReceiverParameterWithContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyReceiverParameterWithContextReceiver.kt")
+    public void testPropertyReceiverParameterWithContextReceiver() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/propertyReceiverParameterWithContextReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyTypeParameterWithContextParameter.kt")
+    public void testPropertyTypeParameterWithContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/propertyTypeParameterWithContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyTypeParameterWithContextReceiver.kt")
+    public void testPropertyTypeParameterWithContextReceiver() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/propertyTypeParameterWithContextReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyWithContextParameter.kt")
+    public void testPropertyWithContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/propertyWithContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyWithContextParameterWithDefaultAccessor.kt")
+    public void testPropertyWithContextParameterWithDefaultAccessor() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/propertyWithContextParameterWithDefaultAccessor.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyWithContextReceiver.kt")
+    public void testPropertyWithContextReceiver() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/propertyWithContextReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyWithContextReceiverWithDefaultAccessor.kt")
+    public void testPropertyWithContextReceiverWithDefaultAccessor() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/propertyWithContextReceiverWithDefaultAccessor.kt");
     }
 
     @Test
@@ -629,6 +833,12 @@ public class ContextCollectorSourceTestGenerated extends AbstractContextCollecto
     @TestMetadata("unnamedPropertyContextParameter.kt")
     public void testUnnamedPropertyContextParameter() {
       runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/unnamedPropertyContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("unnamedPropertyContextParameterWithDefaultAccessor.kt")
+    public void testUnnamedPropertyContextParameterWithDefaultAccessor() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/contextParameters/unnamedPropertyContextParameterWithDefaultAccessor.kt");
     }
   }
 
@@ -789,6 +999,24 @@ public class ContextCollectorSourceTestGenerated extends AbstractContextCollecto
     @Test
     public void testAllFilesPresentInTypeParameters() {
       KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/low-level-api-fir/testData/contextCollector/typeParameters"), Pattern.compile("^(.+)\\.(kt)$"), null, true);
+    }
+
+    @Test
+    @TestMetadata("anonymousFunctionLocalVarType.kt")
+    public void testAnonymousFunctionLocalVarType() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/typeParameters/anonymousFunctionLocalVarType.kt");
+    }
+
+    @Test
+    @TestMetadata("anonymousFunctionParameterType.kt")
+    public void testAnonymousFunctionParameterType() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/typeParameters/anonymousFunctionParameterType.kt");
+    }
+
+    @Test
+    @TestMetadata("anonymousFunctionTypeParameter.kt")
+    public void testAnonymousFunctionTypeParameter() {
+      runTest("analysis/low-level-api-fir/testData/contextCollector/typeParameters/anonymousFunctionTypeParameter.kt");
     }
 
     @Test

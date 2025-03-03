@@ -9,6 +9,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
+import org.jetbrains.kotlin.analysis.api.projectStructure.copyOrigin
 import org.jetbrains.kotlin.analysis.low.level.api.fir.LLFirInternals
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.LLFirResolveSession
 import org.jetbrains.kotlin.analysis.low.level.api.fir.element.builder.containingDeclaration
@@ -25,7 +26,6 @@ import org.jetbrains.kotlin.fir.realPsi
 import org.jetbrains.kotlin.fir.resolve.providers.FirProvider
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.psi.*
@@ -132,7 +132,7 @@ private fun KtDeclaration.findSourceNonLocalFirDeclarationByProvider(
         is KtDestructuringDeclaration,
         is KtDestructuringDeclarationEntry,
         is KtScript,
-        -> firDeclarationProvider(this)
+            -> firDeclarationProvider(this)
 
         is KtPropertyAccessor -> {
             val firPropertyDeclaration = property.findSourceNonLocalFirDeclarationByProvider(
@@ -251,12 +251,12 @@ internal inline fun FirDeclaration.forEachDeclaration(action: (FirDeclaration) -
  * Some "local" declarations are not local from the lazy resolution perspective.
  */
 internal val FirCallableSymbol<*>.isLocalForLazyResolutionPurposes: Boolean
-    get() = when {
+    get() = when (fir.origin) {
         // Destructuring declaration container should be treated as a non-local as it is a top-level script declaration
-        fir.origin == FirDeclarationOrigin.Synthetic.ScriptTopLevelDestructuringDeclarationContainer -> false
+        FirDeclarationOrigin.Synthetic.ScriptTopLevelDestructuringDeclarationContainer -> false
 
         // Script parameters should be treated as non-locals as they are visible from FirScript
-        fir.origin == FirDeclarationOrigin.ScriptCustomization.Parameter || fir.origin == FirDeclarationOrigin.ScriptCustomization.ParameterFromBaseClass -> false
+        FirDeclarationOrigin.ScriptCustomization.Parameter, FirDeclarationOrigin.ScriptCustomization.ParameterFromBaseClass -> false
 
         else -> callableId.isLocal || fir.status.visibility == Visibilities.Local
     }
@@ -274,7 +274,7 @@ val PsiElement.parentsCodeFragmentAware: Sequence<PsiElement>
     get() = parentsWithSelfCodeFragmentAware.drop(1)
 
 internal fun <T : PsiElement> T.unwrapCopy(containingFile: PsiFile = this.containingFile): T? {
-    val originalFile = containingFile.originalFile.takeIf { it !== containingFile }
+    val originalFile = containingFile.copyOrigin
         ?: (containingFile as? KtFile)?.analysisContext?.containingFile
         ?: return null
 
@@ -288,7 +288,7 @@ internal fun <T : PsiElement> T.unwrapCopy(containingFile: PsiFile = this.contai
 
 fun findStringPlusSymbol(session: FirSession): FirNamedFunctionSymbol? {
     val stringClassSymbol = session.builtinTypes.stringType.toRegularClassSymbol(session)
-    return stringClassSymbol?.declarationSymbols?.singleOrNull {
-        it is FirFunctionSymbol && it.callableId.callableName == OperatorNameConventions.PLUS
-    } as? FirNamedFunctionSymbol
+    return stringClassSymbol?.fir?.declarations?.singleOrNull {
+        it is FirSimpleFunction && it.name == OperatorNameConventions.PLUS
+    }?.symbol as? FirNamedFunctionSymbol
 }

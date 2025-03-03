@@ -27,11 +27,6 @@ kotlin {
 
     jvm()
 
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
-    compilerOptions {
-        languageVersion.set(KotlinVersion.KOTLIN_1_9)
-    }
-
     sourceSets {
         commonTest.dependencies {
             implementation(project(":kotlin-stdlib-common"))
@@ -49,7 +44,6 @@ kotlin {
                 runtimeOnly(libs.junit.jupiter.engine)
 
 
-                runtimeOnly(commonDependency("org.jetbrains.intellij.deps", "trove4j"))
                 runtimeOnly(libs.intellij.fastutil)
                 runtimeOnly(jpsModelImpl())
                 implementation(project(":compiler:backend-common"))

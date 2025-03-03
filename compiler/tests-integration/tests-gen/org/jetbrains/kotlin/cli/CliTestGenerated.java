@@ -850,16 +850,6 @@ public class CliTestGenerated extends AbstractCliTest {
     public void testUseDeclarationThatWasExperimentalWithoutExplicitImport() {
       runTest("compiler/testData/cli/jvm/optIn/useDeclarationThatWasExperimentalWithoutExplicitImport.args");
     }
-
-    @TestMetadata("useDeclarationThatWasExperimentalWithoutExplicitImportCommandLine.args")
-    public void testUseDeclarationThatWasExperimentalWithoutExplicitImportCommandLine() {
-      runTest("compiler/testData/cli/jvm/optIn/useDeclarationThatWasExperimentalWithoutExplicitImportCommandLine.args");
-    }
-
-    @TestMetadata("useDeclarationThatWasExperimentalWithoutMarker.args")
-    public void testUseDeclarationThatWasExperimentalWithoutMarker() {
-      runTest("compiler/testData/cli/jvm/optIn/useDeclarationThatWasExperimentalWithoutMarker.args");
-    }
   }
 
   @TestMetadata("compiler/testData/cli/jvm/sourcesCommonChecks")
@@ -1058,11 +1048,6 @@ public class CliTestGenerated extends AbstractCliTest {
       KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/cli/jvm/XjspecifyAnnotation"), Pattern.compile("^(.+)\\.args$"), null, false);
     }
 
-    @TestMetadata("jspecifyByLv16.args")
-    public void testJspecifyByLv16() {
-      runTest("compiler/testData/cli/jvm/XjspecifyAnnotation/jspecifyByLv16.args");
-    }
-
     @TestMetadata("jspecifyDefault.args")
     public void testJspecifyDefault() {
       runTest("compiler/testData/cli/jvm/XjspecifyAnnotation/jspecifyDefault.args");
@@ -1225,6 +1210,16 @@ public class CliTestGenerated extends AbstractCliTest {
     @TestMetadata("suppressAllWarningsJvm.args")
     public void testSuppressAllWarningsJvm() {
       runTest("compiler/testData/cli/jvm/XsupressWarnings/suppressAllWarningsJvm.args");
+    }
+
+    @TestMetadata("warningLevelAndNowarn.args")
+    public void testWarningLevelAndNowarn() {
+      runTest("compiler/testData/cli/jvm/XsupressWarnings/warningLevelAndNowarn.args");
+    }
+
+    @TestMetadata("warningLevelAndWerror.args")
+    public void testWarningLevelAndWerror() {
+      runTest("compiler/testData/cli/jvm/XsupressWarnings/warningLevelAndWerror.args");
     }
 
     @TestMetadata("warningSuppression.args")
@@ -1811,6 +1806,21 @@ public class CliTestGenerated extends AbstractCliTest {
     @TestMetadata("version.args")
     public void testVersion() {
       runTest("compiler/testData/cli/jvm/version.args");
+    }
+
+    @TestMetadata("warningLevels_correct.args")
+    public void testWarningLevels_correct() {
+      runTest("compiler/testData/cli/jvm/warningLevels_correct.args");
+    }
+
+    @TestMetadata("warningLevels_duplicated.args")
+    public void testWarningLevels_duplicated() {
+      runTest("compiler/testData/cli/jvm/warningLevels_duplicated.args");
+    }
+
+    @TestMetadata("warningLevels_incorrect.args")
+    public void testWarningLevels_incorrect() {
+      runTest("compiler/testData/cli/jvm/warningLevels_incorrect.args");
     }
 
     @TestMetadata("werror.args")

@@ -13,9 +13,11 @@ import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
 import org.jetbrains.kotlin.analysis.api.scopes.KaScope
-import org.jetbrains.kotlin.analysis.api.symbols.*
+import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaFileSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaKotlinPropertySymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaNamedFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.markers.KaAnnotatedSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.pointers.KaPsiSymbolPointerCreator
 import org.jetbrains.kotlin.asJava.classes.KtLightClassForFacade
 import org.jetbrains.kotlin.asJava.classes.lazyPub
 import org.jetbrains.kotlin.asJava.elements.FakeFileForLightClass
@@ -70,7 +72,9 @@ internal class SymbolLightClassForFacade(
                 GranularAnnotationsBox(
                     annotationsProvider = SymbolAnnotationsProvider(
                         ktModule = this.ktModule,
-                        annotatedSymbolPointer = KaPsiSymbolPointerCreator.symbolPointerOfType<KaFileSymbol>(firstFileInFacade),
+                        annotatedSymbolPointer = analyzeForLightClasses(ktModule) {
+                            firstFileInFacade.symbol.createPointer()
+                        },
                     )
                 )
             },
@@ -110,7 +114,7 @@ internal class SymbolLightClassForFacade(
     private fun KaSession.loadFieldsFromFile(
         fileScope: KaScope,
         nameGenerator: SymbolLightField.FieldNameGenerator,
-        result: MutableList<PsiField>
+        result: MutableList<PsiField>,
     ) {
         for (propertySymbol in fileScope.callables) {
             if (propertySymbol !is KaKotlinPropertySymbol) continue
@@ -127,9 +131,6 @@ internal class SymbolLightClassForFacade(
             )
         }
     }
-
-    private fun KaPropertyAccessorSymbol?.isNullOrPublic(): Boolean =
-        this?.toPsiVisibilityForMember()?.let { it == PsiModifier.PUBLIC } != false
 
     override fun getOwnFields(): List<PsiField> = cachedValue {
         val result = mutableListOf<PsiField>()

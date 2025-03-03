@@ -598,10 +598,10 @@ private class ContextCollectorVisitor(
                     context.forDelegatedConstructorCall(constructor, owningClass = null, holder) {
                         process(constructor.delegatedConstructor)
                     }
-                }
 
-                onActive {
-                    processChildren(constructor)
+                    onActive {
+                        processChildren(constructor)
+                    }
                 }
             }
         }
@@ -634,18 +634,26 @@ private class ContextCollectorVisitor(
             val holder = getSessionHolder(simpleFunction)
 
             context.withSimpleFunction(simpleFunction, holder.session) {
-                context.forFunctionBody(simpleFunction, holder) {
-                    processList(simpleFunction.valueParameters)
-
-                    dumpContext(simpleFunction, ContextKind.BODY)
-
-                    onActive {
-                        process(simpleFunction.body)
-                    }
+                processList(simpleFunction.typeParameters)
+                onActive {
+                    process(simpleFunction.receiverParameter)
                 }
 
-                onActive {
-                    processChildren(simpleFunction)
+                onActiveBody {
+                    context.forFunctionBody(simpleFunction, holder) {
+                        dumpContext(simpleFunction, ContextKind.BODY)
+
+                        processList(simpleFunction.contextParameters)
+                        processList(simpleFunction.valueParameters)
+
+                        onActive {
+                            process(simpleFunction.body)
+                        }
+                    }
+
+                    onActive {
+                        processChildren(simpleFunction)
+                    }
                 }
             }
         }
@@ -664,24 +672,37 @@ private class ContextCollectorVisitor(
             property.lazyResolveToPhase(FirResolvePhase.BODY_RESOLVE)
 
             context.withProperty(property) {
-                dumpContext(property, ContextKind.BODY)
-
+                processList(property.typeParameters)
                 onActive {
-                    context.forPropertyInitializerIfNonLocal(property) {
-                        process(property.initializer)
+                    process(property.receiverParameter)
+                }
 
-                        onActive {
-                            process(property.delegate)
-                        }
-
-                        onActive {
-                            process(property.backingField)
-                        }
-                    }
+                onActiveBody {
+                    dumpContext(property, ContextKind.BODY)
                 }
 
                 onActive {
-                    processChildren(property)
+                    context.withParameters(property, getSessionHolder(property)) {
+                        processList(property.contextParameters)
+                    }
+
+                    onActive {
+                        context.forPropertyInitializerIfNonLocal(property) {
+                            process(property.initializer)
+
+                            onActive {
+                                process(property.delegate)
+
+                                onActive {
+                                    process(property.backingField)
+                                }
+                            }
+                        }
+
+                        onActive {
+                            processChildren(property)
+                        }
+                    }
                 }
             }
         }
@@ -803,18 +824,36 @@ private class ContextCollectorVisitor(
         processSignatureAnnotations(anonymousFunction)
 
         onActiveBody {
-            context.withAnonymousFunction(anonymousFunction, bodyHolder) {
-                processList(anonymousFunction.contextParameters)
-                processList(anonymousFunction.valueParameters)
-
-                dumpContext(anonymousFunction, ContextKind.BODY)
-
+            @OptIn(PrivateForInline::class)
+            context.withTypeParametersOf(anonymousFunction) {
+                processList(anonymousFunction.typeParameters)
                 onActive {
-                    process(anonymousFunction.body)
+                    process(anonymousFunction.receiverParameter)
                 }
 
-                onActive {
-                    processChildren(anonymousFunction)
+                onActiveBody {
+                    context.withAnonymousFunction(anonymousFunction, bodyHolder) {
+                        for (contextParameter in anonymousFunction.contextParameters) {
+                            context.storeValueParameterIfNeeded(contextParameter, bodyHolder.session)
+                        }
+
+                        for (valueParameter in anonymousFunction.valueParameters) {
+                            context.storeValueParameterIfNeeded(valueParameter, bodyHolder.session)
+                        }
+
+                        dumpContext(anonymousFunction, ContextKind.BODY)
+
+                        processList(anonymousFunction.contextParameters)
+                        processList(anonymousFunction.valueParameters)
+
+                        onActive {
+                            process(anonymousFunction.body)
+                        }
+                    }
+
+                    onActive {
+                        processChildren(anonymousFunction)
+                    }
                 }
             }
         }

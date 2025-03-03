@@ -332,7 +332,7 @@ fun FirTypeRef.withReplacedReturnType(newType: ConeKotlinType?): FirTypeRef {
     require(this is FirResolvedTypeRef || newType == null)
     if (newType == null) return this
 
-    return resolvedTypeFromPrototype(newType)
+    return resolvedTypeFromPrototype(newType, fallbackSource = null)
 }
 
 fun FirTypeRef.withReplacedConeType(
@@ -351,7 +351,7 @@ fun FirTypeRef.withReplacedConeType(
     return withReplacedSourceAndType(newSource, newType)
 }
 
-internal fun FirResolvedTypeRef.withReplacedSourceAndType(newSource: KtSourceElement?, newType: ConeKotlinType): FirResolvedTypeRef {
+fun FirResolvedTypeRef.withReplacedSourceAndType(newSource: KtSourceElement?, newType: ConeKotlinType): FirResolvedTypeRef {
     return when {
         newType is ConeErrorType -> {
             buildErrorTypeRef {
@@ -396,7 +396,7 @@ fun shouldApproximateAnonymousTypesOfNonLocalDeclaration(containingCallableVisib
 fun FirDeclaration.visibilityForApproximation(container: FirDeclaration?): Visibility {
     if (this !is FirMemberDeclaration) return Visibilities.Local
     val containerVisibility =
-        if (container == null || container is FirFile || container is FirScript) Visibilities.Public
+        if (container == null || container is FirFile || container is FirScript || container is FirReplSnippet) Visibilities.Public
         else (container as? FirRegularClass)?.visibility ?: Visibilities.Local
     if (containerVisibility == Visibilities.Local) return Visibilities.Local
     return visibility

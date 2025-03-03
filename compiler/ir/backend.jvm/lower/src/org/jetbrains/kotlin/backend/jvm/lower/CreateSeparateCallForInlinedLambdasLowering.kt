@@ -36,8 +36,8 @@ class CreateSeparateCallForInlinedLambdasLowering(val context: JvmBackendContext
         val inlinedBlock = expression.statements.lastOrNull() as? IrInlinedFunctionBlock ?: return super.visitReturnableBlock(expression)
         if (inlinedBlock.isFunctionInlining()) {
             val newStatements = inlinedBlock.getOnlyInlinableArguments().map { arg ->
-                IrCallImpl.fromSymbolOwner(UNDEFINED_OFFSET, UNDEFINED_OFFSET, context.ir.symbols.singleArgumentInlineFunction)
-                    .also { it.putValueArgument(0, arg.transform(this, null)) }
+                IrCallImpl.fromSymbolOwner(UNDEFINED_OFFSET, UNDEFINED_OFFSET, context.symbols.singleArgumentInlineFunction)
+                    .also { it.arguments[0] = arg.transform(this, null) }
             }
 
             // we don't need to transform body of original function, just arguments that were extracted as variables

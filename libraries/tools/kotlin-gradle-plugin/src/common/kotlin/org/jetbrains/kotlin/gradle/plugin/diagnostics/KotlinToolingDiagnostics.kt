@@ -22,7 +22,7 @@ import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLI
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_NATIVE_IGNORE_DISABLED_TARGETS
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_NATIVE_SUPPRESS_EXPERIMENTAL_ARTIFACTS_DSL_WARNING
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.ToolingDiagnostic.Severity.*
-import org.jetbrains.kotlin.gradle.plugin.mpp.resources.resolve.KotlinTargetResourcesResolutionStrategy
+import org.jetbrains.kotlin.gradle.plugin.mpp.resources.resolve.KotlinTargetResourcesResolution
 import org.jetbrains.kotlin.gradle.plugin.sources.android.multiplatformAndroidSourceSetLayoutV1
 import org.jetbrains.kotlin.gradle.plugin.sources.android.multiplatformAndroidSourceSetLayoutV2
 import org.jetbrains.kotlin.gradle.utils.prettyName
@@ -1181,20 +1181,6 @@ internal object KotlinToolingDiagnostics {
         }
     }
 
-    object UnknownValueProvidedForResourcesStrategy : ToolingDiagnosticFactory(ERROR, DiagnosticGroups.KGP.Misconfiguration) {
-        operator fun invoke(value: String) = build {
-            title("Invalid Value Provided for 'kotlin.mpp.resourcesResolutionStrategy'")
-                .description {
-                    "Unknown value $value provided for kotlin.mpp.resourcesResolutionStrategy"
-                }
-                .solution {
-                    "Make sure 'kotlin.mpp.resourcesResolutionStrategy' is set to one of the supported values: " +
-                            "'${KotlinTargetResourcesResolutionStrategy.VariantReselection.propertyName}' or " +
-                            "'${KotlinTargetResourcesResolutionStrategy.ResourcesConfiguration.propertyName}'"
-                }
-        }
-    }
-
     object MissingRuntimeDependencyConfigurationForWasmTarget : ToolingDiagnosticFactory(ERROR, DiagnosticGroups.KGP.Misconfiguration) {
         operator fun invoke(targetName: String) = build {
             title("Missing Runtime Dependency Configuration for Wasm Target '$targetName'")
@@ -1266,14 +1252,23 @@ internal object KotlinToolingDiagnostics {
         }
     }
 
-    object DeprecatedGradleProperties : ToolingDiagnosticFactory(WARNING, DiagnosticGroups.KGP.Deprecation) {
-        operator fun invoke(usedDeprecatedProperty: String) = build {
+    object DeprecatedWarningGradleProperties : DeprecatedGradleProperties(ToolingDiagnostic.Severity.WARNING)
+    object DeprecatedErrorGradleProperties : DeprecatedGradleProperties(ToolingDiagnostic.Severity.ERROR)
+
+    open class DeprecatedGradleProperties(
+        severity: ToolingDiagnostic.Severity,
+    ) : ToolingDiagnosticFactory(severity, DiagnosticGroups.KGP.Deprecation) {
+        operator fun invoke(
+            usedDeprecatedProperty: String,
+            details: String?,
+        ) = build {
             title("Deprecated Gradle Property '$usedDeprecatedProperty' Used")
-                .description {
-                    "The `$usedDeprecatedProperty` deprecated property is used in your build."
-                }
-                .solution {
-                    "Please, stop using it as it is unsupported and may apply no effect to your build."
+                .description("The `$usedDeprecatedProperty` deprecated property is used in your build.")
+                .solutions {
+                    listOfNotNull(
+                        "It is unsupported, please stop using it.",
+                        details
+                    )
                 }
         }
     }
@@ -1542,6 +1537,18 @@ internal object KotlinToolingDiagnostics {
                 }
                 .solution {
                     "Please create a new Kotlin issue with reproduction project: https://kotl.in/issue"
+                }
+        }
+    }
+
+    object SwiftExportInvalidModuleName : ToolingDiagnosticFactory(ERROR, DiagnosticGroups.KGP.Misconfiguration) {
+        operator fun invoke(moduleName: String) = build {
+            title("Invalid Swift Module Name")
+                .description {
+                    "The Swift module name '$moduleName' is invalid"
+                }
+                .solution {
+                    "Use only alphanumeric characters and underscores."
                 }
         }
     }

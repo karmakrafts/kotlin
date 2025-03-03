@@ -6,11 +6,10 @@ plugins {
 
 dependencies {
     api(project(":core:util.runtime"))
-    api(project(":compiler:config"))
-    api(project(":compiler:config.jvm"))
-    api(project(":js:js.config"))
-    api(project(":wasm:wasm.config"))
-    api(project(":native:kotlin-native-utils"))
+    implementation(project(":compiler:config.jvm"))
+    implementation(project(":js:js.config"))
+    implementation(project(":wasm:wasm.config"))
+    implementation(project(":native:kotlin-native-utils"))
     api(project(":compiler:plugin-api"))
     compileOnly(commonDependency("org.jetbrains.kotlin:kotlin-reflect")) { isTransitive = false }
     compileOnly(intellijCore())

@@ -16,16 +16,19 @@ import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.config.Services
 import org.jetbrains.kotlin.fir.scopes.ProcessorAction
 import org.jetbrains.kotlin.modules.KotlinModuleXmlBuilder
+import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 import org.jetbrains.kotlin.test.kotlinPathsForDistDirectoryForTests
 import org.jetbrains.kotlin.util.CodeAnalysisMeasurement
-import org.jetbrains.kotlin.util.CodeGenerationMeasurement
 import org.jetbrains.kotlin.util.PerformanceManager
 import org.jetbrains.kotlin.util.CompilerInitializationMeasurement
 import org.jetbrains.kotlin.util.GarbageCollectionMeasurement
-import org.jetbrains.kotlin.util.IRMeasurement
+import org.jetbrains.kotlin.util.TranslationToIrMeasurement
+import org.jetbrains.kotlin.util.IrLoweringMeasurement
+import org.jetbrains.kotlin.util.BackendMeasurement
 import org.jetbrains.kotlin.util.PerformanceCounter
 import org.jetbrains.kotlin.utils.KotlinPaths
 import org.jetbrains.kotlin.utils.PathUtil
+import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import java.io.File
 import java.io.FileOutputStream
 import java.io.PrintStream
@@ -328,39 +331,35 @@ abstract class AbstractFullPipelineModularizedTest : AbstractModularizedTest() {
     }
 
 
-    private inner class CompilerPerformanceManager : PerformanceManager("Modularized test performance manager") {
+    private inner class CompilerPerformanceManager : PerformanceManager(JvmPlatforms.defaultJvmPlatform, "Modularized test performance manager") {
 
         fun reportCumulativeTime(): CumulativeTime {
-            val measurements = getMeasurementResults()
-
             val gcInfo = measurements.filterIsInstance<GarbageCollectionMeasurement>()
                 .associate { it.garbageCollectionKind to GCInfo(it.garbageCollectionKind, it.milliseconds, it.count) }
 
             val analysisMeasurement = measurements.filterIsInstance<CodeAnalysisMeasurement>().firstOrNull()
             val initMeasurement = measurements.filterIsInstance<CompilerInitializationMeasurement>().firstOrNull()
-            val irMeasurements = measurements.filterIsInstance<IRMeasurement>()
 
             val components = buildMap {
                 put("Init", initMeasurement?.milliseconds ?: 0)
                 put("Analysis", analysisMeasurement?.milliseconds ?: 0)
 
-                irMeasurements.firstOrNull { it.kind == IRMeasurement.Kind.TRANSLATION }?.milliseconds?.let { put("Translation", it) }
-                irMeasurements.firstOrNull { it.kind == IRMeasurement.Kind.LOWERING }?.milliseconds?.let { put("Lowering", it) }
+                measurements.firstIsInstanceOrNull<TranslationToIrMeasurement>()?.milliseconds?.let { put("IrGeneration", it) }
+                measurements.firstIsInstanceOrNull<IrLoweringMeasurement>()?.milliseconds?.let { put("Lowering", it) }
 
                 val generationTime =
-                    irMeasurements.firstOrNull { it.kind == IRMeasurement.Kind.GENERATION }?.milliseconds ?:
-                    measurements.filterIsInstance<CodeGenerationMeasurement>().firstOrNull()?.milliseconds
+                    measurements.firstIsInstanceOrNull<BackendMeasurement>()?.milliseconds
 
                 if (generationTime != null) {
-                    put("Generation", generationTime)
+                    put("Backend", generationTime)
                 }
             }
 
             return CumulativeTime(
                 gcInfo,
                 components,
-                files ?: 0,
-                lines ?: 0
+                files,
+                lines
             )
         }
     }

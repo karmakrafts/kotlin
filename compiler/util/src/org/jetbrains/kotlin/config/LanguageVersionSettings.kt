@@ -354,6 +354,11 @@ enum class LanguageFeature(
     // We enable it for already released 2.1 because it's a bug fix
     StricterConstraintIncorporationRecursionDetector(KOTLIN_2_1, kind = OTHER), // KT-73434
 
+    // It's not a fully blown LF, but mostly a way to manage potential unexpected semantic changes
+    // See the single usage at org.jetbrains.kotlin.resolve.calls.inference.components.ConstraintInjector.TypeCheckerStateForConstraintInjector.runForkingPoint
+    // We enable it for already released 2.1 because it's a bug fix
+    ForkIsNotSuccessfulWhenNoBranchIsSuccessful(KOTLIN_2_1, kind = OTHER), // KT-75444
+
     // 2.2
 
     BreakContinueInInlineLambdas(KOTLIN_2_2), // KT-1436
@@ -375,6 +380,8 @@ enum class LanguageFeature(
     AllowDnnTypeOverridingFlexibleType(KOTLIN_2_2, kind = OTHER), // KT-74049
     PreferDependentTypeVariablesWithProperArgumentConstraint(KOTLIN_2_2, kind = OTHER), // KT-71854
     ForbidEnumEntryNamedEntries(KOTLIN_2_2, kind = BUG_FIX), // KT-72829, KT-58920
+    WhenGuards(KOTLIN_2_2, kind = OTHER), // KT-13626
+    MultiDollarInterpolation(KOTLIN_2_2, kind = OTHER), // KT-2425
 
     // 2.3
 
@@ -386,6 +393,7 @@ enum class LanguageFeature(
     EnableDfaWarningsInK2(KOTLIN_2_3, kind = OTHER), // KT-50965
     AllowEagerSupertypeAccessibilityChecks(KOTLIN_2_3, kind = OTHER), // KT-73611
     DontMakeExplicitJavaTypeArgumentsFlexible(KOTLIN_2_3, kind = OTHER), // KT-71718
+    ResolveTopLevelLambdasAsSyntheticCallArgument(KOTLIN_2_3, kind = OTHER), // KT-67869
 
     // End of 2.* language features --------------------------------------------------
 
@@ -459,11 +467,10 @@ enum class LanguageFeature(
     DontCreateSyntheticPropertiesWithoutBaseJavaGetter(sinceVersion = null, kind = OTHER), // KT-64358
     JavaTypeParameterDefaultRepresentationWithDNN(sinceVersion = null, kind = OTHER), // KT-59138
     ProperFieldAccessGenerationForFieldAccessShadowedByKotlinProperty(sinceVersion = null, kind = OTHER), // KT-56386
-    WhenGuards(sinceVersion = null, kind = OTHER), // KT-13626
-    MultiDollarInterpolation(sinceVersion = null, kind = OTHER), // KT-2425
     IrInlinerBeforeKlibSerialization(sinceVersion = null, kind = UNSTABLE_FEATURE), // KT-69765
     NestedTypeAliases(sinceVersion = null, kind = UNSTABLE_FEATURE), // KT-45285
     ForbidUsingSupertypesWithInaccessibleContentInTypeArguments(sinceVersion = null, kind = BUG_FIX), // KT-66691, KT-66742
+    ContextSensitiveResolutionUsingExpectedType(sinceVersion = null, kind = TEST_ONLY), // KT-16768
     ;
 
     init {
@@ -606,18 +613,18 @@ enum class LanguageVersion(val major: Int, val minor: Int) : DescriptionAware, L
             str.split(".", "-").let { if (it.size >= 2) fromVersionString("${it[0]}.${it[1]}") else null }
 
         // Version status
-        //            1.0..1.5        1.6..1.7           1.8..2.2    2.3
+        //            1.0..1.6        1.7..1.9           2.0..2.2    2.3
         // Language:  UNSUPPORTED --> DEPRECATED ------> STABLE ---> EXPERIMENTAL
         // API:       UNSUPPORTED --> DEPRECATED ------> STABLE ---> EXPERIMENTAL
 
         @JvmField
-        val FIRST_API_SUPPORTED = KOTLIN_1_6
+        val FIRST_API_SUPPORTED = KOTLIN_1_7
 
         @JvmField
-        val FIRST_SUPPORTED = KOTLIN_1_6
+        val FIRST_SUPPORTED = KOTLIN_1_7
 
         @JvmField
-        val FIRST_NON_DEPRECATED = KOTLIN_1_8
+        val FIRST_NON_DEPRECATED = KOTLIN_2_0
 
         @JvmField
         val LATEST_STABLE = KOTLIN_2_2

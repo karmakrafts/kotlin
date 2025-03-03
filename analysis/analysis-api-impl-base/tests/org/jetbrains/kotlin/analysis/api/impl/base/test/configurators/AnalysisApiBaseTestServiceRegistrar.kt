@@ -15,17 +15,13 @@ import org.jetbrains.kotlin.analysis.api.platform.KotlinPlatformSettings
 import org.jetbrains.kotlin.analysis.api.platform.declarations.KotlinAnnotationsResolverFactory
 import org.jetbrains.kotlin.analysis.api.platform.declarations.KotlinDeclarationProviderFactory
 import org.jetbrains.kotlin.analysis.api.platform.declarations.KotlinDeclarationProviderMerger
-import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinGlobalModificationService
 import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinModificationTrackerFactory
 import org.jetbrains.kotlin.analysis.api.platform.packages.KotlinPackageProviderFactory
 import org.jetbrains.kotlin.analysis.api.platform.packages.KotlinPackageProviderMerger
-import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KotlinByModulesResolutionScopeProvider
-import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KotlinResolutionScopeProvider
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaLibraryModule
 import org.jetbrains.kotlin.analysis.api.standalone.base.declarations.KotlinStandaloneAnnotationsResolverFactory
 import org.jetbrains.kotlin.analysis.api.standalone.base.declarations.KotlinStandaloneDeclarationProviderFactory
 import org.jetbrains.kotlin.analysis.api.standalone.base.declarations.KotlinStandaloneDeclarationProviderMerger
-import org.jetbrains.kotlin.analysis.api.standalone.base.modification.KotlinStandaloneGlobalModificationService
 import org.jetbrains.kotlin.analysis.api.standalone.base.modification.KotlinStandaloneModificationTrackerFactory
 import org.jetbrains.kotlin.analysis.api.standalone.base.packages.KotlinStandalonePackageProviderFactory
 import org.jetbrains.kotlin.analysis.api.standalone.base.packages.KotlinStandalonePackageProviderMerger
@@ -60,7 +56,6 @@ object AnalysisApiBaseTestServiceRegistrar : AnalysisApiTestServiceRegistrar() {
             registerPlatformSettings(testServices)
 
             registerService(KotlinModificationTrackerFactory::class.java, KotlinStandaloneModificationTrackerFactory::class.java)
-            registerService(KotlinGlobalModificationService::class.java, KotlinStandaloneGlobalModificationService::class.java)
 
             //KotlinClassFileDecompiler is registered as application service so it's available for the tests run in parallel as well
             //when the decompiler is registered, for compiled class KtClsFile is created instead of ClsFileImpl
@@ -121,14 +116,14 @@ object AnalysisApiBaseTestServiceRegistrar : AnalysisApiTestServiceRegistrar() {
 
         val mainBinaryRoots = StandaloneProjectFactory.getVirtualFilesForLibraryRoots(
             mainBinaryModules.flatMap { it.binaryRoots },
-            testServices.environmentManager.getProjectEnvironment(),
+            testServices.environmentManager.getApplicationEnvironment(),
         ).distinct()
 
         val mainBinaryVirtualFiles = mainBinaryModules.flatMap { it.binaryVirtualFiles }.distinct()
 
         val sharedBinaryRoots = StandaloneProjectFactory.getVirtualFilesForLibraryRoots(
             sharedBinaryDependencies.flatMap { binary -> binary.binaryRoots },
-            testServices.environmentManager.getProjectEnvironment()
+            testServices.environmentManager.getApplicationEnvironment()
         ).distinct()
 
         val sharedBinaryVirtualFiles = sharedBinaryDependencies.flatMap { it.binaryVirtualFiles }.distinct()
@@ -166,7 +161,6 @@ object AnalysisApiBaseTestServiceRegistrar : AnalysisApiTestServiceRegistrar() {
                 KotlinStandalonePackageProviderFactory(project, testKtFiles + ktFilesForBinaries)
             )
             registerService(KotlinPackageProviderMerger::class.java, KotlinStandalonePackageProviderMerger(project))
-            registerService(KotlinResolutionScopeProvider::class.java, KotlinByModulesResolutionScopeProvider::class.java)
         }
     }
 

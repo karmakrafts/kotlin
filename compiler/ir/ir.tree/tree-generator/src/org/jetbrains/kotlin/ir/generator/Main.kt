@@ -30,10 +30,9 @@ fun main(args: Array<String>) {
             elementBaseType,
             ::ElementPrinter,
             listOf(
-                legacyVisitorType to ::VisitorPrinter,
-                legacyVisitorVoidType to ::LegacyVisitorVoidPrinter,
-                legacyTransformerType to ::TransformerPrinter.bind(model.rootElement),
+                irVisitorType to ::VisitorPrinter,
                 irVisitorVoidType to ::VisitorVoidPrinter,
+                irTransformerType to ::TransformerPrinter.bind(model.rootElement),
                 elementTransformerVoidType to ::TransformerVoidPrinter,
                 typeVisitorType to ::TypeVisitorPrinter.bind(model.rootElement),
                 typeVisitorVoidType to ::TypeVisitorVoidPrinter.bind(model.rootElement),

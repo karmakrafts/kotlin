@@ -9,10 +9,17 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
-@Deprecated("Use BinaryenPlugin instead", ReplaceWith("BinaryenPlugin"))
-@OptIn(ExperimentalWasmDsl::class)
+@Deprecated(
+    "Use BinaryenPlugin instead",
+    ReplaceWith(
+        "BinaryenPlugin",
+        "org.jetbrains.kotlin.gradle.targets.wasm.binaryen.BinaryenPlugin"
+    )
+)
+@ExperimentalWasmDsl
 open class BinaryenRootPlugin : Plugin<Project> {
     override fun apply(project: Project) {
+        @Suppress("DEPRECATION")
         project.plugins.apply(BinaryenPlugin::class.java)
     }
 }

@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.backend.*
 import org.jetbrains.kotlin.fir.backend.utils.convertWithOffsets
+import org.jetbrains.kotlin.fir.backend.utils.prepareExpressionForGivenExpectedType
 import org.jetbrains.kotlin.fir.backend.utils.unwrapCallRepresentative
 import org.jetbrains.kotlin.fir.containingClassLookupTag
 import org.jetbrains.kotlin.fir.declarations.*
@@ -276,13 +277,12 @@ internal class ClassMemberGenerator(
                         run {
                             val irExpression = visitor.convertToIrExpression(initializerExpression, isDelegate = property.delegate != null)
                             if (property.delegate == null) {
-                                with(visitor.implicitCastInserter) {
-                                    irExpression.insertSpecialCast(
-                                        initializerExpression,
-                                        initializerExpression.resolvedType,
-                                        property.returnTypeRef.coneType
-                                    )
-                                }
+                                irExpression.prepareExpressionForGivenExpectedType(
+                                    this@ClassMemberGenerator,
+                                    initializerExpression,
+                                    initializerExpression.resolvedType,
+                                    property.returnTypeRef.coneType
+                                )
                             } else {
                                 irExpression
                             }
@@ -443,7 +443,12 @@ internal class ClassMemberGenerator(
                     )
                 else ->
                     factory.createExpressionBody(
-                        visitor.convertToIrExpression(firDefaultValue)
+                        visitor.convertToIrExpression(firDefaultValue).prepareExpressionForGivenExpectedType(
+                            this@ClassMemberGenerator,
+                            firDefaultValue,
+                            firDefaultValue.resolvedType,
+                            firValueParameter.returnTypeRef.coneType,
+                        )
                     )
             }
         }

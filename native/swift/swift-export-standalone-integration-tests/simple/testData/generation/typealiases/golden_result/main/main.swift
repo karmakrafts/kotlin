@@ -7,9 +7,11 @@ public typealias DefaultInteger = main.RegularInteger
 public typealias RegularInteger = Swift.Int32
 public typealias ShouldHaveNoAnnotation = Swift.Int32
 public typealias abstractClss = main.ABSTRACT_CLASS
+public typealias closure = () -> Swift.Void
 public typealias dataClass = main.DATA_CLASS
 public typealias dataClassWithRef = main.DATA_CLASS_WITH_REF
 public typealias dataObjectWithPackage = main.DATA_OBJECT_WITH_PACKAGE
+public typealias deeper_closure_typealias = main.closure
 public typealias enumClass = main.ENUM
 public typealias inheritanceSingleClass = main.INHERITANCE_SINGLE_CLASS
 public typealias never = Swift.Never
@@ -22,7 +24,7 @@ public typealias outerInterface = any main.OUTSIDE_PROTO
 public typealias sealedClass = main.SEALED
 public protocol OUTSIDE_PROTO: KotlinRuntime.KotlinBase {
 }
-open class ABSTRACT_CLASS: KotlinRuntime.KotlinBase {
+open class ABSTRACT_CLASS: KotlinRuntime.KotlinBase, KotlinRuntimeSupport._KotlinBridged {
     package override init() {
         fatalError()
     }
@@ -32,7 +34,7 @@ open class ABSTRACT_CLASS: KotlinRuntime.KotlinBase {
         super.init(__externalRCRef: __externalRCRef)
     }
 }
-public final class DATA_CLASS: KotlinRuntime.KotlinBase {
+public final class DATA_CLASS: KotlinRuntime.KotlinBase, KotlinRuntimeSupport._KotlinBridged {
     public var a: Swift.Int32 {
         get {
             return DATA_CLASS_a_get(self.__externalRCRef())
@@ -62,7 +64,7 @@ public final class DATA_CLASS: KotlinRuntime.KotlinBase {
         return DATA_CLASS_toString(self.__externalRCRef())
     }
 }
-public final class DATA_CLASS_WITH_REF: KotlinRuntime.KotlinBase {
+public final class DATA_CLASS_WITH_REF: KotlinRuntime.KotlinBase, KotlinRuntimeSupport._KotlinBridged {
     public var o: KotlinRuntime.KotlinBase {
         get {
             return KotlinRuntime.KotlinBase(__externalRCRef: DATA_CLASS_WITH_REF_o_get(self.__externalRCRef()))
@@ -92,7 +94,7 @@ public final class DATA_CLASS_WITH_REF: KotlinRuntime.KotlinBase {
         return DATA_CLASS_WITH_REF_toString(self.__externalRCRef())
     }
 }
-public final class DATA_OBJECT_WITH_PACKAGE: KotlinRuntime.KotlinBase {
+public final class DATA_OBJECT_WITH_PACKAGE: KotlinRuntime.KotlinBase, KotlinRuntimeSupport._KotlinBridged {
     public static var shared: main.DATA_OBJECT_WITH_PACKAGE {
         get {
             return main.DATA_OBJECT_WITH_PACKAGE(__externalRCRef: __root___DATA_OBJECT_WITH_PACKAGE_get())
@@ -129,8 +131,8 @@ public final class DATA_OBJECT_WITH_PACKAGE: KotlinRuntime.KotlinBase {
         return DATA_OBJECT_WITH_PACKAGE_toString(self.__externalRCRef())
     }
 }
-public final class ENUM: KotlinRuntime.KotlinBase, Swift.CaseIterable {
-    public final class INSIDE_ENUM: KotlinRuntime.KotlinBase {
+public final class ENUM: KotlinRuntime.KotlinBase, KotlinRuntimeSupport._KotlinBridged, Swift.CaseIterable {
+    public final class INSIDE_ENUM: KotlinRuntime.KotlinBase, KotlinRuntimeSupport._KotlinBridged {
         public override init() {
             let __kt = ENUM_INSIDE_ENUM_init_allocate()
             super.init(__externalRCRef: __kt)
@@ -200,7 +202,7 @@ public final class OBJECT_WITH_CLASS_INHERITANCE: main.OPEN_CLASS {
         super.init(__externalRCRef: __externalRCRef)
     }
 }
-public final class OBJECT_WITH_INTERFACE_INHERITANCE: KotlinRuntime.KotlinBase, main.OUTSIDE_PROTO {
+public final class OBJECT_WITH_INTERFACE_INHERITANCE: KotlinRuntime.KotlinBase, main.OUTSIDE_PROTO, KotlinRuntimeSupport._KotlinBridged {
     public static var shared: main.OBJECT_WITH_INTERFACE_INHERITANCE {
         get {
             return main.OBJECT_WITH_INTERFACE_INHERITANCE(__externalRCRef: __root___OBJECT_WITH_INTERFACE_INHERITANCE_get())
@@ -215,7 +217,7 @@ public final class OBJECT_WITH_INTERFACE_INHERITANCE: KotlinRuntime.KotlinBase, 
         super.init(__externalRCRef: __externalRCRef)
     }
 }
-open class OPEN_CLASS: KotlinRuntime.KotlinBase {
+open class OPEN_CLASS: KotlinRuntime.KotlinBase, KotlinRuntimeSupport._KotlinBridged {
     public override init() {
         let __kt = __root___OPEN_CLASS_init_allocate()
         super.init(__externalRCRef: __kt)
@@ -227,7 +229,7 @@ open class OPEN_CLASS: KotlinRuntime.KotlinBase {
         super.init(__externalRCRef: __externalRCRef)
     }
 }
-open class SEALED: KotlinRuntime.KotlinBase {
+open class SEALED: KotlinRuntime.KotlinBase, KotlinRuntimeSupport._KotlinBridged {
     public final class O: main.SEALED {
         public static var shared: main.SEALED.O {
             get {
@@ -252,15 +254,56 @@ open class SEALED: KotlinRuntime.KotlinBase {
         super.init(__externalRCRef: __externalRCRef)
     }
 }
+public var block: main.closure {
+    get {
+        return {
+            let nativeBlock = __root___block_get()
+            return { nativeBlock!() }
+        }()
+    }
+    set {
+        return __root___block_set__TypesOfArguments__U2829202D_U20Swift_Void__({
+            let originalBlock = newValue
+            return { return originalBlock() }
+        }())
+    }
+}
+public func consume_closure(
+    block: @escaping @convention(block) main.closure
+) -> Swift.Void {
+    return __root___consume_closure__TypesOfArguments__U2829202D_U20Swift_Void__({
+        let originalBlock = block
+        return { return originalBlock() }
+    }())
+}
+public func deeper_closure_typealiase(
+    block: @escaping @convention(block) main.deeper_closure_typealias
+) -> main.deeper_closure_typealias {
+    return {
+        let nativeBlock = __root___deeper_closure_typealiase__TypesOfArguments__U2829202D_U20Swift_Void__({
+        let originalBlock = block
+        return { return originalBlock() }
+    }())
+        return { nativeBlock!() }
+    }()
+}
 public func increment(
     integer: main.DefaultInteger
 ) -> main.RegularInteger {
     return __root___increment__TypesOfArguments__Swift_Int32__(integer)
 }
+public func produce_closure() -> main.closure {
+    return {
+        let nativeBlock = __root___produce_closure()
+        return { nativeBlock!() }
+    }()
+}
+public extension main.OUTSIDE_PROTO where Self : KotlinRuntimeSupport._KotlinBridged {
+}
 public extension ExportedKotlinPackages.typealiases.inner {
     public typealias Foo = ExportedKotlinPackages.typealiases.Foo
     public typealias LargeInteger = Swift.Int64
-    public final class Bar: KotlinRuntime.KotlinBase {
+    public final class Bar: KotlinRuntime.KotlinBase, KotlinRuntimeSupport._KotlinBridged {
         public override init() {
             let __kt = typealiases_inner_Bar_init_allocate()
             super.init(__externalRCRef: __kt)
@@ -276,7 +319,7 @@ public extension ExportedKotlinPackages.typealiases.inner {
 public extension ExportedKotlinPackages.typealiases {
     public typealias Bar = ExportedKotlinPackages.typealiases.inner.Bar
     public typealias SmallInteger = Swift.Int16
-    public final class Foo: KotlinRuntime.KotlinBase {
+    public final class Foo: KotlinRuntime.KotlinBase, KotlinRuntimeSupport._KotlinBridged {
         public override init() {
             let __kt = typealiases_Foo_init_allocate()
             super.init(__externalRCRef: __kt)

@@ -28,7 +28,7 @@ import org.jetbrains.kotlin.gradle.utils.KotlinCommonCompilerOptionsDefault
 import org.jetbrains.kotlin.gradle.utils.newInstance
 import javax.inject.Inject
 
-@Suppress("DEPRECATION")
+@Suppress("DEPRECATION_ERROR")
 @KotlinGradlePluginPublicDsl
 abstract class KotlinMultiplatformExtension
 @Inject
@@ -52,7 +52,10 @@ constructor(
 
     final override val targets: NamedDomainObjectCollection<KotlinTarget> = project.container(KotlinTarget::class.java)
 
-    @Deprecated("Because only the IR compiler is left, it's no longer necessary to know about the compiler type in properties")
+    @Deprecated(
+        "Because only the IR compiler is left, it's no longer necessary to know about the compiler type in properties. Scheduled for removal in Kotlin 2.3.",
+        level = DeprecationLevel.ERROR
+    )
     override val compilerTypeFromProperties: KotlinJsCompilerType? = null
 
     internal suspend fun awaitTargets(): NamedDomainObjectCollection<KotlinTarget> {

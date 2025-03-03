@@ -2972,18 +2972,6 @@ public class FirPsiBlackBoxCodegenTestGenerated extends AbstractFirPsiBlackBoxCo
     }
 
     @Test
-    @TestMetadata("bridgeInInterface.kt")
-    public void testBridgeInInterface() {
-      runTest("compiler/testData/codegen/box/bridges/bridgeInInterface.kt");
-    }
-
-    @Test
-    @TestMetadata("bridgeInInterfaceWithProperties.kt")
-    public void testBridgeInInterfaceWithProperties() {
-      runTest("compiler/testData/codegen/box/bridges/bridgeInInterfaceWithProperties.kt");
-    }
-
-    @Test
     @TestMetadata("complexMultiInheritance.kt")
     public void testComplexMultiInheritance() {
       runTest("compiler/testData/codegen/box/bridges/complexMultiInheritance.kt");
@@ -4299,6 +4287,12 @@ public class FirPsiBlackBoxCodegenTestGenerated extends AbstractFirPsiBlackBoxCo
     @TestMetadata("kt62550.kt")
     public void testKt62550() {
       runTest("compiler/testData/codegen/box/callableReference/kt62550.kt");
+    }
+
+    @Test
+    @TestMetadata("kt62550NewBehavior.kt")
+    public void testKt62550NewBehavior() {
+      runTest("compiler/testData/codegen/box/callableReference/kt62550NewBehavior.kt");
     }
 
     @Test
@@ -10425,6 +10419,12 @@ public class FirPsiBlackBoxCodegenTestGenerated extends AbstractFirPsiBlackBoxCo
     @TestMetadata("contextualLocalWithLocalExtensionAndValue.kt")
     public void testContextualLocalWithLocalExtensionAndValue() {
       runTest("compiler/testData/codegen/box/contextParameters/contextualLocalWithLocalExtensionAndValue.kt");
+    }
+
+    @Test
+    @TestMetadata("functionalType.kt")
+    public void testFunctionalType() {
+      runTest("compiler/testData/codegen/box/contextParameters/functionalType.kt");
     }
 
     @Test
@@ -21042,6 +21042,12 @@ public class FirPsiBlackBoxCodegenTestGenerated extends AbstractFirPsiBlackBoxCo
     }
 
     @Test
+    @TestMetadata("selectingLambdas.kt")
+    public void testSelectingLambdas() {
+      runTest("compiler/testData/codegen/box/extensionFunctions/selectingLambdas.kt");
+    }
+
+    @Test
     @TestMetadata("shared.kt")
     public void testShared() {
       runTest("compiler/testData/codegen/box/extensionFunctions/shared.kt");
@@ -21429,12 +21435,6 @@ public class FirPsiBlackBoxCodegenTestGenerated extends AbstractFirPsiBlackBoxCo
         @TestMetadata("dp.kt")
         public void testDp() {
           runTest("compiler/testData/codegen/box/extensionFunctions/contextReceivers/fromKEEP/dp.kt");
-        }
-
-        @Test
-        @TestMetadata("functionalType.kt")
-        public void testFunctionalType() {
-          runTest("compiler/testData/codegen/box/extensionFunctions/contextReceivers/fromKEEP/functionalType.kt");
         }
 
         @Test
@@ -22538,12 +22538,6 @@ public class FirPsiBlackBoxCodegenTestGenerated extends AbstractFirPsiBlackBoxCo
     }
 
     @Test
-    @TestMetadata("selectingLambdas.kt")
-    public void testSelectingLambdas() {
-      runTest("compiler/testData/codegen/box/fir/selectingLambdas.kt");
-    }
-
-    @Test
     @TestMetadata("smartCastToInvisibleClassMember.kt")
     public void testSmartCastToInvisibleClassMember() {
       runTest("compiler/testData/codegen/box/fir/smartCastToInvisibleClassMember.kt");
@@ -22661,6 +22655,22 @@ public class FirPsiBlackBoxCodegenTestGenerated extends AbstractFirPsiBlackBoxCo
     @TestMetadata("vararg.kt")
     public void testVararg() {
       runTest("compiler/testData/codegen/box/fir/vararg.kt");
+    }
+
+    @Nested
+    @TestMetadata("compiler/testData/codegen/box/fir/contextSensitiveResolution")
+    @TestDataPath("$PROJECT_ROOT")
+    public class ContextSensitiveResolution {
+      @Test
+      public void testAllFilesPresentInContextSensitiveResolution() {
+        KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/box/fir/contextSensitiveResolution"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JVM_IR, true);
+      }
+
+      @Test
+      @TestMetadata("eitherInTypePosition.kt")
+      public void testEitherInTypePosition() {
+        runTest("compiler/testData/codegen/box/fir/contextSensitiveResolution/eitherInTypePosition.kt");
+      }
     }
 
     @Nested
@@ -24926,12 +24936,6 @@ public class FirPsiBlackBoxCodegenTestGenerated extends AbstractFirPsiBlackBoxCo
       @TestMetadata("capturedTypes.kt")
       public void testCapturedTypes() {
         runTest("compiler/testData/codegen/box/inference/pcla/capturedTypes.kt");
-      }
-
-      @Test
-      @TestMetadata("changingResolveIfDontUseBuilderInferenceDisabledFeature.kt")
-      public void testChangingResolveIfDontUseBuilderInferenceDisabledFeature() {
-        runTest("compiler/testData/codegen/box/inference/pcla/changingResolveIfDontUseBuilderInferenceDisabledFeature.kt");
       }
 
       @Test
@@ -41922,12 +41926,6 @@ public class FirPsiBlackBoxCodegenTestGenerated extends AbstractFirPsiBlackBoxCo
     }
 
     @Test
-    @TestMetadata("objectLiteralInClosure.kt")
-    public void testObjectLiteralInClosure() {
-      runTest("compiler/testData/codegen/box/objects/objectLiteralInClosure.kt");
-    }
-
-    @Test
     @TestMetadata("objectVsClassInitialization_kt5291.kt")
     public void testObjectVsClassInitialization_kt5291() {
       runTest("compiler/testData/codegen/box/objects/objectVsClassInitialization_kt5291.kt");
@@ -55552,12 +55550,6 @@ public class FirPsiBlackBoxCodegenTestGenerated extends AbstractFirPsiBlackBoxCo
     }
 
     @Test
-    @TestMetadata("kt3850.kt")
-    public void testKt3850() {
-      runTest("compiler/testData/codegen/box/regressions/kt3850.kt");
-    }
-
-    @Test
     @TestMetadata("kt3903.kt")
     public void testKt3903() {
       runTest("compiler/testData/codegen/box/regressions/kt3903.kt");
@@ -56705,6 +56697,12 @@ public class FirPsiBlackBoxCodegenTestGenerated extends AbstractFirPsiBlackBoxCo
     @TestMetadata("smartCastSamConversion.kt")
     public void testSmartCastSamConversion() {
       runTest("compiler/testData/codegen/box/sam/smartCastSamConversion.kt");
+    }
+
+    @Test
+    @TestMetadata("topLevelConversions.kt")
+    public void testTopLevelConversions() {
+      runTest("compiler/testData/codegen/box/sam/topLevelConversions.kt");
     }
 
     @Nested

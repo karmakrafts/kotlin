@@ -22,13 +22,12 @@ import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
 import org.jetbrains.kotlin.ir.builders.*
+import org.jetbrains.kotlin.ir.builders.declarations.buildFun
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.*
 import org.jetbrains.kotlin.ir.objcinterop.*
-import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
-import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
-import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
+import org.jetbrains.kotlin.ir.symbols.*
 import org.jetbrains.kotlin.ir.symbols.impl.IrFieldSymbolImpl
 import org.jetbrains.kotlin.ir.symbols.impl.IrSimpleFunctionSymbolImpl
 import org.jetbrains.kotlin.ir.symbols.impl.IrValueParameterSymbolImpl
@@ -36,9 +35,6 @@ import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.util.isNullable
 import org.jetbrains.kotlin.ir.util.isSubtypeOf
-import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
-import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
-import org.jetbrains.kotlin.ir.visitors.acceptVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.konan.ForeignExceptionMode
 import org.jetbrains.kotlin.konan.library.KonanLibrary
@@ -47,38 +43,85 @@ import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.NativeStandardInteropNames.objCActionClassId
 import org.jetbrains.kotlin.native.interop.ObjCMethodInfo
 
-internal class InteropLowering(generationState: NativeGenerationState) : FileLoweringPass {
-    // TODO: merge these lowerings.
-    private val part1 = InteropLoweringPart1(generationState)
-    private val part2 = InteropLoweringPart2(generationState)
-
+internal class InteropLowering(val generationState: NativeGenerationState) : FileLoweringPass, BodyLoweringPass {
     override fun lower(irFile: IrFile) {
-        part1.lower(irFile)
-        part2.lower(irFile)
+        // TODO: merge these lowerings.
+        InteropLoweringPart1(generationState).lower(irFile)
+        InteropLoweringPart2(generationState).lower(irFile)
+    }
+
+    override fun lower(irBody: IrBody, container: IrDeclaration) {
+        InteropLoweringPart1(generationState).lower(irBody, container)
+        InteropLoweringPart2(generationState).lower(irBody, container)
     }
 }
 
-@OptIn(ObsoleteDescriptorBasedAPI::class)
+private fun getUniqueName(packageFragment: IrPackageFragment, fileName: String) =
+        packageFragment.moduleDescriptor.name.asString().let { it.substring(1, it.lastIndex) } + fileName
+
+private val IrFile.uniqueName: String
+    get() = getUniqueName(this, fileEntry.name)
+
+private fun IrDeclaration.getUniqueName(context: Context) =
+        getUniqueName(this.getPackageFragment(), context.externalDeclarationFileNameProvider.getExternalDeclarationFileName(this))
+
 private abstract class BaseInteropIrTransformer(
-        private val generationState: NativeGenerationState
+        protected val generationState: NativeGenerationState,
+        protected val irFile: IrFile?,
+        private val uniqueName: String,
 ) : IrBuildingTransformer(generationState.context) {
+    protected val context = generationState.context
+    protected val symbols = context.symbols
+    protected val irBuiltIns = context.irBuiltIns
 
-    protected inline fun <T> generateWithStubs(element: IrElement? = null, block: KotlinStubs.() -> T): T =
-            createKotlinStubs(element).block()
+    protected inline fun <T : IrDeclaration> generateDeclarationWithStubs(
+            owner: IrDeclarationContainer,
+            element: IrElement? = null,
+            block: KotlinStubs.() -> T
+    ): T {
+        val addedDeclarations = mutableListOf<IrDeclaration>()
+        val result = createKotlinStubs(element) {
+            it.parent = owner
+            addedDeclarations += it
+        }.block()
+        addedDeclarations.forEach {
+            it.transform(this@BaseInteropIrTransformer, null)
+            owner.declarations.add(it)
+        }
+        return result
+    }
 
-    protected fun createKotlinStubs(element: IrElement?): KotlinStubs {
-        val location = if (element != null) {
+    protected inline fun IrBuilderWithScope.generateExpressionWithStubs(
+            element: IrElement? = null,
+            block: KotlinStubs.() -> IrExpression
+    ): IrExpression {
+        val addedDeclarations = mutableListOf<IrDeclaration>()
+        val result = createKotlinStubs(element) {
+            it.parent = parent
+            addedDeclarations += it
+        }.block()
+        return if (addedDeclarations.isEmpty())
+            result
+        else irBlock {
+            addedDeclarations.forEach {
+                it.transform(this@BaseInteropIrTransformer, null)
+                (it as? IrDeclarationWithVisibility)?.visibility = DescriptorVisibilities.LOCAL
+                +it
+            }
+            +result
+        }
+    }
+
+    private fun createKotlinStubs(element: IrElement?, addKotlin: (IrDeclaration) -> Unit): KotlinStubs {
+        val location = if (element != null && irFile != null) {
             element.getCompilerMessageLocation(irFile)
         } else {
             builder.getCompilerMessageLocation()
         }
 
-        val uniqueModuleName = irFile.moduleDescriptor.name.asString()
-                .let { it.substring(1, it.lastIndex) }
-        val uniqueFileName = irFile.fileEntry.name
         val uniquePrefix = buildString {
             append('_')
-            (uniqueModuleName + uniqueFileName).toByteArray().joinTo(this, "") {
+            uniqueName.toByteArray().joinTo(this, "") {
                 (0xFF and it.toInt()).toString(16).padStart(2, '0')
             }
             append('_')
@@ -89,7 +132,7 @@ private abstract class BaseInteropIrTransformer(
             private val cStubsManager = generationState.cStubsManager
 
             override val irBuiltIns get() = context.irBuiltIns
-            override val symbols get() = context.ir.symbols
+            override val symbols get() = context.symbols
             override val typeSystem: IrTypeSystemContext get() = context.typeSystem
 
             val klib: KonanLibrary? get() {
@@ -99,8 +142,10 @@ private abstract class BaseInteropIrTransformer(
             override val language: String
                 get() = klib?.manifestProperties?.getProperty("language") ?: "C"
 
+            override val isSwiftExportEnabled = context.config.swiftExport
+
             override fun addKotlin(declaration: IrDeclaration) {
-                addTopLevel(declaration)
+                addKotlin(declaration)
             }
 
             override fun addC(lines: List<String>) {
@@ -127,43 +172,143 @@ private abstract class BaseInteropIrTransformer(
     protected fun renderCompilerError(element: IrElement?, message: String = "Failed requirement") =
             renderCompilerError(irFile, element, message)
 
-    protected abstract val irFile: IrFile
-    protected abstract fun addTopLevel(declaration: IrDeclaration)
+    // The trick here is to try building a trampoline to the referenced function and see if it gets lowered:
+    // if it doesn't, then no trampoline is needed and the reference can be left as is; otherwise, the trampoline
+    // is indeed needed and the original reference is replaced to a reference to the trampoline (already lowered).
+    override fun visitFunctionReference(expression: IrFunctionReference): IrExpression {
+        expression.transformChildrenVoid()
+
+        val callee = expression.symbol.owner
+        val functionType = expression.type as? IrSimpleType
+        var indexInTypeArguments = 0
+        val parameterTypes = callee.parameters.mapIndexed { index, parameter ->
+            expression.arguments[index]?.type
+            // Circumvent bugs in compiler plugins (function reference types might be wrong).
+                    ?: functionType?.arguments?.getOrNull(indexInTypeArguments++)?.typeOrNull
+                    ?: parameter.type.erasedUpperBound.defaultType
+        }
+        val returnType = functionType?.arguments?.getOrNull(indexInTypeArguments)?.typeOrNull
+                ?: callee.returnType.erasedUpperBound.defaultType
+
+        builder.at(expression)
+        val trampoline = tryBuildTrampoline(callee, parameterTypes, returnType, expression)
+        return if (trampoline == null)
+            expression
+        else builder.irBlock {
+            +trampoline
+            +irFunctionReference(expression.type, trampoline.symbol, expression.reflectionTarget).apply {
+                expression.arguments.forEachIndexed { index, argument ->
+                    this.arguments[index] = argument
+                }
+            }
+        }
+    }
+
+    override fun visitPropertyReference(expression: IrPropertyReference): IrExpression {
+        expression.transformChildrenVoid()
+
+        val getter = expression.getter?.owner
+        val setter = expression.setter?.owner
+        val calleeParameters = getter?.parameters
+                ?: setter?.parameters?.dropLast(1) // Skip value, it will be added explicitly.
+                ?: return expression // No accessors - nothing to change.
+        val functionType = expression.type as? IrSimpleType
+        var indexInTypeArguments = 0
+        val parameterTypes = calleeParameters.mapIndexed { index, parameter ->
+            expression.arguments[index]?.type
+            // Circumvent bugs in compiler plugins (property types might be wrong).
+                    ?: functionType?.arguments?.getOrNull(indexInTypeArguments++)?.typeOrNull
+                    ?: parameter.type.erasedUpperBound.defaultType
+        }
+        val propertyType = functionType?.arguments?.getOrNull(indexInTypeArguments)?.typeOrNull
+                ?: (getter?.returnType ?: setter!!.parameters.last().type).erasedUpperBound.defaultType
+
+        builder.at(expression)
+        val getterTrampoline = expression.getter?.let {
+            tryBuildTrampoline(it.owner, parameterTypes, propertyType, expression)
+        }
+        val setterTrampoline = expression.setter?.let {
+            tryBuildTrampoline(it.owner, parameterTypes + listOf(propertyType), irBuiltIns.unitType, expression)
+        }
+        return if (getterTrampoline == null && setterTrampoline == null)
+            expression
+        else builder.irBlock {
+            expression.typeArguments.apply {
+                // Erase the type arguments.
+                indices.forEach { this[it] = null }
+            }
+            if (getterTrampoline != null) {
+                expression.getter = getterTrampoline.symbol
+                +getterTrampoline
+            }
+            if (setterTrampoline != null) {
+                expression.setter = setterTrampoline.symbol
+                +setterTrampoline
+            }
+            +expression
+        }
+    }
+
+    private fun tryBuildTrampoline(
+            callee: IrFunction,
+            parameterTypes: List<IrType>,
+            returnType: IrType,
+            expression: IrMemberAccessExpression<*>,
+    ): IrSimpleFunction? {
+        val trampoline = context.irFactory.buildFun {
+            startOffset = builder.startOffset
+            endOffset = builder.endOffset
+            name = callee.name
+            visibility = DescriptorVisibilities.LOCAL
+        }
+        trampoline.parent = builder.parent
+        trampoline.returnType = returnType
+        trampoline.parameters = callee.parameters.mapIndexed { index, parameter ->
+            parameter.copyTo(trampoline, origin = IrDeclarationOrigin.DEFINED, kind = IrParameterKind.Regular, type = parameterTypes[index])
+        }
+
+        val localBuilder = context.createIrBuilder(trampoline.symbol, trampoline.startOffset, trampoline.endOffset)
+        val body = context.irFactory.createExpressionBody(
+                when (callee) {
+                    is IrConstructor -> localBuilder.irCallConstructor(
+                            callee.symbol, typeArguments = expression.typeArguments.filterNotNull()
+                    )
+                    is IrSimpleFunction -> localBuilder.irCall(callee).apply {
+                        expression.typeArguments.forEachIndexed { index, argument -> typeArguments[index] = argument }
+                    }
+                }.apply {
+                    trampoline.parameters.forEachIndexed { index, parameter ->
+                        arguments[index] = localBuilder.irGet(parameter)
+                    }
+                }
+        )
+        trampoline.body = body
+
+        val delegatingCall = body.expression
+        trampoline.transform(this, null)
+        return trampoline.takeUnless { body.expression == delegatingCall }
+    }
 }
 
-@OptIn(ObsoleteDescriptorBasedAPI::class)
-private class InteropLoweringPart1(val generationState: NativeGenerationState) : BaseInteropIrTransformer(generationState), FileLoweringPass {
+private class InteropLoweringPart1(val generationState: NativeGenerationState) : FileLoweringPass, BodyLoweringPass {
     private val context = generationState.context
-
-    private val symbols get() = context.ir.symbols
-
-    lateinit var currentFile: IrFile
-
-    private val eagerTopLevelInitializers = mutableListOf<IrExpression>()
-    private val newTopLevelDeclarations = mutableListOf<IrDeclaration>()
-
     private var topLevelInitializersCounter = 0
 
-    override val irFile: IrFile
-        get() = currentFile
-
-    override fun addTopLevel(declaration: IrDeclaration) {
-        declaration.parent = currentFile
-        newTopLevelDeclarations += declaration
-    }
-
     override fun lower(irFile: IrFile) {
-        currentFile = irFile
-        irFile.transformChildrenVoid(this)
-
-        eagerTopLevelInitializers.forEach { irFile.addTopLevelInitializer(it, context, threadLocal = false, eager = true) }
-        eagerTopLevelInitializers.clear()
-
-        irFile.addChildren(newTopLevelDeclarations)
-        newTopLevelDeclarations.clear()
+        val transformer = InteropTransformerPart1(generationState, irFile, irFile.uniqueName)
+        irFile.transformChildrenVoid(transformer)
+        transformer.eagerTopLevelInitializersForObjCClasses.forEach {
+            irFile.addTopLevelInitializer(it, threadLocal = false, eager = true)
+        }
     }
 
-    private fun IrFile.addTopLevelInitializer(expression: IrExpression, context: KonanBackendContext, threadLocal: Boolean, eager: Boolean) {
+    override fun lower(irBody: IrBody, container: IrDeclaration) {
+        val transformer = InteropTransformerPart1(generationState, container.fileOrNull, container.getUniqueName(context))
+        container.transform(transformer, null)
+        require(transformer.eagerTopLevelInitializersForObjCClasses.isEmpty()) { "A local Obj-C class in an inline function is not supported" }
+    }
+
+    private fun IrFile.addTopLevelInitializer(expression: IrExpression, threadLocal: Boolean, eager: Boolean) {
         val irField = context.irFactory.createField(
                 expression.startOffset,
                 expression.endOffset,
@@ -178,15 +323,24 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
             expression.setDeclarationsParent(this)
 
             if (threadLocal)
-                annotations += buildSimpleAnnotation(context.irBuiltIns, startOffset, endOffset, context.ir.symbols.threadLocal.owner)
+                annotations += buildSimpleAnnotation(context.irBuiltIns, startOffset, endOffset, context.symbols.threadLocal.owner)
 
             if (eager)
-                annotations += buildSimpleAnnotation(context.irBuiltIns, startOffset, endOffset, context.ir.symbols.eagerInitialization.owner)
+                annotations += buildSimpleAnnotation(context.irBuiltIns, startOffset, endOffset, context.symbols.eagerInitialization.owner)
 
             initializer = context.irFactory.createExpressionBody(startOffset, endOffset, expression)
         }
         addChild(irField)
     }
+}
+
+@OptIn(ObsoleteDescriptorBasedAPI::class)
+private class InteropTransformerPart1(
+        generationState: NativeGenerationState,
+        irFile: IrFile?,
+        uniqueName: String,
+) : BaseInteropIrTransformer(generationState, irFile, uniqueName) {
+    val eagerTopLevelInitializersForObjCClasses = mutableListOf<IrExpression>()
 
     private fun IrBuilderWithScope.callAlloc(classPtr: IrExpression): IrExpression =
             irCall(symbols.interopAllocObjCObject).apply {
@@ -227,8 +381,10 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
         }.let { irClass.addChildren(it) }
 
         if (irClass.annotations.hasAnnotation(InteropFqNames.exportObjCClass)) {
-            val irBuilder = context.createIrBuilder(currentFile.symbol).at(irClass)
-            eagerTopLevelInitializers.add(irBuilder.getObjCClass(symbols, irClass.symbol))
+            val irBuilder = context.createIrBuilder(
+                    irFile?.symbol ?: error("No file was supplied while lowering ${irClass.render()}")
+            ).at(irClass)
+            eagerTopLevelInitializersForObjCClasses.add(irBuilder.getObjCClass(symbols, irClass.symbol))
         }
     }
 
@@ -354,7 +510,7 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
     private fun generateFunctionImp(selector: String, function: IrFunction): IrSimpleFunction {
         val signatureEncoding = getMethodSignatureEncoding(function)
 
-        val nativePtrType = context.ir.symbols.nativePtrType
+        val nativePtrType = context.symbols.nativePtrType
 
         val parameterTypes = mutableListOf(nativePtrType) // id self
 
@@ -468,7 +624,7 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
         require(hasObjCClassSupertype) { renderCompilerError(irClass) }
 
         val methodsOfAny =
-                context.ir.symbols.any.owner.declarations.filterIsInstance<IrSimpleFunction>().toSet()
+                context.symbols.any.owner.declarations.filterIsInstance<IrSimpleFunction>().toSet()
 
         irClass.declarations.filterIsInstance<IrSimpleFunction>().filter { it.isReal }.forEach { method ->
             val overriddenMethodOfAny = method.allOverriddenFunctions.firstOrNull {
@@ -569,7 +725,7 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
             arguments: List<IrExpression?>,
             call: IrFunctionAccessExpression,
             method: IrSimpleFunction
-    ): IrExpression = generateWithStubs(call) {
+    ): IrExpression = generateExpressionWithStubs(call) {
         if (method.parent !is IrClass) {
             // Category-provided.
             generationState.dependenciesTracker.add(method)
@@ -641,7 +797,7 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
 
         callee.getExternalObjCMethodInfo()?.let { methodInfo ->
             val isInteropStubsFile =
-                    currentFile.annotations.hasAnnotation(FqName("kotlinx.cinterop.InteropStubs"))
+                    irFile?.annotations?.hasAnnotation(FqName("kotlinx.cinterop.InteropStubs")) == true
 
             // Special case: bridge from Objective-C method implementation template to Kotlin method;
             // handled in CodeGeneratorVisitor.callVirtual.
@@ -668,24 +824,7 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
             }
         }
 
-        return when (callee.symbol) {
-            symbols.interopTypeOf -> {
-                val typeArgument = expression.getSingleTypeArgument()
-                val classSymbol = typeArgument.classifierOrNull as? IrClassSymbol
-
-                if (classSymbol == null) {
-                    expression
-                } else {
-                    val irClass = classSymbol.owner
-
-                    val companionObject = irClass.companionObject() ?:
-                            error(irFile, expression, "native variable class ${irClass.descriptor} must have the companion object")
-
-                    builder.at(expression).irGetObject(companionObject.symbol)
-                }
-            }
-            else -> expression
-        }
+        return expression
     }
 
     override fun visitProperty(declaration: IrProperty): IrStatement {
@@ -721,42 +860,6 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
         }
     }
 
-    override fun visitInlinedFunctionBlock(inlinedBlock: IrInlinedFunctionBlock): IrExpression {
-        if (inlinedBlock.inlinedFunctionSymbol?.owner?.isAutoreleasepool() == true) {
-            // Prohibit calling suspend functions from `autoreleasepool {}` block.
-            // See https://youtrack.jetbrains.com/issue/KT-50786 for more details.
-            // Note: we can't easily check this in frontend, because we need to prohibit indirect cases like
-            ///    inline fun <T> myAutoreleasepool(block: () -> T) = autoreleasepool(block)
-            ///    myAutoreleasepool { suspendHere() }
-
-            inlinedBlock.acceptVoid(object : IrVisitorVoid() {
-                override fun visitElement(element: IrElement) {
-                    element.acceptChildrenVoid(this)
-                }
-
-                override fun visitCall(expression: IrCall) {
-                    super.visitCall(expression)
-
-                    if (expression.symbol.owner.isSuspend) {
-                        context.reportCompilationError(
-                                "Calling suspend functions from `autoreleasepool {}` is prohibited, " +
-                                        "see https://youtrack.jetbrains.com/issue/KT-50786",
-                                currentFile,
-                                expression
-                        )
-                    }
-                }
-            })
-        }
-        return super.visitInlinedFunctionBlock(inlinedBlock)
-    }
-
-    private fun IrFunction.isAutoreleasepool(): Boolean {
-        return this.name.asString() == "autoreleasepool" && this.parent.let { parent ->
-            parent is IrPackageFragment && parent.packageFqName == InteropFqNames.packageName
-        }
-    }
-
     private fun IrBuilderWithScope.callAllocAndInit(
             classPtr: IrExpression,
             initMethodInfo: ObjCMethodInfo,
@@ -781,41 +884,26 @@ private class InteropLoweringPart1(val generationState: NativeGenerationState) :
 /**
  * Lowers some interop intrinsic calls.
  */
-private class InteropLoweringPart2(val generationState: NativeGenerationState) : FileLoweringPass {
+private class InteropLoweringPart2(val generationState: NativeGenerationState) : FileLoweringPass, BodyLoweringPass {
+    private val context = generationState.context
+
     override fun lower(irFile: IrFile) {
-        val transformer = InteropTransformer(generationState, irFile)
+        val transformer = InteropTransformerPart2(generationState, irFile, irFile.uniqueName)
         irFile.transformChildrenVoid(transformer)
+    }
 
-        while (transformer.newTopLevelDeclarations.isNotEmpty()) {
-            val newTopLevelDeclarations = transformer.newTopLevelDeclarations.toList()
-            transformer.newTopLevelDeclarations.clear()
-
-            // Assuming these declarations contain only new IR (i.e. existing lowered IR has not been moved there).
-            // TODO: make this more reliable.
-            val loweredNewTopLevelDeclarations =
-                    newTopLevelDeclarations.map { it.transform(transformer, null) as IrDeclaration }
-
-            irFile.addChildren(loweredNewTopLevelDeclarations)
-        }
+    override fun lower(irBody: IrBody, container: IrDeclaration) {
+        val transformer = InteropTransformerPart2(generationState, container.fileOrNull, container.getUniqueName(context))
+        container.transform(transformer, null)
     }
 }
 
 @OptIn(ObsoleteDescriptorBasedAPI::class)
-private class InteropTransformer(
-        val generationState: NativeGenerationState,
-        override val irFile: IrFile
-) : BaseInteropIrTransformer(generationState) {
-    private val context = generationState.context
-
-    val newTopLevelDeclarations = mutableListOf<IrDeclaration>()
-
-    val symbols = context.ir.symbols
-
-    override fun addTopLevel(declaration: IrDeclaration) {
-        declaration.parent = irFile
-        newTopLevelDeclarations += declaration
-    }
-
+private class InteropTransformerPart2(
+        generationState: NativeGenerationState,
+        irFile: IrFile?,
+        uniqueName: String,
+) : BaseInteropIrTransformer(generationState, irFile, uniqueName) {
     override fun visitClass(declaration: IrClass): IrStatement {
         super.visitClass(declaration)
         if (declaration.isKotlinObjCClass()) {
@@ -827,7 +915,7 @@ private class InteropTransformer(
                         null
                     } else {
                         uniq += selector
-                        generateWithStubs(it.owner) {
+                        generateDeclarationWithStubs(declaration, it.owner) {
                             generateCFunctionAndFakeKotlinExternalFunction(
                                     function,
                                     it.owner,
@@ -844,7 +932,7 @@ private class InteropTransformer(
     }
 
     private fun generateCFunctionPointer(function: IrSimpleFunction, expression: IrExpression): IrExpression =
-            generateWithStubs { generateCFunctionPointer(function, function, expression) }
+            builder.generateExpressionWithStubs { generateCFunctionPointer(function, function, expression) }
 
     // ?.foo() part
     fun IrBuilderWithScope.irSafeCall(extensionReceiverExpression: IrExpression, typeArguments: List<IrTypeArgument>, callee: IrSimpleFunctionSymbol): IrExpression =
@@ -883,7 +971,7 @@ private class InteropTransformer(
             val rawPtr = irTemporary(irCall(symbols.interopAllocObjCObject.owner).apply {
                 putValueArgument(0, getObjCClass(symbols, constructedClass.symbol))
             })
-            val instance = irTemporary(irCall(symbols.interopInterpretObjCPointer.owner).apply {
+            val instance = irTemporary(irCallWithSubstitutedType(symbols.interopInterpretObjCPointer.owner, listOf(expression.type)).apply {
                 putValueArgument(0, irGet(rawPtr))
             })
             // Balance pointer retained by alloc:
@@ -981,34 +1069,95 @@ private class InteropTransformer(
         val exceptionMode = ForeignExceptionMode.byValue(
                 function.konanLibrary?.manifestProperties?.getProperty(ForeignExceptionMode.manifestKey)
         )
-        return generateWithStubs(expression) { generateCCall(expression, builder, isInvoke = false, exceptionMode) }
+        return builder.generateExpressionWithStubs(expression) { generateCCall(expression, builder, isInvoke = false, exceptionMode) }
+    }
+
+    private fun lowerObjCInitBy(expression: IrCall): IrExpression {
+        val argument = expression.getValueArgument(0)!!
+        require(argument is IrConstructorCall) { renderCompilerError(argument) }
+
+        val constructedClass = argument.symbol.owner.constructedClass
+
+        val extensionReceiver = expression.extensionReceiver!!
+        require(extensionReceiver is IrGetValue &&
+                extensionReceiver.symbol.owner.isDispatchReceiverFor(constructedClass)) { renderCompilerError(extensionReceiver) }
+
+        argument.transformChildrenVoid(this)
+
+        return builder.at(expression).irBlock {
+            val instance = extensionReceiver.symbol.owner
+            +irCall(symbols.initInstance).apply {
+                putValueArgument(0, irGet(instance))
+                putValueArgument(1, argument)
+            }
+            +irGet(instance)
+        }
+    }
+
+    private fun lowerStaticCFunction(expression: IrCall): IrExpression {
+        val staticFunctionArgument = unwrapStaticFunctionArgument(expression.getValueArgument(0)!!)
+        require(staticFunctionArgument != null && staticFunctionArgument.function is IrSimpleFunction) { renderCompilerError(expression) }
+        val targetSymbol = staticFunctionArgument.function.symbol
+        val target = targetSymbol.owner
+        val signatureTypes = target.allParameters.map { it.type } + target.returnType
+
+        expression.symbol.owner.typeParameters.indices.forEach { index ->
+            val typeArgument = expression.typeArguments[index]!!.toKotlinType()
+            val signatureType = signatureTypes[index].toKotlinType()
+
+            require(typeArgument.constructor == signatureType.constructor &&
+                    typeArgument.isMarkedNullable == signatureType.isMarkedNullable) { renderCompilerError(expression) }
+        }
+
+        builder.at(expression)
+        val pointer = generateCFunctionPointer(target, expression)
+        return if (staticFunctionArgument.defined)
+            builder.irBlock {
+                +staticFunctionArgument.function
+                +pointer
+            }
+        else
+            pointer
+    }
+
+    private fun lowerWorkerExecute(expression: IrCall): IrExpression {
+        val staticFunctionArgument = unwrapStaticFunctionArgument(expression.getValueArgument(2)!!)
+        require(staticFunctionArgument != null) { renderCompilerError(expression) }
+
+        builder.at(expression)
+        val targetSymbol = staticFunctionArgument.function.symbol
+        val jobPointer = IrRawFunctionReferenceImpl(
+                builder.startOffset, builder.endOffset,
+                symbols.executeImpl.owner.valueParameters[3].type,
+                targetSymbol)
+
+        val executeImplCall = builder.irCall(symbols.executeImpl).apply {
+            putValueArgument(0, expression.dispatchReceiver)
+            putValueArgument(1, expression.getValueArgument(0))
+            putValueArgument(2, expression.getValueArgument(1))
+            putValueArgument(3, jobPointer)
+        }.implicitCastTo(expression.type)
+        executeImplCall.transformChildrenVoid()
+
+        builder.at(expression)
+        return if (staticFunctionArgument.defined)
+            builder.irBlock {
+                +staticFunctionArgument.function
+                +executeImplCall
+            }
+        else
+            executeImplCall
     }
 
     override fun visitCall(expression: IrCall): IrExpression {
         val intrinsicType = tryGetIntrinsicType(expression)
-        if (intrinsicType == IntrinsicType.OBJC_INIT_BY) {
-            // Need to do this separately as otherwise [expression.transformChildrenVoid(this)] would be called
-            // and the [IrConstructorCall] would be transformed which is not what we want.
-
-            val argument = expression.getValueArgument(0)!!
-            require(argument is IrConstructorCall) { renderCompilerError(argument) }
-
-            val constructedClass = argument.symbol.owner.constructedClass
-
-            val extensionReceiver = expression.extensionReceiver!!
-            require(extensionReceiver is IrGetValue &&
-                    extensionReceiver.symbol.owner.isDispatchReceiverFor(constructedClass)) { renderCompilerError(extensionReceiver) }
-
-            argument.transformChildrenVoid(this)
-
-            return builder.at(expression).irBlock {
-                val instance = extensionReceiver.symbol.owner
-                +irCall(symbols.initInstance).apply {
-                    putValueArgument(0, irGet(instance))
-                    putValueArgument(1, argument)
-                }
-                +irGet(instance)
-            }
+        // Need to do these intrinsics separately as otherwise [expression.transformChildrenVoid(this)] would be called
+        // and some of the child nodes would be transformed which is not what we want.
+        when (intrinsicType) {
+            IntrinsicType.OBJC_INIT_BY -> return lowerObjCInitBy(expression)
+            IntrinsicType.INTEROP_STATIC_C_FUNCTION -> return lowerStaticCFunction(expression)
+            IntrinsicType.WORKER_EXECUTE -> return lowerWorkerExecute(expression)
+            else -> Unit
         }
 
         expression.transformChildrenVoid(this)
@@ -1051,27 +1200,8 @@ private class InteropTransformer(
                         expression
                     }
                 }
-                IntrinsicType.INTEROP_STATIC_C_FUNCTION -> {
-                    val irCallableReference = unwrapStaticFunctionArgument(expression.getValueArgument(0)!!)
-
-                    require(irCallableReference != null && irCallableReference.symbol is IrSimpleFunctionSymbol) { renderCompilerError(expression) }
-
-                    val targetSymbol = irCallableReference.symbol
-                    val target = targetSymbol.owner
-                    val signatureTypes = target.allParameters.map { it.type } + target.returnType
-
-                    function.typeParameters.indices.forEach { index ->
-                        val typeArgument = expression.typeArguments[index]!!.toKotlinType()
-                        val signatureType = signatureTypes[index].toKotlinType()
-
-                        require(typeArgument.constructor == signatureType.constructor &&
-                                typeArgument.isMarkedNullable == signatureType.isMarkedNullable) { renderCompilerError(expression) }
-                    }
-
-                    generateCFunctionPointer(target as IrSimpleFunction, expression)
-                }
                 IntrinsicType.INTEROP_FUNPTR_INVOKE -> {
-                    generateWithStubs { generateCCall(expression, builder, isInvoke = true) }
+                    builder.generateExpressionWithStubs { generateCCall(expression, builder, isInvoke = true) }
                 }
                 IntrinsicType.INTEROP_SIGN_EXTEND, IntrinsicType.INTEROP_NARROW -> {
 
@@ -1133,22 +1263,11 @@ private class InteropTransformer(
                         builder.irConvertInteger(source, target, valueToConvert)
                     }
                 }
-                IntrinsicType.WORKER_EXECUTE -> {
-                    val irCallableReference = unwrapStaticFunctionArgument(expression.getValueArgument(2)!!)
-
-                    require(irCallableReference != null) { renderCompilerError(expression) }
-
-                    val targetSymbol = irCallableReference.symbol
-                    val jobPointer = IrRawFunctionReferenceImpl(
-                            builder.startOffset, builder.endOffset,
-                            symbols.executeImpl.owner.valueParameters[3].type,
-                            targetSymbol)
-
-                    builder.irCall(symbols.executeImpl).apply {
-                        putValueArgument(0, expression.dispatchReceiver)
-                        putValueArgument(1, expression.getValueArgument(0))
-                        putValueArgument(2, expression.getValueArgument(1))
-                        putValueArgument(3, jobPointer)
+                IntrinsicType.BLOCK_PTR_TO_FUNCTION_OBJECT -> {
+                    builder.generateExpressionWithStubs {
+                        val blockPtr = expression.arguments.single()!!
+                        val functionType = expression.typeArguments[0]!!
+                        convertBlockPtrToKotlinFunction(builder, blockPtr, functionType)
                     }
                 }
                 else -> expression
@@ -1179,33 +1298,28 @@ private class InteropTransformer(
         }
     }
 
-    private fun unwrapStaticFunctionArgument(argument: IrExpression): IrRawFunctionReference? {
-        if (argument is IrRawFunctionReference) {
-            return argument
+    private class StaticFunctionArgument(val function: IrFunction, val defined: Boolean)
+
+    private fun unwrapStaticFunctionArgument(argument: IrExpression) = when (argument) {
+        is IrFunctionReference -> {
+            require(argument.arguments.all { it == null }) {
+                renderCompilerError(argument, "Interop static function argument should not capture any values")
+            }
+            StaticFunctionArgument(argument.symbol.owner, defined = false)
         }
-
-        // Otherwise check whether it is a lambda:
-
-        // 1. It is a container with two statements and expected origin:
-
-        if (argument !is IrContainerExpression || argument.statements.size != 2) {
-            return null
+        is IrRichFunctionReference -> {
+            argument.invokeFunction.transform(this, null)
+            StaticFunctionArgument(argument.invokeFunction, defined = true)
         }
-        if (argument.origin != IrStatementOrigin.LAMBDA && argument.origin != IrStatementOrigin.ANONYMOUS_FUNCTION) {
-            return null
+        is IrFunctionExpression -> {
+            if (argument.origin != IrStatementOrigin.LAMBDA && argument.origin != IrStatementOrigin.ANONYMOUS_FUNCTION)
+                null
+            else {
+                argument.function.transform(this, null)
+                StaticFunctionArgument(argument.function, defined = true)
+            }
         }
-
-        // 2. First statement is an empty container (created during local functions lowering):
-
-        val firstStatement = argument.statements.first()
-
-        if (firstStatement !is IrContainerExpression || firstStatement.statements.size != 0) {
-            return null
-        }
-
-        // 3. Second statement is IrCallableReference:
-
-        return argument.statements.last() as? IrRawFunctionReference
+        else -> null
     }
 
     val IrValueParameter.isDispatchReceiver: Boolean

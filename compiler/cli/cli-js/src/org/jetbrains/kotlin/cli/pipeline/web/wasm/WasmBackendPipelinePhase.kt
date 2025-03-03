@@ -28,6 +28,8 @@ import org.jetbrains.kotlin.ir.backend.js.dce.dumpDeclarationIrSizesIfNeed
 import org.jetbrains.kotlin.ir.backend.js.loadIr
 import org.jetbrains.kotlin.js.config.*
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.util.PhaseType
+import org.jetbrains.kotlin.util.tryMeasurePhaseTime
 import org.jetbrains.kotlin.wasm.config.WasmConfigurationKeys
 import java.io.File
 
@@ -83,8 +85,6 @@ object WasmBackendPipelinePhase : WebBackendPipelinePhase<WasmBackendPipelineArt
             generateSourceMaps = configuration.getBoolean(JSConfigurationKeys.SOURCE_MAP),
         )
 
-        configuration.perfManager?.notifyGenerationFinished()
-
         writeCompilationResult(
             result = res,
             dir = outputDir,
@@ -126,6 +126,11 @@ object WasmBackendPipelinePhase : WebBackendPipelinePhase<WasmBackendPipelineArt
         generateDwarf: Boolean
     ): WasmCompilerResult {
         val performanceManager = configuration.perfManager
+        performanceManager?.let {
+            it.notifyPhaseFinished(PhaseType.Initialization)
+            it.notifyPhaseStarted(PhaseType.TranslationToIr)
+        }
+
         val generateDts = configuration.getBoolean(JSConfigurationKeys.GENERATE_DTS)
         val generateSourceMaps = configuration.getBoolean(JSConfigurationKeys.SOURCE_MAP)
         val useDebuggerCustomFormatters = configuration.getBoolean(JSConfigurationKeys.USE_DEBUGGER_CUSTOM_FORMATTERS)
@@ -148,51 +153,47 @@ object WasmBackendPipelinePhase : WebBackendPipelinePhase<WasmBackendPipelineArt
             propertyLazyInitialization = propertyLazyInitialization,
         )
 
-        performanceManager?.notifyIRGenerationStarted()
-        val dceDumpNameCache = DceDumpNameCache()
-        if (dce) {
-            eliminateDeadDeclarations(allModules, backendContext, dceDumpNameCache)
+        performanceManager.tryMeasurePhaseTime(PhaseType.Backend) {
+            val dceDumpNameCache = DceDumpNameCache()
+            if (dce) {
+                eliminateDeadDeclarations(allModules, backendContext, dceDumpNameCache)
+            }
+
+            dumpDeclarationIrSizesIfNeed(dceDumpDeclarationIrSizesToFile, allModules, dceDumpNameCache)
+
+            val generateWat = configuration.get(WasmConfigurationKeys.WASM_GENERATE_WAT, false)
+
+            val wasmModuleMetadataCache = WasmModuleMetadataCache(backendContext)
+            val codeGenerator = WasmModuleFragmentGenerator(
+                backendContext,
+                wasmModuleMetadataCache,
+                irFactory,
+                allowIncompleteImplementations = dce,
+                skipCommentInstructions = !generateWat,
+            )
+            val wasmCompiledFileFragments = allModules.map { codeGenerator.generateModuleAsSingleFileFragment(it) }
+
+            val res = compileWasm(
+                wasmCompiledFileFragments = wasmCompiledFileFragments,
+                moduleName = allModules.last().descriptor.name.asString(),
+                configuration = configuration,
+                typeScriptFragment = typeScriptFragment,
+                baseFileName = outputName,
+                emitNameSection = wasmDebug,
+                generateWat = generateWat,
+                generateDwarf = generateDwarf,
+                generateSourceMaps = generateSourceMaps,
+                useDebuggerCustomFormatters = useDebuggerCustomFormatters
+            )
+
+            writeCompilationResult(
+                result = res,
+                dir = outputDir,
+                fileNameBase = outputName,
+                useDebuggerCustomFormatters = useDebuggerCustomFormatters
+            )
+
+            return res
         }
-
-        dumpDeclarationIrSizesIfNeed(dceDumpDeclarationIrSizesToFile, allModules, dceDumpNameCache)
-
-        val generateWat = configuration.get(WasmConfigurationKeys.WASM_GENERATE_WAT, false)
-
-        val wasmModuleMetadataCache = WasmModuleMetadataCache(backendContext)
-        val codeGenerator = WasmModuleFragmentGenerator(
-            backendContext,
-            wasmModuleMetadataCache,
-            irFactory,
-            allowIncompleteImplementations = dce,
-            skipCommentInstructions = !generateWat,
-        )
-        val wasmCompiledFileFragments = allModules.map { codeGenerator.generateModuleAsSingleFileFragment(it) }
-
-        val res = compileWasm(
-            wasmCompiledFileFragments = wasmCompiledFileFragments,
-            moduleName = allModules.last().descriptor.name.asString(),
-            configuration = configuration,
-            typeScriptFragment = typeScriptFragment,
-            baseFileName = outputName,
-            emitNameSection = wasmDebug,
-            generateWat = generateWat,
-            generateDwarf = generateDwarf,
-            generateSourceMaps = generateSourceMaps,
-            useDebuggerCustomFormatters = useDebuggerCustomFormatters
-        )
-
-        performanceManager?.notifyIRGenerationFinished()
-        performanceManager?.notifyGenerationFinished()
-
-        writeCompilationResult(
-            result = res,
-            dir = outputDir,
-            fileNameBase = outputName,
-            useDebuggerCustomFormatters = useDebuggerCustomFormatters
-        )
-
-        performanceManager?.notifyIRTranslationFinished()
-
-        return res
     }
 }

@@ -15,6 +15,7 @@ import org.jetbrains.kotlin.library.KotlinLibrary
 import org.jetbrains.kotlin.library.metadata.resolver.TopologicalLibraryOrder
 import org.jetbrains.kotlin.library.uniqueName
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
+import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.jetbrains.kotlin.library.isNativeStdlib
 import org.jetbrains.kotlin.library.metadata.isCInteropLibrary
 import org.jetbrains.kotlin.library.unresolvedDependencies
@@ -49,7 +50,6 @@ class CacheBuilder(
 ) {
     private val configuration = konanConfig.configuration
     private val autoCacheableFrom = configuration.get(KonanConfigKeys.AUTO_CACHEABLE_FROM)!!.map { File(it) }
-    private val explicitCachesOnly = configuration.getBoolean(KonanConfigKeys.EXPLICIT_CACHES_ONLY)
     private val icEnabled = configuration.get(CommonConfigurationKeys.INCREMENTAL_COMPILATION)!!
     private val includedLibraries = configuration.get(KonanConfigKeys.INCLUDED_LIBRARIES).orEmpty().toSet()
     private val generateTestRunner = configuration.getNotNull(KonanConfigKeys.GENERATE_TEST_RUNNER)
@@ -86,31 +86,25 @@ class CacheBuilder(
         override fun toString() = "${library.uniqueName}|$file"
     }
 
-    private val KotlinLibrary.isCacheableExternalLibrary: Boolean
-        get() {
-            val isAutoCacheable = autoCacheableFrom.any { libraryFile.canonicalFile.startsWith(it.canonicalFile) }
-            return if (explicitCachesOnly) {
-                isAutoCacheable
-            } else {
-                isDefault || isNativeStdlib || isAutoCacheable
-            }
-        }
+    private val KotlinLibrary.isExternal
+        get() = autoCacheableFrom.any { libraryFile.canonicalFile.startsWith(it.canonicalFile) }
 
     fun build() {
         val externalLibrariesToCache = mutableListOf<KotlinLibrary>()
         val icedLibraries = mutableListOf<KotlinLibrary>()
 
         allLibraries.forEach { library ->
-            val isSubjectOfIC = !library.isCacheableExternalLibrary
+            // For MinGW target avoid compiling caches for anything except stdlib.
+            if (konanConfig.target == KonanTarget.MINGW_X64 && !library.isNativeStdlib) {
+                return@forEach
+            }
+            val isSubjectOfIC = !library.isDefault && !library.isExternal && !library.isNativeStdlib
             val cache = konanConfig.cachedLibraries.getLibraryCache(library, allowIncomplete = isSubjectOfIC)
             cache?.let {
                 caches[library] = it
                 cacheRootDirectories[library] = it.rootDirectory
             }
             if (isSubjectOfIC) {
-                if (icEnabled && (library.isNativeStdlib || library.isDefault)) {
-                    error("Unexpected attempt to cache the standard library or default one: ${library.libraryName}")
-                }
                 icedLibraries += library
             } else {
                 if (cache == null) externalLibrariesToCache += library

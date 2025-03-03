@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.fir.backend
 
 import com.intellij.psi.tree.IElementType
 import org.jetbrains.kotlin.*
+import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.contracts.description.LogicOperationKind
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.descriptors.isObject
@@ -67,8 +68,6 @@ class Fir2IrVisitor(
     private val c: Fir2IrComponents,
     private val conversionScope: Fir2IrConversionScope
 ) : Fir2IrComponents by c, FirDefaultVisitor<IrElement, Any?>() {
-    internal val implicitCastInserter = Fir2IrImplicitCastInserter(c)
-
     private val memberGenerator = ClassMemberGenerator(c, this, conversionScope)
 
     private val operatorGenerator = OperatorExpressionGenerator(c, this, conversionScope)
@@ -527,22 +526,27 @@ class Fir2IrVisitor(
             }
         )
         if (initializer != null) {
-            irVariable.initializer =
-                convertToIrExpression(initializer)
-                    .insertImplicitCast(initializer, initializer.resolvedType, variable.returnTypeRef.coneType)
+            val convertedInitializer = convertToIrExpression(initializer)
+                .prepareExpressionForGivenExpectedType(initializer, initializer.resolvedType, variable.returnTypeRef.coneType)
+            // In FIR smart-casted types from initializers of variables are not saved to the types of the variables themselves.
+            // Ensuring the IrVariable's type of an implicit when-subject is as narrow as that of the initializer is important,
+            // for example, for `ieee754` comparisons of `Double`s.
+            if (irVariable.name == SpecialNames.WHEN_SUBJECT) {
+                irVariable.type = convertedInitializer.type
+            }
+            irVariable.initializer = convertedInitializer
         }
         annotationGenerator.generate(irVariable, variable)
         return irVariable
     }
 
-    private fun IrExpression.insertImplicitCast(
+    private fun IrExpression.prepareExpressionForGivenExpectedType(
         baseExpression: FirExpression,
         valueType: ConeKotlinType,
         expectedType: ConeKotlinType,
-    ) =
-        with(implicitCastInserter) {
-            this@insertImplicitCast.insertSpecialCast(baseExpression, valueType, expectedType)
-        }
+    ): IrExpression = prepareExpressionForGivenExpectedType(
+        this@Fir2IrVisitor, baseExpression, valueType, expectedType
+    )
 
     override fun visitProperty(property: FirProperty, data: Any?): IrElement = whileAnalysing(session, property) {
         if (property.isLocal) return visitLocalVariable(property)
@@ -1304,7 +1308,7 @@ class Fir2IrVisitor(
                         arguments[1] = IrConstImpl.constNull(startOffset, endOffset, builtins.nothingNType)
                     },
                     convertToIrExpression(elvisExpression.rhs)
-                        .insertImplicitCast(elvisExpression, elvisExpression.rhs.resolvedType, elvisExpression.resolvedType)
+                        .prepareExpressionForGivenExpectedType(elvisExpression, elvisExpression.rhs.resolvedType, elvisExpression.resolvedType)
                 ),
                 IrElseBranchImpl(
                     IrConstImpl.boolean(startOffset, endOffset, builtins.booleanType, true),
@@ -1313,7 +1317,7 @@ class Fir2IrVisitor(
                     } else {
                         Fir2IrImplicitCastInserter.implicitCastOrExpression(
                             irGetLhsValue(),
-                            originalType.toFirResolvedTypeRef().resolvedTypeFromPrototype(notNullType).toIrType(c)
+                            originalType.toFirResolvedTypeRef().resolvedTypeFromPrototype(notNullType, fallbackSource = null).toIrType(c)
                         )
                     }
                 )
@@ -1444,9 +1448,9 @@ class Fir2IrVisitor(
 
     private fun generateWhenSubjectVariable(whenExpression: FirWhenExpression): IrVariable? {
         val subjectVariable = whenExpression.subjectVariable
-        val subjectExpression = whenExpression.subject
+        val subjectExpression = whenExpression.subjectVariable?.initializer
         return when {
-            subjectVariable != null -> subjectVariable.accept(this, null) as IrVariable
+            subjectVariable != null && !subjectVariable.isImplicitWhenSubjectVariable -> subjectVariable.accept(this, null) as IrVariable
             subjectExpression != null ->
                 conversionScope.scope().createTemporaryVariable(convertToIrExpression(subjectExpression), "subject")
             else -> null
@@ -1456,7 +1460,7 @@ class Fir2IrVisitor(
     private fun FirWhenBranch.toIrWhenBranch(whenExpressionType: ConeKotlinType): IrBranch {
         return convertWithOffsets { startOffset, endOffset ->
             val condition = condition
-            val irResult = convertToIrExpression(result).insertImplicitCast(result, result.resolvedType, whenExpressionType)
+            val irResult = convertToIrExpression(result).prepareExpressionForGivenExpectedType(result, result.resolvedType, whenExpressionType)
             if (condition is FirElseIfTrueCondition) {
                 IrElseBranchImpl(IrConstImpl.boolean(irResult.startOffset, irResult.endOffset, builtins.booleanType, true), irResult)
             } else {

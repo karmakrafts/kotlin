@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.*
 import org.jetbrains.kotlin.gradle.plugin.mpp.publishing.rewriteKmpDependenciesInPomForTargetPublication
 import org.jetbrains.kotlin.gradle.plugin.sources.DefaultKotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.sources.KotlinSourceSetFactory
+import org.jetbrains.kotlin.gradle.targets.jvm.ConfigureJavaTestFixturesSideEffect
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 import org.jetbrains.kotlin.gradle.targets.jvm.configureKotlinConventions
 import org.jetbrains.kotlin.gradle.targets.jvm.kotlinSourceSetDslName
@@ -142,6 +143,7 @@ internal abstract class AbstractKotlinPlugin(
             setUpJavaSourceSets(target)
             configureSourceSetDefaults(target, buildSourceSetProcessor)
             configureAttributes(target)
+            ConfigureJavaTestFixturesSideEffect(target)
         }
 
         internal fun setUpJavaSourceSets(
@@ -186,7 +188,7 @@ internal abstract class AbstractKotlinPlugin(
                         })
                     }
 
-                    @Suppress("DEPRECATION")
+                    @Suppress("DEPRECATION_ERROR")
                     kotlinCompilation.addSourceSet(kotlinSourceSet)
                     project.compatibilityConventionRegistrar.addConvention(javaSourceSet, kotlinSourceSetDslName, kotlinSourceSet)
                     javaSourceSet.addExtension(kotlinSourceSetDslName, kotlinSourceSet.kotlin)
@@ -196,7 +198,7 @@ internal abstract class AbstractKotlinPlugin(
             }
 
             kotlinTarget.compilations.all { kotlinCompilation ->
-                @Suppress("DEPRECATION")
+                @Suppress("DEPRECATION_ERROR")
                 kotlinCompilation.addSourceSet(kotlinCompilation.defaultSourceSet)
             }
 

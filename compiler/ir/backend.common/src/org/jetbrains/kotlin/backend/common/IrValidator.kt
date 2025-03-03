@@ -117,13 +117,14 @@ private class IrFileValidator(
     private val returnCheckers: MutableList<IrReturnChecker> = mutableListOf()
     private val throwCheckers: MutableList<IrThrowChecker> = mutableListOf()
     private val functionCheckers: MutableList<IrFunctionChecker> =
-        mutableListOf(IrFunctionDispatchReceiverChecker, IrFunctionParametersChecker)
+        mutableListOf(IrFunctionDispatchReceiverChecker, IrFunctionParametersChecker, IrConstructorReceiverChecker)
     private val declarationBaseCheckers: MutableList<IrDeclarationChecker<IrDeclaration>> =
         mutableListOf(IrPrivateDeclarationOverrideChecker)
     private val propertyReferenceCheckers: MutableList<IrPropertyReferenceChecker> = mutableListOf()
     private val localDelegatedPropertyReferenceCheckers: MutableList<IrLocalDelegatedPropertyReferenceChecker> = mutableListOf()
     private val expressionCheckers: MutableList<IrExpressionChecker<IrExpression>> = mutableListOf(IrExpressionTypeChecker)
     private val typeOperatorCheckers: MutableList<IrTypeOperatorChecker> = mutableListOf(IrTypeOperatorTypeOperandChecker)
+    private val propertyCheckers: MutableList<IrPropertyChecker> = mutableListOf()
 
     // TODO: Why don't we check parameters as well?
     private val callCheckers: MutableList<IrCallChecker> = mutableListOf(IrCallFunctionDispatchReceiverChecker)
@@ -172,6 +173,7 @@ private class IrFileValidator(
             callCheckers.add(IrCallFunctionPropertiesChecker)
             functionCheckers.add(IrFunctionPropertiesChecker)
             functionReferenceCheckers.add(IrFunctionReferenceFunctionPropertiesChecker)
+            propertyCheckers.add(IrPropertyAccessorsChecker)
         }
     }
 
@@ -329,6 +331,11 @@ private class IrFileValidator(
     override fun visitFunctionAccess(expression: IrFunctionAccessExpression) {
         super.visitFunctionAccess(expression)
         functionAccessCheckers.check(expression, context)
+    }
+
+    override fun visitProperty(declaration: IrProperty) {
+        super.visitProperty(declaration)
+        propertyCheckers.check(declaration, context)
     }
 
     private fun checkTreeConsistency(element: IrElement) {

@@ -11,11 +11,11 @@ import com.intellij.openapi.vfs.impl.ZipHandler
 import com.intellij.openapi.vfs.impl.jar.CoreJarFileSystem
 import org.jetbrains.kotlin.build.DEFAULT_KOTLIN_SOURCE_FILES_EXTENSIONS
 import org.jetbrains.kotlin.build.report.RemoteBuildReporter
-import org.jetbrains.kotlin.build.report.info
 import org.jetbrains.kotlin.build.report.metrics.GradleBuildPerformanceMetric
 import org.jetbrains.kotlin.build.report.metrics.GradleBuildTime
 import org.jetbrains.kotlin.build.report.metrics.endMeasureGc
 import org.jetbrains.kotlin.build.report.metrics.startMeasureGc
+import org.jetbrains.kotlin.build.report.warn
 import org.jetbrains.kotlin.buildtools.api.SourcesChanges
 import org.jetbrains.kotlin.cli.common.*
 import org.jetbrains.kotlin.cli.common.arguments.*
@@ -43,15 +43,12 @@ import org.jetbrains.kotlin.incremental.components.LookupTracker
 import org.jetbrains.kotlin.incremental.js.IncrementalDataProvider
 import org.jetbrains.kotlin.incremental.js.IncrementalResultsConsumer
 import org.jetbrains.kotlin.incremental.multiproject.EmptyModulesApiHistory
-import org.jetbrains.kotlin.incremental.multiproject.ModulesApiHistoryAndroid
 import org.jetbrains.kotlin.incremental.multiproject.ModulesApiHistoryJs
-import org.jetbrains.kotlin.incremental.multiproject.ModulesApiHistoryJvm
 import org.jetbrains.kotlin.incremental.parsing.classesFqNames
 import org.jetbrains.kotlin.incremental.storage.FileLocations
 import org.jetbrains.kotlin.load.kotlin.incremental.components.IncrementalCompilationComponents
 import org.jetbrains.kotlin.progress.CompilationCanceledStatus
 import org.jetbrains.kotlin.util.CodeAnalysisMeasurement
-import org.jetbrains.kotlin.util.CodeGenerationMeasurement
 import org.jetbrains.kotlin.util.CompilerInitializationMeasurement
 import java.io.File
 import java.rmi.NoSuchObjectException
@@ -280,41 +277,41 @@ abstract class CompileServiceImplBase(
 
     protected fun getPerformanceMetrics(compiler: CLICompiler<CommonCompilerArguments>): List<BuildMetricsValue> {
         val performanceMetrics = ArrayList<BuildMetricsValue>()
-        compiler.defaultPerformanceManager.getMeasurementResults().forEach {
+        val performanceManager = compiler.defaultPerformanceManager
+        val lines = performanceManager.lines.takeIf { it > 0 }
+        if (lines != null) {
+            performanceMetrics.add(BuildMetricsValue(CompilationPerformanceMetrics.SOURCE_LINES_NUMBER, lines.toLong()))
+        }
+        performanceManager.measurements.forEach {
             when (it) {
                 is CompilerInitializationMeasurement -> {
                     performanceMetrics.add(BuildMetricsValue(CompilationPerformanceMetrics.COMPILER_INITIALIZATION, it.milliseconds))
                 }
                 is CodeAnalysisMeasurement -> {
                     performanceMetrics.add(BuildMetricsValue(CompilationPerformanceMetrics.CODE_ANALYSIS, it.milliseconds))
-                    it.lines?.apply {
-                        performanceMetrics.add(BuildMetricsValue(CompilationPerformanceMetrics.ANALYZED_LINES_NUMBER, this.toLong()))
-                        if (it.milliseconds > 0) {
-                            performanceMetrics.add(
-                                BuildMetricsValue(
-                                    CompilationPerformanceMetrics.ANALYSIS_LPS,
-                                    this * 1000 / it.milliseconds
-                                )
+                    if (lines != null && it.milliseconds > 0) {
+                        performanceMetrics.add(
+                            BuildMetricsValue(
+                                CompilationPerformanceMetrics.ANALYSIS_LPS,
+                                lines * 1000 / it.milliseconds
                             )
-                        }
+                        )
                     }
                 }
-                is CodeGenerationMeasurement -> {
-                    performanceMetrics.add(
-                        BuildMetricsValue(CompilationPerformanceMetrics.CODE_GENERATION, it.milliseconds)
+            }
+        }
+        val loweringAndBackendTimeMs = performanceManager.getLoweringAndBackendTimeMs()
+        if (loweringAndBackendTimeMs > 0) {
+            performanceMetrics.add(
+                BuildMetricsValue(CompilationPerformanceMetrics.CODE_GENERATION, loweringAndBackendTimeMs)
+            )
+            if (lines != null) {
+                performanceMetrics.add(
+                    BuildMetricsValue(
+                        CompilationPerformanceMetrics.CODE_GENERATION_LPS,
+                        lines * 1000 / loweringAndBackendTimeMs
                     )
-                    it.lines?.apply {
-                        performanceMetrics.add(BuildMetricsValue(CompilationPerformanceMetrics.CODE_GENERATED_LINES_NUMBER, this.toLong()))
-                        if (it.milliseconds > 0) {
-                            performanceMetrics.add(
-                                BuildMetricsValue(
-                                    CompilationPerformanceMetrics.CODE_GENERATION_LPS,
-                                    this * 1000 / it.milliseconds
-                                )
-                            )
-                        }
-                    }
-                }
+                )
             }
         }
         return performanceMetrics
@@ -375,7 +372,7 @@ abstract class CompileServiceImplBase(
                 doCompile(sessionId, daemonReporter, tracer = null) { _, _ ->
                     val exitCode = compiler.exec(messageCollector, Services.EMPTY, k2PlatformArgs)
 
-                    val perfString = compiler.defaultPerformanceManager.renderCompilerPerformance()
+                    val perfString = compiler.defaultPerformanceManager.createPerformanceReport()
                     compilationResults?.also {
                         (it as CompilationResults).add(
                             CompilationResultCategory.BUILD_REPORT_LINES.code,
@@ -643,25 +640,6 @@ abstract class CompileServiceImplBase(
         val rootProjectDir = incrementalCompilationOptions.rootProjectDir
         val buildDir = incrementalCompilationOptions.buildDir
 
-        val modulesApiHistory = if (incrementalCompilationOptions.classpathChanges is ClasspathChanges.ClasspathSnapshotEnabled) {
-            EmptyModulesApiHistory
-        } else {
-            incrementalCompilationOptions.multiModuleICSettings?.run {
-                reporter.info { "Use module detection: $useModuleDetection" }
-                val modulesInfo = incrementalCompilationOptions.modulesInfo
-                    ?: error("The build is configured to use the history-file based IC approach, but doesn't provide the modulesInfo")
-                check(rootProjectDir != null) {
-                    "rootProjectDir is expected to be non null when the history-file based IC approach is used"
-                }
-
-                if (!useModuleDetection) {
-                    ModulesApiHistoryJvm(rootProjectDir, modulesInfo)
-                } else {
-                    ModulesApiHistoryAndroid(rootProjectDir, modulesInfo)
-                }
-            } ?: EmptyModulesApiHistory
-        }
-
         val verifiedPreciseJavaTracking = k2jvmArgs.disablePreciseJavaTrackingIfK2(
             usePreciseJavaTrackingByDefault = incrementalCompilationOptions.icFeatures.usePreciseJavaTracking
         )
@@ -670,8 +648,6 @@ abstract class CompileServiceImplBase(
             IncrementalFirJvmCompilerRunner(
                 workingDir,
                 reporter,
-                buildHistoryFile = incrementalCompilationOptions.multiModuleICSettings?.buildHistoryFile,
-                modulesApiHistory = modulesApiHistory,
                 kotlinSourceFilesExtensions = allKotlinExtensions,
                 outputDirs = incrementalCompilationOptions.outputFiles,
                 classpathChanges = incrementalCompilationOptions.classpathChanges,
@@ -683,11 +659,9 @@ abstract class CompileServiceImplBase(
             IncrementalJvmCompilerRunner(
                 workingDir,
                 reporter,
-                buildHistoryFile = incrementalCompilationOptions.multiModuleICSettings?.buildHistoryFile,
                 outputDirs = incrementalCompilationOptions.outputFiles,
-                modulesApiHistory = modulesApiHistory,
-                kotlinSourceFilesExtensions = allKotlinExtensions,
                 classpathChanges = incrementalCompilationOptions.classpathChanges,
+                kotlinSourceFilesExtensions = allKotlinExtensions,
                 icFeatures = incrementalCompilationOptions.icFeatures.copy(
                     usePreciseJavaTracking = verifiedPreciseJavaTracking
                 ),

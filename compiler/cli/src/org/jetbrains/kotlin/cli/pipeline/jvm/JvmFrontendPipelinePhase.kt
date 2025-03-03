@@ -33,6 +33,7 @@ import org.jetbrains.kotlin.config.JvmTarget
 import org.jetbrains.kotlin.config.languageVersionSettings
 import org.jetbrains.kotlin.config.messageCollector
 import org.jetbrains.kotlin.config.moduleName
+import org.jetbrains.kotlin.config.useFirExtraCheckers
 import org.jetbrains.kotlin.config.useLightTree
 import org.jetbrains.kotlin.diagnostics.impl.BaseDiagnosticsCollector
 import org.jetbrains.kotlin.fir.DependencyListForCliModule
@@ -52,6 +53,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.multiplatform.hmppModuleName
 import org.jetbrains.kotlin.resolve.multiplatform.isCommonSource
 import org.jetbrains.kotlin.utils.fileUtils.descendantRelativeTo
+import org.jetbrains.kotlin.util.PhaseType
 import java.io.File
 
 object JvmFrontendPipelinePhase : PipelinePhase<ConfigurationPipelineArtifact, JvmFrontendPipelineArtifact>(
@@ -65,7 +67,7 @@ object JvmFrontendPipelinePhase : PipelinePhase<ConfigurationPipelineArtifact, J
         val perfManager = configuration.perfManager
 
         if (!checkNotSupportedPlugins(configuration, messageCollector)) {
-            perfManager?.notifyCompilerInitialized()
+            perfManager?.notifyPhaseFinished(PhaseType.Initialization)
             return null
         }
 
@@ -77,7 +79,7 @@ object JvmFrontendPipelinePhase : PipelinePhase<ConfigurationPipelineArtifact, J
             targetDescription,
             diagnosticsCollector
         ) ?: run {
-            perfManager?.notifyCompilerInitialized()
+            perfManager?.notifyPhaseFinished(PhaseType.Initialization)
             return null
         }
 
@@ -97,7 +99,7 @@ object JvmFrontendPipelinePhase : PipelinePhase<ConfigurationPipelineArtifact, J
         val sources = sourcesProvider()
         val allSources = sources.allFiles
 
-        perfManager?.notifyCompilerInitialized()
+        perfManager?.notifyPhaseFinished(PhaseType.Initialization)
 
         if (
             allSources.isEmpty() &&
@@ -110,7 +112,7 @@ object JvmFrontendPipelinePhase : PipelinePhase<ConfigurationPipelineArtifact, J
             return null
         }
 
-        perfManager?.notifyAnalysisStarted()
+        perfManager?.notifyPhaseStarted(PhaseType.Analysis)
         val sourceScope: AbstractProjectFileSearchScope
         when (configuration.useLightTree) {
             true -> {
@@ -367,6 +369,7 @@ object JvmFrontendPipelinePhase : PipelinePhase<ConfigurationPipelineArtifact, J
                 },
                 extensionRegistrars,
                 configuration.languageVersionSettings,
+                configuration.useFirExtraCheckers,
                 configuration.get(JVMConfigurationKeys.JVM_TARGET, JvmTarget.DEFAULT),
                 configuration.get(CommonConfigurationKeys.LOOKUP_TRACKER),
                 configuration.get(CommonConfigurationKeys.ENUM_WHEN_TRACKER),

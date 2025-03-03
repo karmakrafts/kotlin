@@ -13,6 +13,7 @@ import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.util.PatternFilterable
+import org.gradle.process.CommandLineArgumentProvider
 import org.gradle.work.Incremental
 import org.gradle.work.NormalizeLineEndings
 import org.jetbrains.kotlin.gradle.dsl.*
@@ -44,8 +45,7 @@ interface KotlinCompileTool : PatternFilterable, Task {
     /**
      * Sets input sources for this task.
      *
-     * **Note**: due to [a bug](https://youtrack.jetbrains.com/issue/KT-59632/KotlinCompileTool.setSource-should-replace-existing-sources),
-     * the `setSource()` function does not update already added sources.
+     * New [sources] replace already added one.
      *
      * @param sources object is evaluated as per [org.gradle.api.Project.files].
      */
@@ -148,8 +148,9 @@ interface KotlinJvmCompile : BaseKotlinCompile,
      * @suppress
      */
     @get:Deprecated(
-        message = "Please migrate to compilerOptions.moduleName",
-        replaceWith = ReplaceWith("compilerOptions.moduleName")
+        message = "Please migrate to compilerOptions.moduleName. Scheduled for removal in Kotlin 2.3.",
+        replaceWith = ReplaceWith("compilerOptions.moduleName"),
+        level = DeprecationLevel.ERROR,
     )
     @get:Optional
     @get:Input
@@ -161,8 +162,9 @@ interface KotlinJvmCompile : BaseKotlinCompile,
     // JVM specific
     @get:Internal("Takes part in compiler args.")
     @Deprecated(
-        message = "Configure compilerOptions directly",
-        replaceWith = ReplaceWith("compilerOptions")
+        message = "Configure compilerOptions directly. Scheduled for removal in Kotlin 2.3.",
+        replaceWith = ReplaceWith("compilerOptions"),
+        level = DeprecationLevel.ERROR,
     )
     val parentKotlinOptions: Property<KotlinJvmOptionsDeprecated>
 
@@ -219,8 +221,9 @@ interface KaptGenerateStubs : KotlinJvmCompile {
      * @suppress
      */
     @get:Deprecated(
-        message = "Please migrate to compilerOptions.moduleName",
-        replaceWith = ReplaceWith("compilerOptions.moduleName")
+        message = "Please migrate to compilerOptions.moduleName. Scheduled for removal in Kotlin 2.3.",
+        replaceWith = ReplaceWith("compilerOptions.moduleName"),
+        level = DeprecationLevel.ERROR,
     )
     @get:Optional
     @get:Input
@@ -281,8 +284,18 @@ interface BaseKapt : Task,
      *
      * Accepts a [List] of [org.gradle.process.CommandLineArgumentProvider]s.
      */
-    @get:Nested
+    @get:Internal
+    @Deprecated(
+        "Use annotationProcessorOptionsProviders instead. Scheduled for removal in Kotlin 2.4.",
+        ReplaceWith("annotationProcessorOptionsProviders"),
+    )
     val annotationProcessorOptionProviders: MutableList<Any>
+
+    /**
+     * Represents a list of annotation processor option providers.
+     */
+    @get:Nested
+    val annotationProcessorOptionsProviders: ListProperty<CommandLineArgumentProvider>
 
     /**
      * The directory where the generated related [KaptGenerateStubs] task stub can be found.

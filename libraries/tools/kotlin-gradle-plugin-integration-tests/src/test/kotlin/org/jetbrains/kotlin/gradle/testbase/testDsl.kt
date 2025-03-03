@@ -576,11 +576,8 @@ private fun commonBuildSetup(
     gradleVersion: GradleVersion,
     kotlinDaemonDebugPort: Int? = null,
 ): List<String> {
-    // Following jdk system properties are provided via sub-project build.gradle.kts
-    val jdkPropNameRegex = Regex("jdk\\d+Home")
-    val jdkLocations = System.getProperties()
-        .filterKeys { it.toString().matches(jdkPropNameRegex) }
-        .values
+    val jdkLocations = allJdkProperties
+        .map { System.getProperty(it) }
         .sortedWith(compareBy { it.toString() })
         .joinToString(separator = ",")
 
@@ -599,6 +596,7 @@ private fun commonBuildSetup(
     return buildOptions.toArguments(gradleVersion) + buildArguments + listOfNotNull(
         // Required toolchains should be pre-installed via repo. Tests should not download any JDKs
         "-Porg.gradle.java.installations.auto-download=false",
+        "-Porg.gradle.java.installations.auto-detect=false",
         "-Porg.gradle.java.installations.paths=$jdkLocations",
         // Disable automatic download of android SDK.
         // It should be downloaded in dependencies/android-sdk to enable caching and prevent sdk installation failures.
@@ -679,16 +677,13 @@ private fun TestProject.withBuildSummary(
 }
 
 /**
- * This property is configured reade konan from specific directory, which in teamcity will be filled with k/n built from master.
- * NOTE: On changing test konan dir location update related location in kotlin-teamcity-build repository
+ * This property is configured to read konan from specific directory.
  */
+private const val konanDataDirForIntegrationTests = "konanDataDirForIntegrationTests"
 val konanDir
     get() =
-        System.getProperty("konanDataDirForIntegrationTests")?.let {
-            Paths.get(it)
-        } ?: Paths.get(".")
-            .resolve("../../../.kotlin")
-            .resolve("konan-for-gradle-tests")
+        System.getProperty(konanDataDirForIntegrationTests)?.let { Paths.get(it) }
+            ?: error("Please specify a shared konan directory using \"${konanDataDirForIntegrationTests}\" system property")
 
 /**
  * On changing test kit dir location update related location in 'cleanTestKitCache' task.

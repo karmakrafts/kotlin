@@ -6,11 +6,13 @@
 package org.jetbrains.kotlin.fir.resolve.transformers.body.resolve
 
 import org.jetbrains.kotlin.*
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.fir.*
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.isExternal
 import org.jetbrains.kotlin.fir.declarations.utils.isLocal
+import org.jetbrains.kotlin.fir.declarations.utils.isSealed
 import org.jetbrains.kotlin.fir.diagnostics.*
 import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.expressions.FirOperation.*
@@ -54,6 +56,8 @@ import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.SpecialNames
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.resolve.calls.inference.buildAbstractResultingSubstitutor
+import org.jetbrains.kotlin.resolve.calls.tower.ApplicabilityDetail
+import org.jetbrains.kotlin.resolve.calls.tower.isSuccess
 import org.jetbrains.kotlin.types.AbstractTypeChecker
 import org.jetbrains.kotlin.types.ConstantValueKind
 import org.jetbrains.kotlin.types.TypeApproximatorConfiguration
@@ -1037,6 +1041,8 @@ open class FirExpressionsResolveTransformer(transformer: FirAbstractBodyResolveT
             }
         }.transformTypeOperatorCallChildren()
 
+        resolved.resolveConversionTypeRefInContextSensitiveModeIfNecessary()
+
         val conversionTypeRef = resolved.conversionTypeRef.withTypeArgumentsForBareType(resolved.argument, typeOperatorCall.operation)
         resolved.transformChildren(object : FirDefaultTransformer<Any?>() {
             override fun <E : FirElement> transformElement(element: E, data: Any?): E {
@@ -1101,6 +1107,46 @@ open class FirExpressionsResolveTransformer(transformer: FirAbstractBodyResolveT
         return transformOtherChildren(transformer, ResolutionMode.ContextIndependent)
     }
 
+    /**
+     * If context-sensitive resolution is necessary and successful, conversionTypeRef will be replaced with an updated result
+     */
+    private fun FirTypeOperatorCall.resolveConversionTypeRefInContextSensitiveModeIfNecessary() {
+        if (!session.languageVersionSettings.supportsFeature(LanguageFeature.ContextSensitiveResolutionUsingExpectedType)) return
+
+        // If the type is resolved correctly, we don't need to re-run the resolution
+        val errorTypeRef = conversionTypeRef as? FirErrorTypeRef ?: return
+
+        // Don't re-run resolution if there's some visible class available
+        if (!errorTypeRef.diagnostic.meansAbsenceOfVisibleClass()) return
+
+        // We only re-run resolution for simple name qualifiers
+        val userTypeRef = errorTypeRef.delegatedTypeRef as? FirUserTypeRef ?: return
+        if (userTypeRef.qualifier.size != 1) return
+
+        val argument = argumentList.arguments.singleOrNull() ?: error("Not a single argument: ${this.render()}")
+
+        val classToLookAt =
+            argument.resolvedType.getClassRepresentativeForContextSensitiveResolution(session)
+                ?.takeIf { it.isSealed }
+                ?: return
+
+        val resultingTypeRef = typeResolverTransformer.withBareTypes {
+            typeResolverTransformer.transformTypeRef(
+                userTypeRef,
+                TypeResolutionConfiguration.createForContextSensitiveResolution(
+                    context.containingClassDeclarations,
+                    context.file,
+                    context.topContainerForTypeResolution,
+                    sealedClassForContextSensitiveResolution = classToLookAt,
+                )
+            )
+        }
+
+        if (resultingTypeRef is FirErrorTypeRef || resultingTypeRef.coneType is ConeErrorType) return
+
+        replaceConversionTypeRef(resultingTypeRef)
+    }
+
     @OptIn(UnresolvedExpressionTypeAccess::class)
     override fun transformCheckNotNullCall(
         checkNotNullCall: FirCheckNotNullCall,
@@ -1131,6 +1177,25 @@ open class FirExpressionsResolveTransformer(transformer: FirAbstractBodyResolveT
         }
 
         return result
+    }
+
+
+    private fun ConeDiagnostic.meansAbsenceOfVisibleClass(): Boolean {
+        // No class found at all
+        if (this is ConeUnresolvedTypeQualifierError) return true
+        // Only invisible class found
+        if (this is ConeVisibilityError) return true
+        // It's necessary for context-sensitive resolution to distinguish the situations:
+        // - when ambiguity happens among available candidates, so it's not correct to run context-sensitive resolution
+        // - when all the candidates are invisible, thus it's safe to run context-sensitive resolution
+        //
+        // The idea is that even ambiguity among imported invisible classes should behave just
+        // like there are none of them exists.
+        // Otherwise, introducing a private class might become a source-breaking change.
+        @OptIn(ApplicabilityDetail::class)
+        if (this is ConeAmbiguityError && !this.applicability.isSuccess) return true
+
+        return false
     }
 
     override fun transformBooleanOperatorExpression(
@@ -1733,14 +1798,20 @@ open class FirExpressionsResolveTransformer(transformer: FirAbstractBodyResolveT
             // If the get call arguments are SAM converted, unwrap the SAM conversion.
             // Otherwise, we might fail resolution if the get and set operator parameter types are different
             // (different SAM types or one is a SAM type and the other isn't).
+            // See testData/ir/irText/expressions/callableReferences/caoWithAdaptationForSam.kt
             val unwrappedSamIndex = (index as? FirSamConversionExpression)?.expression ?: index
             generateTemporaryVariable(
                 session.moduleData,
                 source = unwrappedSamIndex.source?.fakeElement(fakeSourceElementKind),
                 name = SpecialNames.subscribeOperatorIndex(i),
                 initializer = unwrappedSamIndex,
-                typeRef = unwrappedSamIndex.resolvedType.toFirResolvedTypeRef(),
-            )
+                typeRef = unwrappedSamIndex.resolvedType.toFirResolvedTypeRef(
+                    source = unwrappedSamIndex.source?.fakeElement(KtFakeSourceElementKind.ImplicitTypeRef)
+                ),
+            ).apply {
+                // See compiler/testData/codegen/boxInline/reified/kt28234.kt
+                replaceBodyResolveState(FirPropertyBodyResolveState.INITIALIZER_RESOLVED)
+            }
         }
 
         arrayVariable.transformSingle(transformer, ResolutionMode.ContextIndependent)

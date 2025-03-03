@@ -274,6 +274,12 @@ public class NativeCodegenLocalTestGenerated extends AbstractNativeCodegenBoxTes
       runTest("native/native.tests/testData/codegen/cinterop/toKString.kt");
     }
 
+    @Test
+    @TestMetadata("workers.kt")
+    public void testWorkers() {
+      runTest("native/native.tests/testData/codegen/cinterop/workers.kt");
+    }
+
     @Nested
     @TestMetadata("native/native.tests/testData/codegen/cinterop/basics")
     @TestDataPath("$PROJECT_ROOT")
@@ -451,6 +457,12 @@ public class NativeCodegenLocalTestGenerated extends AbstractNativeCodegenBoxTes
       @Test
       public void testAllFilesPresentInObjc() {
         KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("native/native.tests/testData/codegen/cinterop/objc"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.NATIVE, true);
+      }
+
+      @Test
+      @TestMetadata("blockToFunction.kt")
+      public void testBlockToFunction() {
+        runTest("native/native.tests/testData/codegen/cinterop/objc/blockToFunction.kt");
       }
 
       @Test

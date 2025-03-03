@@ -77,6 +77,7 @@ class KotlinSpecificDependenciesIT : KGPBaseTest() {
     @JsGradlePluginTests
     @DisplayName("JS: kotlin-stdlib dependency is added by default")
     @GradleTest
+    @TestMetadata("kotlin-js-plugin-project")
     @BrokenOnMacosTest
     fun testStdlibByDefaultJs(gradleVersion: GradleVersion) {
         project(
@@ -98,6 +99,7 @@ class KotlinSpecificDependenciesIT : KGPBaseTest() {
     @JsGradlePluginTests
     @DisplayName("JS: kotlin-stdlib dependency is not added when disabled via properties")
     @GradleTest
+    @TestMetadata("kotlin-js-plugin-project")
     @BrokenOnMacosTest
     fun testStdlibDisabledJs(gradleVersion: GradleVersion) {
         project(
@@ -444,6 +446,7 @@ class KotlinSpecificDependenciesIT : KGPBaseTest() {
     @JsGradlePluginTests
     @DisplayName("JS: Kotlin test single dependency")
     @GradleTest
+    @TestMetadata("kotlin-js-plugin-project")
     @BrokenOnMacosTest
     fun kotlinTestSingleDependencyJs(gradleVersion: GradleVersion) {
         project(
@@ -511,7 +514,7 @@ class KotlinSpecificDependenciesIT : KGPBaseTest() {
     @MppGradlePluginTests
     @DisplayName("MPP (KTIJ-6098): in single platform project common metadata configurations resolve the framework-specific dependency ")
     @GradleTest
-    @BrokenOnMacosTest(expectedToFailOnlyAfterGradle8 = false)
+    @BrokenOnMacosTest
     fun kotlinTestSingleDependencyMppCommonSinglePlatform(gradleVersion: GradleVersion) {
         project("jvm-and-js-hmpp", gradleVersion) {
             assertKotlinTestDependency(
@@ -532,7 +535,7 @@ class KotlinSpecificDependenciesIT : KGPBaseTest() {
     @GradleTestVersions
     @ParameterizedTest(name = "{1} with {0}: {displayName}")
     @ArgumentsSource(GradleAndTestFrameworksArgumentsProvider::class)
-    @BrokenOnMacosTest(expectedToFailOnlyAfterGradle8 = false)
+    @BrokenOnMacosTest
     fun testFrameworkSelectionJvm(
         gradleVersion: GradleVersion,
         testFramework: Pair<String, String>,
@@ -556,7 +559,7 @@ class KotlinSpecificDependenciesIT : KGPBaseTest() {
     @GradleTestVersions
     @ParameterizedTest(name = "{1} with {0}: {displayName}")
     @ArgumentsSource(GradleAndTestFrameworksArgumentsProvider::class)
-    @BrokenOnMacosTest(expectedToFailOnlyAfterGradle8 = false)
+    @BrokenOnMacosTest
     fun testFrameworkSelectionMppJvm(
         gradleVersion: GradleVersion,
         testFramework: Pair<String, String>,
@@ -581,7 +584,7 @@ class KotlinSpecificDependenciesIT : KGPBaseTest() {
     @GradleTestVersions
     @ParameterizedTest(name = "{1} with {0}: {displayName}")
     @ArgumentsSource(GradleAndTestFrameworksArgumentsProvider::class)
-    @BrokenOnMacosTest(expectedToFailOnlyAfterGradle8 = false)
+    @BrokenOnMacosTest
     fun testFrameworkSelectionMppCommon(
         gradleVersion: GradleVersion,
         testFramework: Pair<String, String>,

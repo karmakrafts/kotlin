@@ -10,13 +10,15 @@ import com.intellij.psi.JavaElementVisitor
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiEnumConstant
-import org.jetbrains.kotlin.analysis.api.platform.modification.KotlinGlobalModificationService
+import org.jetbrains.kotlin.analysis.api.platform.modification.publishGlobalModuleStateModificationEvent
+import org.jetbrains.kotlin.analysis.api.platform.modification.publishGlobalSourceOutOfBlockModificationEvent
 import org.jetbrains.kotlin.analysis.test.framework.projectStructure.KtTestModule
 import org.jetbrains.kotlin.analysis.test.framework.test.configurators.AnalysisApiTestConfigurator
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.test.services.AssertionsService
 import org.jetbrains.kotlin.test.services.TestServices
 import org.jetbrains.kotlin.test.services.assertions
+import org.jetbrains.kotlin.test.testFramework.runWriteAction
 import java.nio.file.Path
 
 abstract class AbstractSymbolLightClassesEqualityTestBase(
@@ -45,11 +47,12 @@ abstract class AbstractSymbolLightClassesEqualityTestBase(
     }
 
     private fun invalidateCaches(project: Project) {
-        val globalModificationService = KotlinGlobalModificationService.getInstance(project)
-        if (isTestAgainstCompiledCode) {
-            globalModificationService.publishGlobalModuleStateModification()
-        } else {
-            globalModificationService.publishGlobalSourceOutOfBlockModification()
+        runWriteAction {
+            if (isTestAgainstCompiledCode) {
+                project.publishGlobalModuleStateModificationEvent()
+            } else {
+                project.publishGlobalSourceOutOfBlockModificationEvent()
+            }
         }
     }
 

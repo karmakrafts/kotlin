@@ -5,17 +5,20 @@
 
 package org.jetbrains.kotlin.fir.resolve.transformers.body.resolve
 
-import org.jetbrains.kotlin.fir.*
+import org.jetbrains.kotlin.fir.FirElement
+import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.FirTargetElement
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.expressions.*
+import org.jetbrains.kotlin.fir.render
 import org.jetbrains.kotlin.fir.resolve.ResolutionMode
 import org.jetbrains.kotlin.fir.resolve.ScopeSession
+import org.jetbrains.kotlin.fir.resolve.TypeResolutionConfiguration
 import org.jetbrains.kotlin.fir.resolve.calls.ResolutionContext
 import org.jetbrains.kotlin.fir.resolve.createCurrentScopeList
 import org.jetbrains.kotlin.fir.resolve.dfa.DataFlowAnalyzerContext
 import org.jetbrains.kotlin.fir.resolve.transformers.ReturnTypeCalculator
 import org.jetbrains.kotlin.fir.resolve.transformers.ReturnTypeCalculatorForFullBodyResolve
-import org.jetbrains.kotlin.fir.resolve.transformers.ScopeClassDeclaration
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.visitors.FirTransformer
@@ -93,16 +96,15 @@ abstract class FirAbstractBodyResolveTransformerDispatcher(
         val resolvedTypeRef = if (typeRef is FirResolvedTypeRef) {
             typeRef
         } else {
-            typeResolverTransformer.withFile(context.file) {
-                transformTypeRef(
-                    typeRef,
-                    ScopeClassDeclaration(
-                        components.createCurrentScopeList(),
-                        context.containingClassDeclarations,
-                        context.containers.lastOrNull { it is FirTypeParameterRefsOwner && it !is FirAnonymousFunction }
-                    )
+            typeResolverTransformer.transformTypeRef(
+                typeRef,
+                TypeResolutionConfiguration(
+                    components.createCurrentScopeList(),
+                    context.containingClassDeclarations,
+                    context.file,
+                    context.topContainerForTypeResolution,
                 )
-            }
+            )
         }
 
         resolvedTypeRef.coneType.forEachType {

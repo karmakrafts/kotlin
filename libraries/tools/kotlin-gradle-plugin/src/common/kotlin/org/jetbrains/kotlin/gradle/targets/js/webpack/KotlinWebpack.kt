@@ -8,10 +8,7 @@ package org.jetbrains.kotlin.gradle.targets.js.webpack
 import org.gradle.api.Action
 import org.gradle.api.DefaultTask
 import org.gradle.api.Incubating
-import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.file.FileTree
-import org.gradle.api.file.FileTreeElement
-import org.gradle.api.file.RegularFile
+import org.gradle.api.file.*
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
@@ -28,12 +25,12 @@ import org.jetbrains.kotlin.build.report.metrics.GradleBuildPerformanceMetric
 import org.jetbrains.kotlin.build.report.metrics.GradleBuildTime
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.report.UsesBuildMetricsService
+import org.jetbrains.kotlin.gradle.targets.js.NpmVersions
 import org.jetbrains.kotlin.gradle.targets.js.RequiredKotlinJsDependency
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinWebpackRulesContainer
 import org.jetbrains.kotlin.gradle.targets.js.dsl.WebpackRulesDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.WebpackRulesDsl.Companion.webpackRulesContainer
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrCompilation
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin.Companion.kotlinNodeJsRootExtension
 import org.jetbrains.kotlin.gradle.targets.js.npm.RequiresNpmDependencies
 import org.jetbrains.kotlin.gradle.targets.js.npm.npmProject
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig.Mode
@@ -50,9 +47,11 @@ constructor(
     final override val compilation: KotlinJsIrCompilation,
     private val objects: ObjectFactory,
 ) : DefaultTask(), RequiresNpmDependencies, WebpackRulesDsl, UsesBuildMetricsService {
-    @Transient
-    private val nodeJs = project.rootProject.kotlinNodeJsRootExtension
-    private val versions = nodeJs.versions
+    @get:Internal
+    internal abstract val versions: Property<NpmVersions>
+
+    @get:Internal
+    internal val rootPackageDir: Property<Directory> = project.objects.directoryProperty()
 
     private val npmProject = compilation.npmProject
 
@@ -137,7 +136,11 @@ constructor(
     )
 
     @get:Internal
-    @Deprecated("Use `outputDirectory` instead", ReplaceWith("outputDirectory"))
+    @Deprecated(
+        "Use `outputDirectory` instead. Scheduled for removal in Kotlin 2.3.",
+        ReplaceWith("outputDirectory"),
+        level = DeprecationLevel.ERROR
+    )
     var destinationDirectory: File
         get() = outputDirectory.asFile.get()
         set(value) {
@@ -149,7 +152,11 @@ constructor(
     abstract val outputDirectory: DirectoryProperty
 
     @get:Internal
-    @Deprecated("Use `mainOutputFileName` instead", ReplaceWith("mainOutputFileName"))
+    @Deprecated(
+        "Use `mainOutputFileName` instead. Scheduled for removal in Kotlin 2.3.",
+        ReplaceWith("mainOutputFileName"),
+        level = DeprecationLevel.ERROR
+    )
     var outputFileName: String
         get() = mainOutputFileName.get()
         set(value) {
@@ -160,7 +167,11 @@ constructor(
     abstract val mainOutputFileName: Property<String>
 
     @get:Internal
-    @Deprecated("Use `mainOutputFile` instead", ReplaceWith("mainOutputFile"))
+    @Deprecated(
+        "Use `mainOutputFile` instead. Scheduled for removal in Kotlin 2.3.",
+        ReplaceWith("mainOutputFile"),
+        level = DeprecationLevel.ERROR
+    )
     open val outputFile: File
         get() = mainOutputFile.get().asFile
 
@@ -280,7 +291,7 @@ constructor(
     }
 
     override val requiredNpmDependencies: Set<RequiredKotlinJsDependency>
-        @Internal get() = createWebpackConfig(true).getRequiredDependencies(versions)
+        @Internal get() = createWebpackConfig(true).getRequiredDependencies(versions.get())
 
     private val isContinuous = project.gradle.startParameter.isContinuous
 

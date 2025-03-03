@@ -15,10 +15,8 @@ import org.jetbrains.kotlin.ir.backend.js.JsIrBackendContext
 import org.jetbrains.kotlin.ir.backend.js.constructorFactory
 import org.jetbrains.kotlin.ir.backend.js.export.isExported
 import org.jetbrains.kotlin.ir.backend.js.ir.JsIrBuilder
-import org.jetbrains.kotlin.ir.backend.js.utils.Namer
-import org.jetbrains.kotlin.ir.backend.js.utils.getVoid
-import org.jetbrains.kotlin.ir.backend.js.utils.hasStrictSignature
-import org.jetbrains.kotlin.ir.backend.js.utils.jsConstructorReference
+import org.jetbrains.kotlin.ir.backend.js.originalConstructor
+import org.jetbrains.kotlin.ir.backend.js.utils.*
 import org.jetbrains.kotlin.ir.builders.declarations.buildFun
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
@@ -28,6 +26,7 @@ import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.utils.*
+import org.jetbrains.kotlin.utils.addToStdlib.assignFrom
 import org.jetbrains.kotlin.utils.addToStdlib.runIf
 import org.jetbrains.kotlin.utils.addToStdlib.runUnless
 
@@ -323,6 +322,7 @@ class ES6ConstructorLowering(val context: JsIrBackendContext) : DeclarationTrans
                     constructor.isEffectivelyExternal() ->
                         JsIrBuilder.buildCall(context.intrinsics.jsCreateExternalThisSymbol)
                             .apply {
+                                originalConstructor = constructor
                                 arguments[0] = getCurrentConstructorReference(constructorReplacement)
                                 arguments[1] = expression.symbol.owner.parentAsClass.jsConstructorReference(context)
                                 arguments[2] = irAnyArray(expression.arguments.memoryOptimizedMap { it ?: context.getVoid() })
@@ -341,7 +341,8 @@ class ES6ConstructorLowering(val context: JsIrBackendContext) : DeclarationTrans
                             expression.typeArguments,
                             ES6_DELEGATING_CONSTRUCTOR_REPLACEMENT
                         ).apply {
-                            copyValueArgumentsFrom(expression, constructor)
+                            arguments.assignFrom(expression.arguments)
+                            arguments += null // For box parameter
                         }
                 }
 

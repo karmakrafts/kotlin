@@ -44,7 +44,9 @@ val SirType.isNever: Boolean get() = this is SirNominalType && this.typeDeclarat
 fun <T : SirDeclaration> SirMutableDeclarationContainer.addChild(producer: () -> T): T {
     val child = producer()
     child.parent = this
-    declarations += child
+    if (!declarations.contains(child)) {
+        declarations += child
+    }
     return child
 }
 
@@ -78,3 +80,6 @@ val SirFunction.swiftFqName: String
 
 val SirVariable.swiftFqName: String
     get() = swiftParentNamePrefix?.let { "$it.${name.swiftSanitizedName}" } ?: name.swiftSanitizedName
+
+val SirTypealias.expandedType: SirType
+    get() = ((type as? SirNominalType)?.typeDeclaration as? SirTypealias)?.expandedType ?: type

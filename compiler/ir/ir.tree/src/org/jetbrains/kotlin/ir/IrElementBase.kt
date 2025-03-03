@@ -16,8 +16,8 @@
 
 package org.jetbrains.kotlin.ir
 
-import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
-import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
+import org.jetbrains.kotlin.ir.visitors.IrTransformer
+import org.jetbrains.kotlin.ir.visitors.IrVisitor
 
 abstract class IrElementBase : IrElement {
     /**
@@ -28,18 +28,14 @@ abstract class IrElementBase : IrElement {
      */
     private var attributeMap: Array<Any?>? = null
 
-
-    @Suppress("DEPRECATED_COMPILER_API")
-    override fun <D> transform(transformer: IrElementTransformer<D>, data: D): IrElement =
+    override fun <D> transform(transformer: IrTransformer<D>, data: D): IrElement =
         accept(transformer, data)
 
-    @Suppress("DEPRECATED_COMPILER_API")
-    override fun <D> acceptChildren(visitor: IrElementVisitor<Unit, D>, data: D) {
+    override fun <D> acceptChildren(visitor: IrVisitor<Unit, D>, data: D) {
         // No children by default
     }
 
-    @Suppress("DEPRECATED_COMPILER_API")
-    override fun <D> transformChildren(transformer: IrElementTransformer<D>, data: D) {
+    override fun <D> transformChildren(transformer: IrTransformer<D>, data: D) {
         // No children by default
     }
 

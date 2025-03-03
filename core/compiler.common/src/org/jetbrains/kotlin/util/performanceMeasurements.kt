@@ -6,44 +6,65 @@
 package org.jetbrains.kotlin.util
 
 interface PerformanceMeasurement {
-    fun render(): String
+    fun render(lines: Int): String
 }
 
-class JitCompilationMeasurement(private val milliseconds: Long) : PerformanceMeasurement {
-    override fun render(): String = "JIT time is $milliseconds ms"
+enum class PhaseType {
+    Initialization,
+    Analysis,
+    TranslationToIr,
+    IrLowering,
+    Backend,
 }
 
-class CompilerInitializationMeasurement(val milliseconds: Long) : PerformanceMeasurement {
-    override fun render(): String = "INIT: Compiler initialized in $milliseconds ms"
+sealed class PhasePerformanceMeasurement(val milliseconds: Long) : PerformanceMeasurement {
+    abstract val phase: PhaseType
+    abstract val name: String
+    override fun render(lines: Int): String = "%20s%8s ms".format(name, milliseconds) +
+            if (phase != PhaseType.Initialization && lines != 0) {
+                val lps = lines.toDouble() * 1000 / milliseconds
+                "%12.3f loc/s".format(lps)
+            } else {
+                ""
+            }
 }
 
-class CodeAnalysisMeasurement(val lines: Int?, val milliseconds: Long) : PerformanceMeasurement {
-    override fun render(): String = formatMeasurement("ANALYZE", milliseconds, lines)
+class CompilerInitializationMeasurement(milliseconds: Long) : PhasePerformanceMeasurement(milliseconds) {
+    override val phase = PhaseType.Initialization
+    override val name: String = "INIT"
 }
 
-class CodeGenerationMeasurement(val lines: Int?, val milliseconds: Long) : PerformanceMeasurement {
-    override fun render(): String = formatMeasurement("GENERATE", milliseconds, lines)
+class CodeAnalysisMeasurement(milliseconds: Long) : PhasePerformanceMeasurement(milliseconds) {
+    override val phase: PhaseType = PhaseType.Analysis
+    override val name: String = "ANALYZE"
+}
+
+class TranslationToIrMeasurement(milliseconds: Long) : PhasePerformanceMeasurement(milliseconds) {
+    override val phase: PhaseType = PhaseType.TranslationToIr
+    override val name: String = "TRANSLATION to IR"
+}
+
+class IrLoweringMeasurement(milliseconds: Long) : PhasePerformanceMeasurement(milliseconds) {
+    override val phase: PhaseType = PhaseType.IrLowering
+    override val name: String = "IR LOWERING"
+}
+
+class BackendMeasurement(milliseconds: Long) : PhasePerformanceMeasurement(milliseconds) {
+    override val phase: PhaseType = PhaseType.Backend
+    override val name: String = "BACKEND"
+}
+
+class JitCompilationMeasurement(val milliseconds: Long) : PerformanceMeasurement {
+    override fun render(lines: Int): String = "JIT time is $milliseconds ms"
 }
 
 class GarbageCollectionMeasurement(val garbageCollectionKind: String, val milliseconds: Long, val count: Long) : PerformanceMeasurement {
-    override fun render(): String = "GC time for $garbageCollectionKind is $milliseconds ms, $count collections"
-}
-
-class PerformanceCounterMeasurement(private val counterReport: String) : PerformanceMeasurement {
-    override fun render(): String = counterReport
-}
-
-class IRMeasurement(val lines: Int?, val milliseconds: Long, val kind: Kind) : PerformanceMeasurement {
-    override fun render(): String = formatMeasurement("IR $kind", milliseconds, lines)
-
-    enum class Kind {
-        TRANSLATION, LOWERING, GENERATION
-    }
+    override fun render(lines: Int): String = "GC time for $garbageCollectionKind is $milliseconds ms, $count collections"
 }
 
 sealed class CounterMeasurement(val count: Int, val milliseconds: Long) : PerformanceMeasurement {
     abstract val description: String
-    override fun render(): String =
+    override fun render(lines: Int): String =
         "$description performed $count times, total time $milliseconds ms"
 }
 
@@ -55,9 +76,10 @@ class BinaryClassFromKotlinFileMeasurement(count: Int, milliseconds: Long) : Cou
     override val description: String = "Binary class from Kotlin file"
 }
 
-private fun formatMeasurement(name: String, time: Long, lines: Int?): String =
-    "%15s%8s ms".format(name, time) +
-            (lines?.let {
-                val lps = it.toDouble() * 1000 / time
-                "%12.3f loc/s".format(lps)
-            } ?: "")
+@DeprecatedPerformanceDeclaration
+class PerformanceCounterMeasurement(private val counterReport: String) : PerformanceMeasurement {
+    override fun render(lines: Int): String = counterReport
+}
+
+@RequiresOptIn(level = RequiresOptIn.Level.WARNING, message = "The declaration is kept to have back compatibility with K1")
+annotation class DeprecatedPerformanceDeclaration

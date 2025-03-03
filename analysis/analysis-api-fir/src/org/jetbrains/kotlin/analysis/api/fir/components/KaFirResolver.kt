@@ -689,6 +689,13 @@ internal class KaFirResolver(
                 contextArguments = fir.contextArguments.toKaContextParameterValues(),
             )
 
+            fir is FirDelegatedConstructorCall -> KaBasePartiallyAppliedSymbol(
+                backingSignature = signature,
+                dispatchReceiver = fir.dispatchReceiver?.toKtReceiverValue(),
+                extensionReceiver = null,
+                contextArguments = fir.contextArguments.toKaContextParameterValues(),
+            )
+
             else -> KaBasePartiallyAppliedSymbol(
                 backingSignature = signature,
                 dispatchReceiver = null,
@@ -1601,7 +1608,7 @@ internal class KaFirResolver(
             is FirWhenSubjectExpression ->
                 // The subject variable is not processed here as we don't have KtExpression to represent it.
                 // K1 creates a fake expression in this case.
-                whenRef.value.subject?.findSourceKtExpressionForCallArgument()
+                whenRef.value.subjectVariable?.initializer?.findSourceKtExpressionForCallArgument()
             // FirBlock is a fake container for desugared expressions like `++index` or `++list[0]`
             is FirBlock -> psi as? KtExpression
             else -> realPsi as? KtExpression

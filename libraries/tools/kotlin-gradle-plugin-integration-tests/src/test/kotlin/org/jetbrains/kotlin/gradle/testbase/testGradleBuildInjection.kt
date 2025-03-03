@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.gradle.testbase
 
+import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.dsl.LibraryExtension
 import org.gradle.api.Project
 import org.gradle.api.flow.*
@@ -20,6 +21,7 @@ import org.gradle.internal.exceptions.MultiCauseException
 import org.gradle.internal.extensions.core.serviceOf
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+import org.jetbrains.kotlin.gradle.plugin.cocoapods.CocoapodsExtension
 import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import java.io.File
 import java.io.ObjectInputStream
@@ -233,10 +235,12 @@ class InjectionLoader {
     }
 
     @Suppress("unused")
-    fun invokeBuildScriptPluginsInjection(buildscript: ScriptHandler, serializedInjectionPath: File) {
+    fun invokeBuildScriptPluginsInjection(project: Project, serializedInjectionPath: File) {
         serializedInjectionPath.inputStream().use {
             @Suppress("UNCHECKED_CAST")
-            (ObjectInputStream(it).readObject() as GradleBuildScriptInjection<ScriptHandler>).inject(buildscript)
+            (ObjectInputStream(it).readObject() as GradleBuildScriptInjection<Pair<ScriptHandler, Project>>).inject(
+                Pair(project.buildscript, project)
+            )
         }
     }
 
@@ -259,7 +263,9 @@ class GradleProjectBuildScriptInjectionContext(
     val java get() = project.extensions.getByName("java") as JavaPluginExtension
     val kotlinMultiplatform get() = project.extensions.getByName("kotlin") as KotlinMultiplatformExtension
     val kotlinJvm get() = project.extensions.getByName("kotlin") as KotlinJvmProjectExtension
+    val cocoapods get() = kotlinMultiplatform.extensions.getByName("cocoapods") as CocoapodsExtension
     val androidLibrary get() = project.extensions.getByName("android") as LibraryExtension
+    val androidBase get() = project.extensions.getByName("android") as CommonExtension<*,*,*,*>
     val publishing get() = project.extensions.getByName("publishing") as PublishingExtension
     val dependencies get() = project.dependencies
 }
@@ -272,6 +278,7 @@ class GradleSettingsBuildScriptInjectionContext(
 @BuildGradleKtsInjectionScope
 class GradleBuildScriptBuildscriptInjectionContext(
     val buildscript: ScriptHandler,
+    val project: Project,
 )
 
 typealias BuildAction = TestProject.(buildArguments: Array<String>, buildOptions: BuildOptions) -> Unit
@@ -517,6 +524,15 @@ fun TestProject.addKgpToBuildScriptCompilationClasspath() {
     }
 }
 
+fun TestProject.addAgpToBuildScriptCompilationClasspath(androidVersion: String) {
+    transferPluginRepositoriesIntoBuildScript()
+    buildScriptBuildscriptBlockInjection {
+        buildscript.configurations.getByName("classpath").dependencies.add(
+            buildscript.dependencies.create("com.android.tools.build:gradle:${androidVersion}")
+        )
+    }
+}
+
 /**
  * Inject the [buildscript] block of the project build script. The primary use case for this injection is the configuration of the build
  * script classpath before plugin application
@@ -529,24 +545,24 @@ fun GradleProject.buildScriptBuildscriptBlockInjection(
         buildGradle,
         buildGradleKts,
     )
-    val buildscriptBlockInjection = serializeInjection<GradleBuildScriptBuildscriptInjectionContext, ScriptHandler>(
-        instantiateInjectionContext = { GradleBuildScriptBuildscriptInjectionContext(it) },
+    val buildscriptBlockInjection = serializeInjection<GradleBuildScriptBuildscriptInjectionContext, Pair<ScriptHandler, Project>>(
+        instantiateInjectionContext = { GradleBuildScriptBuildscriptInjectionContext(it.first, it.second) },
         code = code,
     )
     when {
         buildGradle.exists() -> buildGradle.prependToOrCreateBuildscriptBlock(
             scriptIsolatedInjectionLoadGroovy(
                 "invokeBuildScriptPluginsInjection",
-                "buildscript",
-                ScriptHandler::class.java.name,
+                "project",
+                Project::class.java.name,
                 buildscriptBlockInjection,
             )
         )
         buildGradleKts.exists() -> buildGradleKts.prependToOrCreateBuildscriptBlock(
             scriptIsolatedInjectionLoad(
                 "invokeBuildScriptPluginsInjection",
-                "buildscript",
-                ScriptHandler::class.java.name,
+                "project",
+                Project::class.java.name,
                 buildscriptBlockInjection,
             )
         )

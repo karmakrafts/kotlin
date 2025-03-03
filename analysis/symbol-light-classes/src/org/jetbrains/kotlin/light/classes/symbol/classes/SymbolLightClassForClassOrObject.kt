@@ -11,7 +11,6 @@ import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaSourceModule
 import org.jetbrains.kotlin.analysis.api.symbols.*
-import org.jetbrains.kotlin.analysis.api.symbols.pointers.KaPsiSymbolPointerCreator
 import org.jetbrains.kotlin.analysis.api.symbols.pointers.KaSymbolPointer
 import org.jetbrains.kotlin.asJava.builder.LightMemberOriginForDeclaration
 import org.jetbrains.kotlin.asJava.classes.METHOD_INDEX_BASE
@@ -60,7 +59,7 @@ internal open class SymbolLightClassForClassOrObject : SymbolLightClassForNamedC
         ktModule: KaModule,
     ) : this(
         classOrObjectDeclaration = classOrObject,
-        classSymbolPointer = KaPsiSymbolPointerCreator.symbolPointerOfType(classOrObject),
+        classSymbolPointer = classOrObject.createSymbolPointer(ktModule),
         ktModule = ktModule,
         manager = classOrObject.manager,
     ) {
@@ -267,22 +266,7 @@ internal open class SymbolLightClassForClassOrObject : SymbolLightClassForNamedC
 
     override fun isInterface(): Boolean = false
     override fun isAnnotationType(): Boolean = false
-    override fun classKind(): KaClassKind = _classKind
-
-    private val _classKind: KaClassKind by lazyPub {
-        when (classOrObjectDeclaration) {
-            is KtObjectDeclaration -> {
-                if (classOrObjectDeclaration.isCompanion()) KaClassKind.COMPANION_OBJECT else KaClassKind.OBJECT
-            }
-
-            is KtClass -> {
-                if (classOrObjectDeclaration.isEnum()) KaClassKind.ENUM_CLASS else KaClassKind.CLASS
-            }
-
-            else -> withClassSymbol { it.classKind }
-        }
-    }
-
+    override fun classKind(): KaClassKind = withClassSymbol { it.classKind }
     override fun isRecord(): Boolean {
         return _modifierList.hasAnnotation(JvmStandardClassIds.Annotations.JvmRecord.asFqNameString())
     }

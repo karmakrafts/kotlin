@@ -57,8 +57,6 @@ class CallAndReferenceGenerator(
     private val conversionScope: Fir2IrConversionScope,
 ) : Fir2IrComponents by c {
 
-    private val adapterGenerator = AdapterGenerator(c, conversionScope)
-
     private fun FirTypeRef.toIrType(): IrType = toIrType(c, conversionScope.defaultConversionTypeOrigin())
 
     private fun ConeKotlinType.toIrType(): IrType = toIrType(c, conversionScope.defaultConversionTypeOrigin())
@@ -762,14 +760,14 @@ class CallAndReferenceGenerator(
             irRhs.type = variableAssignment.lValue.resolvedType.toIrType()
         }
 
-        val irRhsWithCast = with(visitor.implicitCastInserter) {
+        val irRhsWithCast =
             wrapWithImplicitCastForAssignment(variableAssignment, irRhs)
-                .insertSpecialCast(
+                .prepareExpressionForGivenExpectedType(
+                    this,
                     variableAssignment.rValue,
                     variableAssignment.rValue.resolvedType,
                     variableAssignment.lValue.resolvedType
                 )
-        }
 
         injectSetValueCall(variableAssignment, calleeReference, irRhsWithCast)?.let { return it }
 
@@ -1069,43 +1067,43 @@ class CallAndReferenceGenerator(
             // However, for deserialized annotations it's possible to have an imprecise Array<Any> type
             // for empty integer literal arguments.
             // In this case we have to use a parameter type itself which is more precise, like Array<String> or IntArray.
-            // See KT-62598 and its fix for details.
+            // See KT-62598 and its fix for details
             expectedTypeForAnnotationArgument =
                 unsubstitutedParameterType.takeIf { visitor.annotationMode && unsubstitutedParameterType?.isArrayType == true }
         )
-
         if (unsubstitutedParameterType != null) {
-            with(visitor.implicitCastInserter) {
-                val argumentType = argument.resolvedType.fullyExpandedType(session)
+            // Unsubstituted parameter type is only used for generating nullability check if the argument being used is flexible,
+            // while the value parameter doesn't accept nulls.
+            // And this is the only use case where the whole Array type is required for vararg, all other implicit coercion/conversion
+            // logic needs the element type and substituted type.
+            val substitutedParameterType = substitutor.substituteOrSelf(
+                when {
+                    parameter.isVararg -> unsubstitutedParameterType.arrayElementType()!!
+                    else -> unsubstitutedParameterType
+                }
+            )
+            val argumentType = argument.resolvedType.fullyExpandedType(session)
 
+            with(visitor.implicitCastInserter) {
                 fun insertCastToArgument(argument: FirExpression): IrExpression = when (argument) {
                     is FirSmartCastExpression -> {
-                        val substitutedParameterType = substitutor.substituteOrSelf(unsubstitutedParameterType)
                         // here we should use a substituted parameter type to properly choose the component of an intersection type
                         //  to provide a proper cast to the smartcasted type
                         irArgument.insertCastForSmartcastWithIntersection(argumentType, substitutedParameterType)
                     }
                     is FirWhenSubjectExpression -> {
-                        insertCastToArgument(argument.whenRef.value.subject!!)
+                        insertCastToArgument(argument.whenRef.value.subjectVariable?.initializer!!)
                     }
                     else -> irArgument
                 }
                 irArgument = insertCastToArgument(argument)
-                // here we should pass unsubstituted parameter type to properly infer if the original type accepts null or not
-                // to properly insert nullability check
-                irArgument = irArgument.insertSpecialCast(argument, argumentType, unsubstitutedParameterType)
             }
 
-            with(adapterGenerator) {
-                val unwrappedParameterType =
-                    if (parameter.isVararg) unsubstitutedParameterType.arrayElementType()!! else unsubstitutedParameterType
-                val samFunctionType = getFunctionTypeForPossibleSamType(unwrappedParameterType)
-                irArgument = irArgument.applySuspendConversionIfNeeded(
-                    argument,
-                    substitutor.substituteOrSelf(samFunctionType ?: unwrappedParameterType)
-                )
-                irArgument = irArgument.applySamConversionIfNeeded(argument)
-            }
+            // here we should pass an unsubstituted parameter type to properly infer if the original type accepts null or not
+            // to properly insert nullability check
+            irArgument = irArgument.prepareExpressionForGivenExpectedType(
+                this, argument, argumentType, unsubstitutedParameterType, substitutedParameterType
+            )
         }
 
         return irArgument
@@ -1440,15 +1438,14 @@ class CallAndReferenceGenerator(
                             val symbol = statement.calleeReference.toResolvedCallableSymbol()
                                 ?: error("Symbol for call ${statement.render()} not found")
                             symbol.fir.receiverParameter?.typeRef?.let { receiverType ->
-                                with(visitor.implicitCastInserter) {
-                                    val extensionReceiver = statement.extensionReceiver!!
-                                    val substitutor = statement.buildSubstitutorByCalledCallable(c)
-                                    it.insertSpecialCast(
-                                        extensionReceiver,
-                                        extensionReceiver.resolvedType,
-                                        substitutor.substituteOrSelf(receiverType.coneType),
-                                    )
-                                }
+                                val extensionReceiver = statement.extensionReceiver!!
+                                val substitutor = statement.buildSubstitutorByCalledCallable(c)
+                                it.prepareExpressionForGivenExpectedType(
+                                    this@CallAndReferenceGenerator,
+                                    extensionReceiver,
+                                    extensionReceiver.resolvedType,
+                                    substitutor.substituteOrSelf(receiverType.coneType),
+                                )
                             } ?: it
                         }
                     hasExtensionReceiver = true

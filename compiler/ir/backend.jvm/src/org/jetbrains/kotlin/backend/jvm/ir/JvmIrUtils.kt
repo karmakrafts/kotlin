@@ -58,6 +58,7 @@ import org.jetbrains.kotlin.resolve.jvm.AsmTypes
 import org.jetbrains.kotlin.resolve.multiplatform.OptionalAnnotationUtil
 import org.jetbrains.kotlin.resolve.source.PsiSourceElement
 import org.jetbrains.kotlin.utils.DFS
+import org.jetbrains.kotlin.utils.addToStdlib.assignFrom
 import org.jetbrains.org.objectweb.asm.Type
 import org.jetbrains.org.objectweb.asm.commons.Method
 import java.io.File
@@ -160,7 +161,7 @@ fun createDelegatingCallWithPlaceholderTypeArguments(
 fun IrMemberAccessExpression<IrFunctionSymbol>.copyFromWithPlaceholderTypeArguments(
     existingCall: IrMemberAccessExpression<IrFunctionSymbol>, irBuiltIns: IrBuiltIns
 ) {
-    copyValueArgumentsFrom(existingCall, this.symbol.owner, receiversAsArguments = true, argumentsAsReceivers = false)
+    arguments.assignFrom(existingCall.arguments)
     var offset = 0
     existingCall.symbol.owner.parentAsClass.typeParameters.forEach { _ ->
         typeArguments[offset++] = createPlaceholderAnyNType(irBuiltIns)
@@ -354,7 +355,7 @@ fun IrDeclarationParent.getCallableReferenceOwnerKClassType(context: JvmBackendC
         // For built-in members (i.e. top level `toString`) we generate reference to an internal class for an owner.
         // This allows kotlin-reflect to understand that this is a built-in intrinsic which has no real declaration,
         // and construct a special KCallable object.
-        context.ir.symbols.intrinsicsKotlinClass.defaultType
+        context.symbols.intrinsicsKotlinClass.defaultType
     }
 
 fun IrDeclaration.getCallableReferenceTopLevelFlag(): Int =

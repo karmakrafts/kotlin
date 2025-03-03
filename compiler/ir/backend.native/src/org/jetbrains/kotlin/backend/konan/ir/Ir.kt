@@ -7,7 +7,6 @@ package org.jetbrains.kotlin.backend.konan.ir
 
 import org.jetbrains.kotlin.backend.common.COROUTINE_SUSPENDED_NAME
 import org.jetbrains.kotlin.backend.common.ErrorReportingContext
-import org.jetbrains.kotlin.backend.common.ir.Ir
 import org.jetbrains.kotlin.backend.common.ir.Symbols
 import org.jetbrains.kotlin.backend.konan.*
 import org.jetbrains.kotlin.backend.konan.RuntimeNames
@@ -27,9 +26,6 @@ object KonanNameConventions {
     val setWithoutBoundCheck = Name.special("<setWithoutBoundCheck>")
     val getWithoutBoundCheck = Name.special("<getWithoutBoundCheck>")
 }
-
-// This is what Context collects about IR.
-class KonanIr(override val symbols: KonanSymbols): Ir()
 
 @OptIn(InternalSymbolFinderAPI::class, InternalKotlinNativeApi::class)
 class KonanSymbols(
@@ -124,10 +120,12 @@ class KonanSymbols(
 
     val interopCPointer = interopClass(InteropFqNames.cPointerName)
     val interopCPointed = interopClass(InteropFqNames.cPointedName)
+    val interopCVariable = interopClass(InteropFqNames.cVariableName)
     val interopCstr = findTopLevelPropertyGetter(InteropFqNames.packageName, InteropFqNames.cstrPropertyName, string)
     val interopWcstr = findTopLevelPropertyGetter(InteropFqNames.packageName, InteropFqNames.wcstrPropertyName, string)
     val interopMemScope = interopClass(InteropFqNames.memScopeName)
     val interopCValue = interopClass(InteropFqNames.cValueName)
+    val interopCValues = interopClass(InteropFqNames.cValuesName)
     val interopCValuesRef = interopClass(InteropFqNames.cValuesRefName)
     val interopCValueWrite = interopFunction(InteropFqNames.cValueWriteFunName) {
         symbolFinder.isExtensionReceiverClass(it, interopCValue)
@@ -158,6 +156,8 @@ class KonanSymbols(
     val interopObjCClass = interopClass(InteropFqNames.objCClassName)
     val interopObjCClassOf = interopClass(InteropFqNames.objCClassOfName)
     val interopObjCProtocol = interopClass(InteropFqNames.objCProtocolName)
+
+    val interopBlockCopy = interopFunction("Block_copy")
 
     val interopObjCRelease = interopFunction("objc_release")
 

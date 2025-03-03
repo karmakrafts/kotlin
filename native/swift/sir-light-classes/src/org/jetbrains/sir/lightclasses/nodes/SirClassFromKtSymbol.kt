@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.sir.builder.buildVariable
 import org.jetbrains.kotlin.sir.providers.SirSession
 import org.jetbrains.kotlin.sir.providers.source.KotlinSource
 import org.jetbrains.kotlin.sir.providers.utils.KotlinRuntimeModule
+import org.jetbrains.kotlin.sir.providers.utils.KotlinRuntimeSupportModule
 import org.jetbrains.kotlin.sir.providers.utils.containingModule
 import org.jetbrains.kotlin.sir.providers.utils.updateImport
 import org.jetbrains.kotlin.sir.util.SirSwiftModule
@@ -28,8 +29,10 @@ import org.jetbrains.sir.lightclasses.SirFromKtSymbol
 import org.jetbrains.sir.lightclasses.extensions.documentation
 import org.jetbrains.sir.lightclasses.extensions.lazyWithSessions
 import org.jetbrains.sir.lightclasses.extensions.withSessions
+import org.jetbrains.sir.lightclasses.utils.*
 import org.jetbrains.sir.lightclasses.utils.OverrideStatus
 import org.jetbrains.sir.lightclasses.utils.computeIsOverride
+import org.jetbrains.sir.lightclasses.utils.superClassDeclaration
 import org.jetbrains.sir.lightclasses.utils.translatedAttributes
 
 internal fun createSirClassFromKtSymbol(
@@ -67,9 +70,7 @@ private class SirClassFromKtSymbol(
                 ?.also { ktSymbol.containingModule.sirModule().updateImport(SirImport(it.containingModule().name)) }
                 ?.let { SirNominalType(it) }
         } ?: let {
-            SirNominalType(KotlinRuntimeModule.kotlinBase).also {
-                ktSymbol.containingModule.sirModule().updateImport(SirImport(KotlinRuntimeModule.name))
-            }
+            SirNominalType(KotlinRuntimeModule.kotlinBase)
         }
     }
 }
@@ -86,7 +87,7 @@ internal class SirEnumClassFromKtSymbol(
     override val superClass: SirType? by lazyWithSessions {
         // TODO: this super class as default will become obsolete with the KT-66855
         SirNominalType(KotlinRuntimeModule.kotlinBase).also {
-            ktSymbol.containingModule.sirModule().updateImport(SirImport(KotlinRuntimeModule.name))
+            ktSymbol.containingModule.sirModule()
         }
     }
     override val protocols: List<SirProtocol> = super.protocols + listOf(SirSwiftModule.caseIterable)
@@ -176,6 +177,11 @@ internal abstract class SirAbstractClassFromKtSymbol(
     }
 
     override val protocols: List<SirProtocol> by lazyWithSessions {
+        (translatedProtocols + listOf(KotlinRuntimeSupportModule.kotlinBridged))
+            .filter { superClassDeclaration?.declaresConformance(it) != true }
+    }
+
+    private val translatedProtocols: List<SirProtocol> by lazyWithSessions {
         ktSymbol.superTypes
             .filterIsInstance<KaClassType>().mapNotNull { it.expandedSymbol }.filter {
                 it.classKind == KaClassKind.INTERFACE

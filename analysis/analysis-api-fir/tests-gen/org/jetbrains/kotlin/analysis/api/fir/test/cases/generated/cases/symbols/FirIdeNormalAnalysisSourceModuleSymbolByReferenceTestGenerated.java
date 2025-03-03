@@ -71,6 +71,12 @@ public class FirIdeNormalAnalysisSourceModuleSymbolByReferenceTestGenerated exte
   }
 
   @Test
+  @TestMetadata("constructorProperty.kt")
+  public void testConstructorProperty() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorProperty.kt");
+  }
+
+  @Test
   @TestMetadata("constructorReferenceViaTypeAlias.kt")
   public void testConstructorReferenceViaTypeAlias() {
     runTest("analysis/analysis-api/testData/symbols/symbolByReference/constructorReferenceViaTypeAlias.kt");
@@ -383,6 +389,24 @@ public class FirIdeNormalAnalysisSourceModuleSymbolByReferenceTestGenerated exte
   }
 
   @Test
+  @TestMetadata("openConstructorProperty.kt")
+  public void testOpenConstructorProperty() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/openConstructorProperty.kt");
+  }
+
+  @Test
+  @TestMetadata("openConstructorPropertyInAbstractClass.kt")
+  public void testOpenConstructorPropertyInAbstractClass() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/openConstructorPropertyInAbstractClass.kt");
+  }
+
+  @Test
+  @TestMetadata("openConstructorPropertyInFinalClass.kt")
+  public void testOpenConstructorPropertyInFinalClass() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/openConstructorPropertyInFinalClass.kt");
+  }
+
+  @Test
   @TestMetadata("primaryConstructorValueParameter.kt")
   public void testPrimaryConstructorValueParameter() {
     runTest("analysis/analysis-api/testData/symbols/symbolByReference/primaryConstructorValueParameter.kt");
@@ -506,6 +530,12 @@ public class FirIdeNormalAnalysisSourceModuleSymbolByReferenceTestGenerated exte
   @TestMetadata("typeParameter.kt")
   public void testTypeParameter() {
     runTest("analysis/analysis-api/testData/symbols/symbolByReference/typeParameter.kt");
+  }
+
+  @Test
+  @TestMetadata("unstableSmartcastImplicitWhenSubject.kt")
+  public void testUnstableSmartcastImplicitWhenSubject() {
+    runTest("analysis/analysis-api/testData/symbols/symbolByReference/unstableSmartcastImplicitWhenSubject.kt");
   }
 
   @Test

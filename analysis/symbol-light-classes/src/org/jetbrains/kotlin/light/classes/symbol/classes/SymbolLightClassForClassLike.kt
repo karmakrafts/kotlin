@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -62,9 +62,12 @@ internal abstract class SymbolLightClassForClassLike<SType : KaClassSymbol> prot
     internal inline fun <T> withClassSymbol(crossinline action: KaSession.(SType) -> T): T =
         classSymbolPointer.withSymbol(ktModule, action)
 
-    override val isTopLevel: Boolean by lazyPub {
-        classOrObjectDeclaration?.isTopLevel() ?: withClassSymbol { it.isTopLevel }
-    }
+    /**
+     * Psi-based [org.jetbrains.kotlin.psi.KtClassOrObject.isTopLevel] is needed to properly handle classes inside scripts
+     * as they are treated as nested.
+     */
+    override val isTopLevel: Boolean
+        get() = classOrObjectDeclaration?.isTopLevel() ?: withClassSymbol { it.isTopLevel }
 
     private val _isDeprecated: Boolean by lazyPub {
         withClassSymbol { it.hasDeprecatedAnnotation() }
@@ -91,8 +94,7 @@ internal abstract class SymbolLightClassForClassLike<SType : KaClassSymbol> prot
         }
     }
 
-    override fun hasTypeParameters(): Boolean =
-        hasTypeParameters(ktModule, classOrObjectDeclaration, classSymbolPointer)
+    override fun hasTypeParameters(): Boolean = withClassSymbol { it.typeParameters.isNotEmpty() }
 
     override fun getTypeParameterList(): PsiTypeParameterList? = _typeParameterList
 
@@ -129,9 +131,7 @@ internal abstract class SymbolLightClassForClassLike<SType : KaClassSymbol> prot
 
     override fun hashCode(): Int = classOrObjectDeclaration.hashCode()
 
-    override fun getName(): String? = classOrObjectDeclaration?.name ?: withClassSymbol {
-        it.name?.asString()
-    }
+    override fun getName(): String? = withClassSymbol { it.name?.asString() }
 
     override fun hasModifierProperty(@NonNls name: String): Boolean = modifierList?.hasModifierProperty(name) ?: false
 
@@ -150,11 +150,13 @@ internal abstract class SymbolLightClassForClassLike<SType : KaClassSymbol> prot
 
     override val originKind: LightClassOriginKind get() = LightClassOriginKind.SOURCE
 
+    /**
+     * [org.jetbrains.kotlin.psi.KtNamedDeclarationStub.getFqName] is needed to properly cover the case
+     * with the class inside a script.
+     * In this case the qualified name has to include the script name.
+     */
     override fun getQualifiedName(): String? {
-        val classOrObjectFqName = classOrObjectDeclaration?.fqName
-            ?: withClassSymbol { s -> s.classId?.asSingleFqName() }
-
-        return classOrObjectFqName?.toString()
+        return classOrObjectDeclaration?.fqName?.asString() ?: withClassSymbol { it.classId?.asFqNameString() }
     }
 
     override fun getInterfaces(): Array<PsiClass> = PsiClassImplUtil.getInterfaces(this)

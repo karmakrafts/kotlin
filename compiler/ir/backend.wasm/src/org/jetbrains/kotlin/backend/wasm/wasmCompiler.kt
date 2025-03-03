@@ -28,6 +28,8 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.platform.wasm.WasmTarget
 import org.jetbrains.kotlin.serialization.js.ModuleKind
 import org.jetbrains.kotlin.util.PerformanceManager
+import org.jetbrains.kotlin.util.PhaseType
+import org.jetbrains.kotlin.util.tryMeasurePhaseTime
 import org.jetbrains.kotlin.utils.addToStdlib.ifNotEmpty
 import org.jetbrains.kotlin.utils.addToStdlib.runIf
 import org.jetbrains.kotlin.wasm.config.WasmConfigurationKeys
@@ -98,19 +100,16 @@ fun compileToLoweredIr(
         val fragment = exportModelToDtsTranslator.generateTypeScriptFragment(ModuleKind.ES, exportModel.declarations)
         TypeScriptFragment(exportModelToDtsTranslator.generateTypeScript("", ModuleKind.ES, listOf(fragment)))
     }
-    performanceManager?.notifyIRTranslationFinished()
+    performanceManager?.notifyPhaseFinished(PhaseType.TranslationToIr)
 
-    performanceManager?.notifyGenerationStarted()
-    performanceManager?.notifyIRLoweringStarted()
-
-    lowerPreservingTags(
-        allModules,
-        context,
-        context.irFactory.stageController as WholeWorldStageController,
-        isIncremental = false,
-    )
-
-    performanceManager?.notifyIRLoweringFinished()
+    performanceManager.tryMeasurePhaseTime(PhaseType.IrLowering) {
+        lowerPreservingTags(
+            allModules,
+            context,
+            context.irFactory.stageController as WholeWorldStageController,
+            isIncremental = false,
+        )
+    }
 
     return LoweredIrWithExtraArtifacts(allModules, context, typeScriptFragment)
 }

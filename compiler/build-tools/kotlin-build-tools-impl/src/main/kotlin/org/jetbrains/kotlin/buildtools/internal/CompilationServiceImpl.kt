@@ -15,6 +15,8 @@ import org.jetbrains.kotlin.buildtools.api.jvm.ClassSnapshotGranularity
 import org.jetbrains.kotlin.buildtools.api.jvm.ClasspathSnapshotBasedIncrementalCompilationApproachParameters
 import org.jetbrains.kotlin.buildtools.api.jvm.JvmCompilationConfiguration
 import org.jetbrains.kotlin.cli.common.ExitCode
+import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
+import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.parseCommandLineArguments
 import org.jetbrains.kotlin.cli.common.arguments.validateArguments
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
@@ -25,16 +27,18 @@ import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.modules.CoreJrtFileSystem
 import org.jetbrains.kotlin.compilerRunner.KotlinCompilerRunnerUtils
 import org.jetbrains.kotlin.config.KotlinCompilerVersion
+import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.config.Services
 import org.jetbrains.kotlin.daemon.client.BasicCompilerServicesWithResultsFacadeServer
 import org.jetbrains.kotlin.daemon.common.CompilerId
+import org.jetbrains.kotlin.daemon.common.IncrementalCompilationOptions
 import org.jetbrains.kotlin.daemon.common.configureDaemonJVMOptions
 import org.jetbrains.kotlin.daemon.common.filterExtractProps
+import org.jetbrains.kotlin.incremental.IncrementalFirJvmCompilerRunner
 import org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner
 import org.jetbrains.kotlin.incremental.classpathDiff.ClasspathEntrySnapshotter
 import org.jetbrains.kotlin.incremental.disablePreciseJavaTrackingIfK2
 import org.jetbrains.kotlin.incremental.extractKotlinSourcesFromFreeCompilerArguments
-import org.jetbrains.kotlin.incremental.multiproject.EmptyModulesApiHistory
 import org.jetbrains.kotlin.incremental.storage.FileLocations
 import org.jetbrains.kotlin.scripting.compiler.plugin.impl.reporter
 import org.jetbrains.kotlin.scripting.definitions.ScriptDefinitionsFromClasspathDiscoverySource
@@ -157,19 +161,29 @@ internal object CompilationServiceImpl : CompilationService {
                     buildMetricsReporter = DoNothingBuildMetricsReporter
                 )
                 val verifiedPreciseJavaTracking = parsedArguments.disablePreciseJavaTrackingIfK2(usePreciseJavaTrackingByDefault = options.preciseJavaTrackingEnabled)
-
-                val incrementalCompiler = IncrementalJvmCompilerRunner(
-                    aggregatedIcConfiguration.workingDir,
-                    buildReporter,
-                    buildHistoryFile = null,
-                    modulesApiHistory = EmptyModulesApiHistory,
-                    outputDirs = options.outputDirs,
-                    kotlinSourceFilesExtensions = kotlinFilenameExtensions,
-                    classpathChanges = classpathChanges,
-                    icFeatures = options.extractIncrementalCompilationFeatures().copy(
-                        usePreciseJavaTracking = verifiedPreciseJavaTracking
-                    ),
+                val icFeatures = options.extractIncrementalCompilationFeatures().copy(
+                    usePreciseJavaTracking = verifiedPreciseJavaTracking
                 )
+                val incrementalCompiler = if (options.isUsingFirRunner && checkJvmFirRequirements(arguments)) {
+                    IncrementalFirJvmCompilerRunner(
+                        aggregatedIcConfiguration.workingDir,
+                        buildReporter,
+                        outputDirs = options.outputDirs,
+                        classpathChanges = classpathChanges,
+                        kotlinSourceFilesExtensions = kotlinFilenameExtensions,
+                        icFeatures = icFeatures
+                    )
+                } else {
+                    IncrementalJvmCompilerRunner(
+                        aggregatedIcConfiguration.workingDir,
+                        buildReporter,
+                        outputDirs = options.outputDirs,
+                        classpathChanges = classpathChanges,
+                        kotlinSourceFilesExtensions = kotlinFilenameExtensions,
+                        icFeatures = icFeatures
+                    )
+                }
+
                 val rootProjectDir = options.rootProjectDir
                 val buildDir = options.buildDir
                 parsedArguments.incrementalCompilation = true
@@ -185,6 +199,25 @@ internal object CompilationServiceImpl : CompilationService {
                 compiler.exec(loggerAdapter, Services.EMPTY, parsedArguments).asCompilationResult
             }
         }
+    }
+
+    private fun checkJvmFirRequirements(
+        arguments: List<String>,
+    ): Boolean {
+        val languageVersion: LanguageVersion = arguments.find { it.startsWith("-language-version") }
+            ?.let {
+                LanguageVersion.fromVersionString(it.substringAfter("="))
+            }
+            ?: LanguageVersion.LATEST_STABLE
+
+        check(languageVersion >= LanguageVersion.KOTLIN_2_0) {
+            "FIR incremental compiler runner is only compatible with Kotlin Language Version 2.0"
+        }
+        check(arguments.contains("-Xuse-fir-ic")) {
+            "FIR incremental compiler runner requires '-Xuse-fir-ic' to be present in arguments"
+        }
+
+        return true
     }
 
     private fun compileWithinDaemon(
@@ -222,6 +255,11 @@ internal object CompilationServiceImpl : CompilationService {
             daemonJVMOptions = jvmOptions
         ) ?: return ExitCode.INTERNAL_ERROR.asCompilationResult
         val daemonCompileOptions = compilationConfiguration.asDaemonCompilationOptions
+
+        if (daemonCompileOptions is IncrementalCompilationOptions && daemonCompileOptions.useJvmFirRunner) {
+            checkJvmFirRequirements(arguments)
+        }
+
         val exitCode = daemon.compile(
             sessionId,
             arguments.toTypedArray() + sources.map { it.absolutePath }, // TODO: pass the sources explicitly KT-62759

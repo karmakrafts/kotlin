@@ -16,6 +16,7 @@
 
 import kotlin.native.internal.ExportedBridge
 import kotlinx.cinterop.*
+import kotlinx.cinterop.internal.convertBlockPtrToKotlinFunction
 
 @ExportedBridge("DATA_CLASS_WITH_REF_copy__TypesOfArguments__KotlinRuntime_KotlinBase__")
 public fun DATA_CLASS_WITH_REF_copy__TypesOfArguments__KotlinRuntime_KotlinBase__(self: kotlin.native.internal.NativePtr, o: kotlin.native.internal.NativePtr): kotlin.native.internal.NativePtr {
@@ -234,11 +235,66 @@ public fun __root___OPEN_CLASS_init_initialize__TypesOfArguments__Swift_UInt__(_
     kotlin.native.internal.initInstance(____kt, OPEN_CLASS())
 }
 
+@ExportedBridge("__root___block_get")
+public fun __root___block_get(): kotlin.native.internal.NativePtr {
+    val _result = block
+    return {
+        val newClosure = { kotlin.native.internal.ref.createRetainedExternalRCRef(_result()).toLong() }
+        newClosure.objcPtr()
+    }()
+}
+
+@ExportedBridge("__root___block_set__TypesOfArguments__U2829202D_U20Swift_Void__")
+public fun __root___block_set__TypesOfArguments__U2829202D_U20Swift_Void__(newValue: kotlin.native.internal.NativePtr): Unit {
+    val __newValue = {
+        val kotlinFun = convertBlockPtrToKotlinFunction<()->Unit>(newValue);
+        {
+            kotlinFun()
+        }
+    }()
+    block = __newValue
+}
+
+@ExportedBridge("__root___consume_closure__TypesOfArguments__U2829202D_U20Swift_Void__")
+public fun __root___consume_closure__TypesOfArguments__U2829202D_U20Swift_Void__(block: kotlin.native.internal.NativePtr): Unit {
+    val __block = {
+        val kotlinFun = convertBlockPtrToKotlinFunction<()->Unit>(block);
+        {
+            kotlinFun()
+        }
+    }()
+    consume_closure(__block)
+}
+
+@ExportedBridge("__root___deeper_closure_typealiase__TypesOfArguments__U2829202D_U20Swift_Void__")
+public fun __root___deeper_closure_typealiase__TypesOfArguments__U2829202D_U20Swift_Void__(block: kotlin.native.internal.NativePtr): kotlin.native.internal.NativePtr {
+    val __block = {
+        val kotlinFun = convertBlockPtrToKotlinFunction<()->Unit>(block);
+        {
+            kotlinFun()
+        }
+    }()
+    val _result = deeper_closure_typealiase(__block)
+    return {
+        val newClosure = { kotlin.native.internal.ref.createRetainedExternalRCRef(_result()).toLong() }
+        newClosure.objcPtr()
+    }()
+}
+
 @ExportedBridge("__root___increment__TypesOfArguments__Swift_Int32__")
 public fun __root___increment__TypesOfArguments__Swift_Int32__(integer: Int): Int {
     val __integer = integer
     val _result = increment(__integer)
     return _result
+}
+
+@ExportedBridge("__root___produce_closure")
+public fun __root___produce_closure(): kotlin.native.internal.NativePtr {
+    val _result = produce_closure()
+    return {
+        val newClosure = { kotlin.native.internal.ref.createRetainedExternalRCRef(_result()).toLong() }
+        newClosure.objcPtr()
+    }()
 }
 
 @ExportedBridge("typealiases_Foo_init_allocate")
@@ -264,4 +320,3 @@ public fun typealiases_inner_Bar_init_initialize__TypesOfArguments__Swift_UInt__
     val ____kt = kotlin.native.internal.ref.dereferenceExternalRCRef(__kt)!!
     kotlin.native.internal.initInstance(____kt, typealiases.`inner`.Bar())
 }
-

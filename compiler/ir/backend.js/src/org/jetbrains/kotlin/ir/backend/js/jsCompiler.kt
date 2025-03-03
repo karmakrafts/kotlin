@@ -23,6 +23,9 @@ import org.jetbrains.kotlin.ir.util.SymbolTable
 import org.jetbrains.kotlin.js.config.JSConfigurationKeys
 import org.jetbrains.kotlin.js.config.RuntimeDiagnostic
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.util.PhaseType
+import org.jetbrains.kotlin.util.PotentiallyIncorrectPhaseTimeMeasurement
+import org.jetbrains.kotlin.util.tryMeasurePhaseTime
 
 class CompilerResult(
     val outputs: Map<TranslationMode, CompilationOutputs>,
@@ -132,21 +135,21 @@ fun compileIr(
 
     // TODO should be done incrementally
     generateJsTests(context, allModules.last())
-    performanceManager?.notifyIRTranslationFinished()
+    @OptIn(PotentiallyIncorrectPhaseTimeMeasurement::class)
+    performanceManager?.notifyCurrentPhaseFinishedIfNeeded() // It should be `notifyTranslationToIRFinished`, but this phase not always started or already finished
 
-    performanceManager?.notifyGenerationStarted()
-    performanceManager?.notifyIRLoweringStarted()
-    (irFactory.stageController as? WholeWorldStageController)?.let {
-        lowerPreservingTags(allModules, context, it)
-    } ?: run {
-        val phaserState = PhaserState()
-        getJsLowerings(configuration).forEachIndexed { _, lowering ->
-            allModules.forEach { module ->
-                lowering.invoke(context.phaseConfig, phaserState, context, module)
+    performanceManager.tryMeasurePhaseTime(PhaseType.IrLowering) {
+        (irFactory.stageController as? WholeWorldStageController)?.let {
+            lowerPreservingTags(allModules, context, it)
+        } ?: run {
+            val phaserState = PhaserState()
+            getJsLowerings(configuration).forEachIndexed { _, lowering ->
+                allModules.forEach { module ->
+                    lowering.invoke(context.phaseConfig, phaserState, context, module)
+                }
             }
         }
     }
-    performanceManager?.notifyIRLoweringFinished()
 
     return LoweredIr(context, moduleFragment, allModules, moduleToName)
 }

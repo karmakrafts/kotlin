@@ -37,7 +37,7 @@ abstract class KotlinBaseApiPlugin : DefaultKotlinBasePlugin(), KotlinJvmFactory
     override fun apply(project: Project) {
         super.apply(project)
         myProject = project
-        setupAttributeMatchingStrategy(project, isKotlinGranularMetadata = false)
+        setupAttributeMatchingStrategy(project)
     }
 
     override fun addCompilerPluginDependency(dependency: Provider<Any>) {
@@ -125,7 +125,7 @@ abstract class KotlinBaseApiPlugin : DefaultKotlinBasePlugin(), KotlinJvmFactory
             )
         )
         registeredKotlinJvmCompileTask.configure {
-            @Suppress("DEPRECATION")
+            @Suppress("DEPRECATION_ERROR")
             it.moduleName.set(taskCompilerOptions.moduleName)
         }
         return registeredKotlinJvmCompileTask

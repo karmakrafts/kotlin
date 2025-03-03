@@ -57,7 +57,7 @@ import org.jetbrains.kotlin.types.Variance
  *   3) vararg spread where a reference to a function with vararg parameter is passed as an argument whose use of that vararg parameter
  *     requires spreading.
  */
-internal class AdapterGenerator(
+class AdapterGenerator(
     private val c: Fir2IrComponents,
     private val conversionScope: Fir2IrConversionScope
 ) : Fir2IrComponents by c {
@@ -539,7 +539,7 @@ internal class AdapterGenerator(
             return this
         }
         val argumentMapping = elements.zip(argument.arguments).toMap()
-        // [IrElementTransformer] is not preferred, since it's hard to visit vararg elements only.
+        // [IrTransformer] is not preferred, since it's hard to visit vararg elements only.
         elements.replaceAll { irVarargElement ->
             if (irVarargElement is IrExpression) {
                 val firVarargArgument =
