@@ -19,14 +19,14 @@ import org.jetbrains.kotlin.ir.expressions.impl.IrPropertyReferenceImpl
 import org.jetbrains.kotlin.ir.irAttribute
 import org.jetbrains.kotlin.ir.util.copyTo
 import org.jetbrains.kotlin.ir.util.deepCopyWithSymbols
-import org.jetbrains.kotlin.ir.util.isLocal
+import org.jetbrains.kotlin.ir.util.isOriginallyLocal
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.utils.addToStdlib.assignFrom
 
 private val STATIC_THIS_PARAMETER by IrDeclarationOriginImpl
 
-private var IrFunction.correspondingStatic: IrSimpleFunction? by irAttribute(followAttributeOwner = false)
+private var IrFunction.correspondingStatic: IrSimpleFunction? by irAttribute(copyByDefault = false)
 
 /**
  * Extracts private members from classes.
@@ -53,7 +53,7 @@ class PrivateMembersLowering(val context: JsIrBackendContext) : DeclarationTrans
     private fun transformMemberToStaticFunction(function: IrSimpleFunction): IrSimpleFunction? {
 
         if (function.visibility != DescriptorVisibilities.PRIVATE || function.dispatchReceiverParameter == null) return null
-        val newVisibility = if (function.isLocal) DescriptorVisibilities.LOCAL else function.visibility
+        val newVisibility = if (function.isOriginallyLocal) DescriptorVisibilities.LOCAL else function.visibility
 
         val staticFunction = context.irFactory.buildFun {
             updateFrom(function)

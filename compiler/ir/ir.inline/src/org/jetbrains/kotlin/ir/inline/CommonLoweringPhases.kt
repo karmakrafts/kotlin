@@ -11,13 +11,15 @@ import org.jetbrains.kotlin.backend.common.ir.isReifiable
 import org.jetbrains.kotlin.backend.common.lower.ArrayConstructorLowering
 import org.jetbrains.kotlin.backend.common.lower.LateinitLowering
 import org.jetbrains.kotlin.backend.common.lower.SharedVariablesLowering
-import org.jetbrains.kotlin.backend.common.lower.WrapInlineDeclarationsWithReifiedTypeParametersLowering
 import org.jetbrains.kotlin.backend.common.lower.inline.LocalClassesInInlineLambdasLowering
 import org.jetbrains.kotlin.backend.common.phaser.IrValidationAfterInliningOnlyPrivateFunctionsPhase
 import org.jetbrains.kotlin.backend.common.phaser.makeIrModulePhase
+import org.jetbrains.kotlin.config.LanguageFeature
+import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.config.phaser.NamedCompilerPhase
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.expressions.IrFunctionReference
+import org.jetbrains.kotlin.ir.util.KotlinMangler.IrMangler
 
 private val lateinitPhase = makeIrModulePhase(
     ::LateinitLowering,
@@ -35,25 +37,9 @@ private val localClassesInInlineLambdasPhase = makeIrModulePhase(
     name = "LocalClassesInInlineLambdasPhase",
 )
 
-private val inlineCallableReferenceToLambdaPhase = makeIrModulePhase(
-    lowering = { context: LoweringContext ->
-        CommonInlineCallableReferenceToLambdaPhase(
-            context,
-            PreSerializationPrivateInlineFunctionResolver(context)
-        )
-    },
-    name = "InlineCallableReferenceToLambdaPhase",
-)
-
 private val arrayConstructorPhase = makeIrModulePhase(
     ::ArrayConstructorLowering,
     name = "ArrayConstructor",
-    prerequisite = setOf(inlineCallableReferenceToLambdaPhase)
-)
-
-private val wrapInlineDeclarationsWithReifiedTypeParametersLowering = makeIrModulePhase(
-    ::WrapInlineDeclarationsWithReifiedTypeParametersLowering,
-    name = "WrapInlineDeclarationsWithReifiedTypeParametersLowering",
 )
 
 /**
@@ -68,7 +54,7 @@ private val inlineOnlyPrivateFunctionsPhase = makeIrModulePhase(
         )
     },
     name = "InlineOnlyPrivateFunctions",
-    prerequisite = setOf(wrapInlineDeclarationsWithReifiedTypeParametersLowering, arrayConstructorPhase)
+    prerequisite = setOf(arrayConstructorPhase)
 )
 
 private val outerThisSpecialAccessorInInlineFunctionsPhase = makeIrModulePhase(
@@ -108,34 +94,34 @@ private val checkInlineDeclarationsAfterInliningOnlyPrivateFunctions = makeIrMod
     prerequisite = setOf(inlineOnlyPrivateFunctionsPhase),
 )
 
-///**
-// * The second phase of inlining (inline all functions).
-// */
-//private val inlineAllFunctionsPhase = makeIrModulePhase(
-//    { context: LoweringContext ->
-//        FunctionInlining(
-//            context,
-//            PreSerializationNonPrivateInlineFunctionResolver(context, irMangler = TODO()),
-//            produceOuterThisFields = false,
-//        )
-//    },
-//    name = "InlineAllFunctions",
-//    prerequisite = setOf(outerThisSpecialAccessorInInlineFunctionsPhase)
-//)
-
-val loweringsOfTheFirstPhase: List<NamedCompilerPhase<PreSerializationLoweringContext, IrModuleFragment, IrModuleFragment>> = listOf(
-    lateinitPhase,
-    sharedVariablesLoweringPhase,
-    localClassesInInlineLambdasPhase,
-    inlineCallableReferenceToLambdaPhase,
-    arrayConstructorPhase,
-    wrapInlineDeclarationsWithReifiedTypeParametersLowering,
-    inlineOnlyPrivateFunctionsPhase,
-    checkInlineDeclarationsAfterInliningOnlyPrivateFunctions,
-    outerThisSpecialAccessorInInlineFunctionsPhase,
-    syntheticAccessorGenerationPhase,
-    validateIrAfterInliningOnlyPrivateFunctions,
-//         TODO KT-72441 add public inlining to this list
-//        inlineAllFunctionsPhase,
-//        validateIrAfterInliningAllFunctions
+@Suppress("unused")
+private fun inlineAllFunctionsPhase(irMangler: IrMangler) = makeIrModulePhase(
+    { context: LoweringContext ->
+        FunctionInlining(
+            context,
+            PreSerializationNonPrivateInlineFunctionResolver(context, irMangler),
+            produceOuterThisFields = false,
+        )
+    },
+    name = "InlineAllFunctions",
+    prerequisite = setOf(outerThisSpecialAccessorInInlineFunctionsPhase)
 )
+
+fun loweringsOfTheFirstPhase(
+    @Suppress("UNUSED_PARAMETER") irMangler: IrMangler,
+    languageVersionSettings: LanguageVersionSettings
+): List<NamedCompilerPhase<PreSerializationLoweringContext, IrModuleFragment, IrModuleFragment>> = buildList {
+    if (languageVersionSettings.supportsFeature(LanguageFeature.IrInlinerBeforeKlibSerialization)) {
+        this += lateinitPhase
+        this += sharedVariablesLoweringPhase
+        this += localClassesInInlineLambdasPhase
+        this += arrayConstructorPhase
+        this += inlineOnlyPrivateFunctionsPhase
+        this += checkInlineDeclarationsAfterInliningOnlyPrivateFunctions
+        this += outerThisSpecialAccessorInInlineFunctionsPhase
+        this += syntheticAccessorGenerationPhase
+        this += validateIrAfterInliningOnlyPrivateFunctions
+        //this += inlineAllFunctionsPhase(irMangler)
+        //this += validateIrAfterInliningAllFunctions
+    }
+}

@@ -1,5 +1,5 @@
-import gradle.GradlePluginVariant
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import gradle.GradlePluginVariant
 import org.jetbrains.kotlin.build.androidsdkprovisioner.ProvisioningType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -8,6 +8,7 @@ plugins {
     id("kotlin-git.gradle-build-conventions.binary-compatibility-extended")
     id("android-sdk-provisioner")
     id("asm-deprecating-transformer")
+    `java-test-fixtures`
 }
 
 repositories {
@@ -24,7 +25,6 @@ kotlin {
                 "org.jetbrains.kotlin.gradle.InternalKotlinGradlePluginApi",
                 "org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi",
                 "org.jetbrains.kotlin.gradle.ExternalKotlinTargetApi",
-                "org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi",
                 "org.jetbrains.kotlin.gradle.DeprecatedTargetPresetApi",
                 "org.jetbrains.kotlin.buildtools.api.ExperimentalBuildToolsApi",
                 "org.jetbrains.kotlin.gradle.ComposeKotlinGradlePluginApi",
@@ -92,8 +92,7 @@ val unpublishedCompilerRuntimeDependencies = listOf( // TODO: remove in KT-70247
     ":compiler:compiler.version", // for user projects buildscripts, `loadCompilerVersion`
     ":compiler:config", // for CommonCompilerArguments initialization
     ":compiler:config.jvm", // for K2JVMCompilerArguments initialization
-    ":compiler:ir.tree", // for PartialLinkageMode (K/N)
-    ":compiler:plugin-api", // `ExperimentalCompilerApi`
+    ":compiler:ir.serialization.common", // for PartialLinkageMode (K/N)
     ":compiler:util", // for CommonCompilerArguments initialization, K/N
     ":core:compiler.common", // for FUS statistics parsing all the compiler arguments
     ":core:compiler.common.jvm", // for FUS statistics parsing all the compiler arguments
@@ -201,6 +200,7 @@ dependencies {
     testImplementation(project(":kotlin-gradle-statistics"))
     testImplementation(project(":kotlin-tooling-metadata"))
     testImplementation(libs.lincheck)
+    testImplementation(commonDependency("org.jetbrains.kotlin:kotlin-reflect")) { isTransitive = false }
 }
 
 configurations.commonCompileClasspath.get().exclude("org.jetbrains.kotlinx", "kotlinx-coroutines-core")
@@ -299,6 +299,7 @@ tasks {
             "build" to listOf(
                 "org.jetbrains.kotlin.build.report.**",
             ),
+            "backend" to emptyList(),
             "builtins" to emptyList(),
             "config" to listOf(
                 "org.jetbrains.kotlin.config.ApiVersion**", // used a lot in buildscripts
@@ -473,13 +474,13 @@ gradlePlugin {
 if (!kotlinBuildProperties.isInJpsBuildIdeaSync) {
 
     // Workaround for KT-75550
-    tasks.named("gradle85Jar") {
+    tasks.named("gradle813Jar") {
         enabled = false
     }
 
-    val gradlePluginVariantForFunctionalTests = GradlePluginVariant.GRADLE_85
+    val gradlePluginVariantForFunctionalTests = GradlePluginVariant.GRADLE_813
+    val gradlePluginVariantSourceSet = sourceSets.getByName(gradlePluginVariantForFunctionalTests.sourceSetName)
     val functionalTestSourceSet = sourceSets.create("functionalTest") {
-        val gradlePluginVariantSourceSet = sourceSets.getByName(gradlePluginVariantForFunctionalTests.sourceSetName)
         compileClasspath += gradlePluginVariantSourceSet.output
         runtimeClasspath += gradlePluginVariantSourceSet.output
 
@@ -494,6 +495,35 @@ if (!kotlinBuildProperties.isInJpsBuildIdeaSync) {
         }
     }
 
+    sourceSets.getByName("testFixtures") {
+        /*
+         * testFixtures source set is closer to regular dependencies,
+         * so that it already has access to main and its transitive API dependencies.
+         * Thus, there's no need to copy the main dependencies.
+         *
+         * Instead of copying dependencies from testSourceSet, define granular dependencies here,
+         * as textFixtures are shared with integration test projects,
+         * and it's preferable to have granular control over them.
+         * Also, it prevents compilation problems due to dependencies from the test source set of too high LV (like compiler modules).
+         */
+        dependencies {
+            add(implementationConfigurationName, commonDependency("org.jetbrains.kotlin:kotlin-reflect")) { isTransitive = false }
+            add(implementationConfigurationName, gradleApi())
+        }
+    }
+
+    // Enforce lowest jvm version to make testFixtures compatible with KGP-IT injections
+    val testFixturesCompilation = kotlin.target.compilations.getByName("testFixtures")
+    testFixturesCompilation.compileJavaTaskProvider.configure {
+        sourceCompatibility = JavaLanguageVersion.of(8).toString()
+        targetCompatibility = JavaLanguageVersion.of(8).toString()
+    }
+    testFixturesCompilation.compileTaskProvider.configure {
+        with(this as KotlinCompile) {
+            configureGradleCompatibility()
+        }
+    }
+
     val functionalTestCompilation = kotlin.target.compilations.getByName("functionalTest")
     functionalTestCompilation.compileJavaTaskProvider.configure {
         sourceCompatibility = JavaLanguageVersion.of(17).toString()
@@ -504,8 +534,13 @@ if (!kotlinBuildProperties.isInJpsBuildIdeaSync) {
             kotlinJavaToolchain.toolchain.use(project.getToolchainLauncherFor(JdkMajorVersion.JDK_17_0))
         }
     }
+
+    functionalTestCompilation.configurations.pluginConfiguration.dependencies.add(
+        dependencies.create("org.jetbrains.kotlin:kotlin-serialization-compiler-plugin-embeddable")
+    )
     functionalTestCompilation.associateWith(kotlin.target.compilations.getByName(gradlePluginVariantForFunctionalTests.sourceSetName))
     functionalTestCompilation.associateWith(kotlin.target.compilations.getByName("common"))
+    functionalTestCompilation.associateWith(testFixturesCompilation)
 
     tasks.register<Test>("functionalTest") {
         systemProperty("kotlinVersion", rootProject.extra["kotlinVersion"] as String)
@@ -550,6 +585,8 @@ if (!kotlinBuildProperties.isInJpsBuildIdeaSync) {
         testLogging {
             events("passed", "skipped", "failed")
         }
+
+        systemProperty("resourcesPath", layout.projectDirectory.dir("src/functionalTest/resources").asFile)
     }
 
     dependencies {
@@ -568,6 +605,7 @@ if (!kotlinBuildProperties.isInJpsBuildIdeaSync) {
         }
         implementation("org.reflections:reflections:0.10.2")
         implementation(project(":compose-compiler-gradle-plugin"))
+        implementation(libs.kotlinx.serialization.json)
     }
 
     tasks.named("check") {
@@ -575,3 +613,10 @@ if (!kotlinBuildProperties.isInJpsBuildIdeaSync) {
         dependsOn("lincheckTest")
     }
 }
+
+fun avoidPublishingTestFixtures() {
+    val javaComponent = components["java"] as AdhocComponentWithVariants
+    javaComponent.withVariantsFromConfiguration(configurations["testFixturesApiElements"]) { skip() }
+    javaComponent.withVariantsFromConfiguration(configurations["testFixturesRuntimeElements"]) { skip() }
+}
+avoidPublishingTestFixtures()

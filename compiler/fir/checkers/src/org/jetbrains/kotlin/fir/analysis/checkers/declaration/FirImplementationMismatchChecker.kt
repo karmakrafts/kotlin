@@ -29,6 +29,7 @@ import org.jetbrains.kotlin.fir.declarations.utils.isSuspend
 import org.jetbrains.kotlin.fir.delegatedWrapperData
 import org.jetbrains.kotlin.fir.isSubstitutionOverride
 import org.jetbrains.kotlin.fir.resolve.substitution.substitutorByMap
+import org.jetbrains.kotlin.fir.scopes.ScopeFunctionRequiresPrewarm
 import org.jetbrains.kotlin.fir.scopes.FirTypeScope
 import org.jetbrains.kotlin.fir.scopes.MemberWithBaseScope
 import org.jetbrains.kotlin.fir.scopes.getDirectOverriddenFunctions
@@ -43,8 +44,8 @@ import org.jetbrains.kotlin.fir.unwrapSubstitutionOverrides
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.types.AbstractTypeChecker
 import org.jetbrains.kotlin.types.TypeCheckerState
-import org.jetbrains.kotlin.utils.addIfNotNull
 
+@OptIn(ScopeFunctionRequiresPrewarm::class) // we call the process functions in check
 sealed class FirImplementationMismatchChecker(mppKind: MppCheckerKind) : FirClassChecker(mppKind) {
     object Regular : FirImplementationMismatchChecker(MppCheckerKind.Platform) {
         override fun check(declaration: FirClass, context: CheckerContext, reporter: DiagnosticReporter) {
@@ -294,13 +295,19 @@ sealed class FirImplementationMismatchChecker(mppKind: MppCheckerKind) : FirClas
     ) {
         val allCallables = scope.collectCallablesNamed(name, containingClass, context)
 
+        data class GroupingKey(
+            val contextParamets: List<ConeKotlinType>,
+            val extensionReceiver: ConeKotlinType?,
+            // null and empty list distinguish between function and property
+            val valueParameters: List<ConeKotlinType>?,
+        )
+
         val sameArgumentGroups = allCallables.groupBy { callable ->
-            buildList {
-                addIfNotNull(callable.resolvedReceiverTypeRef?.coneType)
-                if (callable is FirNamedFunctionSymbol) {
-                    callable.valueParameterSymbols.mapTo(this) { it.resolvedReturnTypeRef.coneType }
-                }
-            } to (callable is FirPropertySymbol) // Needed to split properties and functions into separate groups
+            GroupingKey(
+                contextParamets = callable.contextParameterSymbols.map { it.resolvedReturnType },
+                extensionReceiver = callable.resolvedReceiverType,
+                valueParameters = (callable as? FirNamedFunctionSymbol)?.valueParameterSymbols?.map { it.resolvedReturnTypeRef.coneType },
+            )
         }.values
 
         val clashes = sameArgumentGroups.mapNotNull { fs ->

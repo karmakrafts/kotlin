@@ -7,10 +7,24 @@ package org.jetbrains.kotlin.gradle.util
 
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.gradle.LibraryExtension
+import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.verification.DependencyVerificationMode
 import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.api.plugins.ExtraPropertiesExtension
+import org.gradle.api.problems.Problem
+import org.gradle.api.problems.ProblemId
+import org.gradle.api.problems.ProblemReporter
+import org.gradle.api.problems.ProblemSpec
+import org.gradle.api.problems.internal.AdditionalDataBuilderFactory
+import org.gradle.api.problems.internal.InternalProblem
+import org.gradle.api.problems.internal.InternalProblemBuilder
+import org.gradle.api.problems.internal.InternalProblemReporter
+import org.gradle.api.problems.internal.InternalProblemSpec
+import org.gradle.api.problems.internal.InternalProblems
+import org.gradle.api.problems.internal.ProblemsProgressEventEmitterHolder
+import org.gradle.internal.operations.OperationIdentifier
+import org.gradle.internal.reflect.Instantiator
 import org.gradle.testfixtures.ProjectBuilder
 import org.gradle.testing.base.TestingExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -23,7 +37,8 @@ import org.jetbrains.kotlin.gradle.plugin.cocoapods.CocoapodsExtension
 import org.jetbrains.kotlin.gradle.plugin.getExtension
 import org.jetbrains.kotlin.gradle.plugin.mpp.KmpIsolatedProjectsSupport
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.swiftexport.SwiftExportExtension
-import org.jetbrains.kotlin.gradle.plugin.mpp.resources.resolve.KotlinTargetResourcesResolution
+import org.jetbrains.kotlin.gradle.plugin.mpp.uklibs.consumption.KmpResolutionStrategy
+import org.jetbrains.kotlin.gradle.plugin.mpp.uklibs.publication.KmpPublicationStrategy
 import org.jetbrains.kotlin.gradle.targets.native.tasks.artifact.KotlinArtifactsExtensionImpl
 import org.jetbrains.kotlin.gradle.targets.native.tasks.artifact.kotlinArtifactsExtension
 import org.jetbrains.kotlin.gradle.utils.getFile
@@ -39,6 +54,7 @@ fun buildProject(
     .also {
         disableDownloadingKonanFromMavenCentral(it)
         it.enableDependencyVerification(false)
+        applyWorkaroundFor31862()
     }
     .apply(configureProject)
     .let { it as ProjectInternal }
@@ -134,6 +150,18 @@ fun Project.enableMppResourcesPublication(enabled: Boolean = true) {
     propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_MPP_ENABLE_RESOURCES_PUBLICATION, enabled.toString())
 }
 
+internal fun Project.setUklibPublicationStrategy(strategy: KmpPublicationStrategy = KmpPublicationStrategy.UklibPublicationInASingleComponentWithKMPPublication) {
+    propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_KMP_PUBLICATION_STRATEGY, strategy.propertyName)
+}
+
+fun Project.enableCrossCompilation(enabled: Boolean = true) {
+    propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_NATIVE_ENABLE_KLIBS_CROSSCOMPILATION, enabled.toString())
+}
+
+internal fun Project.setUklibResolutionStrategy(strategy: KmpResolutionStrategy) {
+    propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_KMP_RESOLUTION_STRATEGY, strategy.propertyName)
+}
+
 fun Project.enableIntransitiveMetadataConfiguration(enabled: Boolean = true) {
     propertiesExtension.set(KOTLIN_MPP_ENABLE_INTRANSITIVE_METADATA_CONFIGURATION, enabled.toString())
 }
@@ -144,11 +172,6 @@ fun Project.enableDefaultStdlibDependency(enabled: Boolean = true) {
 
 fun Project.enableDefaultJsDomApiDependency(enabled: Boolean = true) {
     project.propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_JS_STDLIB_DOM_API_INCLUDED, enabled.toString())
-}
-
-
-fun Project.enableSwiftExport(enabled: Boolean = true) {
-    project.propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_SWIFT_EXPORT_ENABLED, enabled.toString())
 }
 
 fun Project.setMultiplatformAndroidSourceSetLayoutVersion(version: Int) {
@@ -181,4 +204,70 @@ fun Project.enableKmpProjectIsolationSupport(enabled: Boolean = true) {
 
 fun Project.enableNonPackedKlibsUsage(enabled: Boolean = true) {
     project.propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_USE_NON_PACKED_KLIBS, enabled.toString())
+}
+
+// Workaround for https://github.com/gradle/gradle/issues/31862
+private fun applyWorkaroundFor31862() {
+    ProblemsProgressEventEmitterHolder.init(InternalProblemsStub())
+}
+
+private class InternalProblemsStub : InternalProblems {
+    override fun getReporter(): ProblemReporter = TODO()
+    override fun getInternalReporter(): InternalProblemReporter = InternalProblemReporterStub()
+    override fun getAdditionalDataBuilderFactory(): AdditionalDataBuilderFactory = TODO()
+    override fun getInstantiator(): Instantiator {
+        TODO("Not yet implemented")
+    }
+
+    override fun getProblemBuilder(): InternalProblemBuilder {
+        TODO("Not yet implemented")
+    }
+}
+
+private class InternalProblemReporterStub : InternalProblemReporter {
+    override fun report(problem: Problem, id: OperationIdentifier) {
+        TODO("Not yet implemented")
+    }
+
+    override fun internalCreate(action: Action<in InternalProblemSpec>): InternalProblem {
+        TODO("Not yet implemented")
+    }
+
+    override fun create(
+        problemId: ProblemId,
+        action: Action<in ProblemSpec>,
+    ): Problem {
+        TODO("Not yet implemented")
+    }
+
+    override fun report(problemId: ProblemId, spec: Action<in ProblemSpec>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun report(problem: Problem) {
+        TODO("Not yet implemented")
+    }
+
+    override fun report(problems: Collection<Problem?>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun throwing(
+        exception: Throwable,
+        problemId: ProblemId,
+        spec: Action<in ProblemSpec>,
+    ): java.lang.RuntimeException {
+        TODO("Not yet implemented")
+    }
+
+    override fun throwing(exception: Throwable, problem: Problem): java.lang.RuntimeException {
+        TODO("Not yet implemented")
+    }
+
+    override fun throwing(
+        exception: Throwable,
+        problems: Collection<Problem?>,
+    ): java.lang.RuntimeException {
+        TODO("Not yet implemented")
+    }
 }

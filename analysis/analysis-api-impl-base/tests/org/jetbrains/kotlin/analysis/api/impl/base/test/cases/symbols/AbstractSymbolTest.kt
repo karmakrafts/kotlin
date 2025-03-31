@@ -294,8 +294,8 @@ abstract class AbstractSymbolTest : AbstractAnalysisApiBasedTest() {
         try {
             val restored = analyseForTest(analyzeContext ?: ktFile) {
                 pointersWithRendered.mapNotNull { (pointer, expectedRender, shouldBeRendered) ->
-                    val pointer = pointer ?: error("Symbol pointer for $expectedRender was not created")
-                    val restored = restoreSymbol(pointer, disablePsiBasedLogic) ?: error("Symbol $expectedRender was not restored")
+                    val pointer = pointer ?: error("Symbol pointer was not created for symbol:\n$expectedRender")
+                    val restored = restoreSymbol(pointer, disablePsiBasedLogic) ?: error("Symbol was not restored:\n$expectedRender")
                     restoredPointers += pointer
 
                     val actualRender = renderSymbolForComparison(restored, directives)
@@ -552,6 +552,13 @@ private fun KaSymbol.dropBackingPsi() {
         // Those classes are PSI-based only, so they have FirSymbol only for the compatibility with other classes
         "KaFirPsiJavaClassSymbol",
         "KaFirPsiJavaTypeParameterSymbol",
+            -> return
+
+        // There classes depend on the property PSI. The owning property is already invalidated above
+        "KaFirDefaultPropertyGetterSymbol",
+        "KaFirDefaultPropertySetterSymbol",
+        "KaFirPropertyGetterSymbol",
+        "KaFirPropertySetterSymbol",
             -> return
     }
 

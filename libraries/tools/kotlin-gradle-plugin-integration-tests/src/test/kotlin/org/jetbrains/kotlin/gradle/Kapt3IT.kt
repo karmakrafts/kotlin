@@ -18,6 +18,7 @@ package org.jetbrains.kotlin.gradle
 
 import org.gradle.api.JavaVersion
 import org.gradle.api.logging.LogLevel
+import org.gradle.api.logging.configuration.WarningMode
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.android.Kapt4AndroidExternalIT
@@ -90,7 +91,6 @@ abstract class Kapt3BaseIT : KGPBaseTest() {
         projectName: String,
         gradleVersion: GradleVersion,
         buildOptions: BuildOptions = defaultBuildOptions,
-        forceOutput: EnableGradleDebug = EnableGradleDebug.AUTO,
         enableBuildScan: Boolean = false,
         addHeapDumpOptions: Boolean = true,
         enableGradleDebug: EnableGradleDebug = EnableGradleDebug.AUTO,
@@ -106,7 +106,6 @@ abstract class Kapt3BaseIT : KGPBaseTest() {
         projectName = projectName,
         gradleVersion = gradleVersion,
         buildOptions = buildOptions,
-        forceOutput = forceOutput,
         enableBuildScan = enableBuildScan,
         dependencyManagement = dependencyManagement,
         addHeapDumpOptions = addHeapDumpOptions,
@@ -424,20 +423,10 @@ open class Kapt3IT : Kapt3BaseIT() {
     @DisplayName("Kapt is working with incremental compilation")
     @GradleTest
     fun testSimpleWithIC(gradleVersion: GradleVersion) {
-        doTestSimpleWithIC(gradleVersion)
-    }
-
-    @DisplayName("Kapt is working with incremental compilation, when kotlin.incremental.useClasspathSnapshot=true")
-    @GradleTest
-    fun testSimpleWithIC_withClasspathSnapshot(gradleVersion: GradleVersion) {
-        doTestSimpleWithIC(gradleVersion, useClasspathSnapshot = true)
-    }
-
-    private fun doTestSimpleWithIC(gradleVersion: GradleVersion, useClasspathSnapshot: Boolean? = null) {
         project(
             "simple".withPrefix,
             gradleVersion,
-            buildOptions = defaultBuildOptions.copy(incremental = true, useGradleClasspathSnapshot = useClasspathSnapshot)
+            buildOptions = defaultBuildOptions.copy(incremental = true)
         ) {
             build("clean", "build") {
                 assertTasksExecuted(":kaptGenerateStubsKotlin", ":kaptKotlin", ":compileKotlin", ":compileJava")
@@ -1138,7 +1127,6 @@ open class Kapt3IT : Kapt3BaseIT() {
 
     @DisplayName("Works with JPMS on JDK 9+")
     @GradleTest
-    @BrokenOnMacosTest
     fun testJpmsModule(gradleVersion: GradleVersion) {
         project(
             "jpms-module".withPrefix,
@@ -1220,7 +1208,17 @@ open class Kapt3IT : Kapt3BaseIT() {
     @GradleTest
     @OsCondition(supportedOn = [OS.WINDOWS], enabledOnCI = [OS.WINDOWS])
     fun testDifferentDisksSetupDoesNotFailConfiguration(gradleVersion: GradleVersion) {
-        project("simple".withPrefix, gradleVersion) {
+        project(
+            "simple".withPrefix,
+            gradleVersion,
+            buildOptions = defaultBuildOptions.copy(
+                /*
+                 * We need to set the warning mode to none because the test fails when emitting the problems report
+                 * https://github.com/gradle/gradle/issues/32778
+                 */
+                warningMode = WarningMode.None,
+            )
+        ) {
             fun findAnotherRoot() = ('A'..'Z').first { !projectPath.root.startsWith(it.toString()) }
 
             //language=Gradle

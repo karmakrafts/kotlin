@@ -429,6 +429,12 @@ public class FirBlackBoxInlineCodegenWithBytecodeInlinerTestWithInlineScopesGene
     }
 
     @Test
+    @TestMetadata("kt75902.kt")
+    public void testKt75902() {
+      runTest("compiler/testData/codegen/boxInline/anonymousObject/kt75902.kt");
+    }
+
+    @Test
     @TestMetadata("kt8133.kt")
     public void testKt8133() {
       runTest("compiler/testData/codegen/boxInline/anonymousObject/kt8133.kt");
@@ -1652,6 +1658,40 @@ public class FirBlackBoxInlineCodegenWithBytecodeInlinerTestWithInlineScopesGene
     @TestMetadata("spillConstructorArgumentsAndInlineLambdaParameter.kt")
     public void testSpillConstructorArgumentsAndInlineLambdaParameter() {
       runTest("compiler/testData/codegen/boxInline/complexStack/spillConstructorArgumentsAndInlineLambdaParameter.kt");
+    }
+  }
+
+  @Nested
+  @TestMetadata("compiler/testData/codegen/boxInline/contextParameters")
+  @TestDataPath("$PROJECT_ROOT")
+  public class ContextParameters {
+    @Test
+    public void testAllFilesPresentInContextParameters() {
+      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/boxInline/contextParameters"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JVM_IR, true);
+    }
+
+    @Test
+    @TestMetadata("contextAndReceiver.kt")
+    public void testContextAndReceiver() {
+      runTest("compiler/testData/codegen/boxInline/contextParameters/contextAndReceiver.kt");
+    }
+
+    @Test
+    @TestMetadata("contextOnly.kt")
+    public void testContextOnly() {
+      runTest("compiler/testData/codegen/boxInline/contextParameters/contextOnly.kt");
+    }
+
+    @Test
+    @TestMetadata("contextReceiverAndParameter.kt")
+    public void testContextReceiverAndParameter() {
+      runTest("compiler/testData/codegen/boxInline/contextParameters/contextReceiverAndParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("contextReceiverAndParameterLong.kt")
+    public void testContextReceiverAndParameterLong() {
+      runTest("compiler/testData/codegen/boxInline/contextParameters/contextReceiverAndParameterLong.kt");
     }
   }
 
@@ -3179,6 +3219,24 @@ public class FirBlackBoxInlineCodegenWithBytecodeInlinerTestWithInlineScopesGene
     public void testLocalFunInLambdaCapturesOuterVariable() {
       runTest("compiler/testData/codegen/boxInline/localFunInLambda/localFunInLambdaCapturesOuterVariable.kt");
     }
+
+    @Test
+    @TestMetadata("localFunInLambdaInsideAnonymousObject.kt")
+    public void testLocalFunInLambdaInsideAnonymousObject() {
+      runTest("compiler/testData/codegen/boxInline/localFunInLambda/localFunInLambdaInsideAnonymousObject.kt");
+    }
+
+    @Test
+    @TestMetadata("localFunInLambdaNoInline.kt")
+    public void testLocalFunInLambdaNoInline() {
+      runTest("compiler/testData/codegen/boxInline/localFunInLambda/localFunInLambdaNoInline.kt");
+    }
+
+    @Test
+    @TestMetadata("localFunInLambdaOutsideAnonymousObject.kt")
+    public void testLocalFunInLambdaOutsideAnonymousObject() {
+      runTest("compiler/testData/codegen/boxInline/localFunInLambda/localFunInLambdaOutsideAnonymousObject.kt");
+    }
   }
 
   @Nested
@@ -3248,6 +3306,28 @@ public class FirBlackBoxInlineCodegenWithBytecodeInlinerTestWithInlineScopesGene
       public void testReceiversAndParametersInLambda() {
         runTest("compiler/testData/codegen/boxInline/multiplatform/defaultArguments/receiversAndParametersInLambda.kt");
       }
+    }
+  }
+
+  @Nested
+  @TestMetadata("compiler/testData/codegen/boxInline/nestedInline")
+  @TestDataPath("$PROJECT_ROOT")
+  public class NestedInline {
+    @Test
+    public void testAllFilesPresentInNestedInline() {
+      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/boxInline/nestedInline"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JVM_IR, true);
+    }
+
+    @Test
+    @TestMetadata("nestedInlineLetLet.kt")
+    public void testNestedInlineLetLet() {
+      runTest("compiler/testData/codegen/boxInline/nestedInline/nestedInlineLetLet.kt");
+    }
+
+    @Test
+    @TestMetadata("nestedInlineLetLetComplex.kt")
+    public void testNestedInlineLetLetComplex() {
+      runTest("compiler/testData/codegen/boxInline/nestedInline/nestedInlineLetLetComplex.kt");
     }
   }
 

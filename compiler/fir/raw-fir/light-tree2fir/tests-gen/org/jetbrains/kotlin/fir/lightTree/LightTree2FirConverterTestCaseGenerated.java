@@ -46,6 +46,11 @@ public class LightTree2FirConverterTestCaseGenerated extends AbstractLightTree2F
       runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/annotation.kt");
     }
 
+    @TestMetadata("annotationArguments.kt")
+    public void testAnnotationArguments() {
+      runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/annotationArguments.kt");
+    }
+
     @TestMetadata("annotationOnContextParameters.kt")
     public void testAnnotationOnContextParameters() {
       runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/annotationOnContextParameters.kt");
@@ -166,6 +171,11 @@ public class LightTree2FirConverterTestCaseGenerated extends AbstractLightTree2F
       runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/danglingConstrants.kt");
     }
 
+    @TestMetadata("danglingModifierInsideEnumEntry.kt")
+    public void testDanglingModifierInsideEnumEntry() {
+      runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/danglingModifierInsideEnumEntry.kt");
+    }
+
     @TestMetadata("dataClassWithAnnotations.kt")
     public void testDataClassWithAnnotations() {
       runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/dataClassWithAnnotations.kt");
@@ -279,6 +289,11 @@ public class LightTree2FirConverterTestCaseGenerated extends AbstractLightTree2F
     @TestMetadata("genericProperty.kt")
     public void testGenericProperty() {
       runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/genericProperty.kt");
+    }
+
+    @TestMetadata("importAlias.kt")
+    public void testImportAlias() {
+      runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/importAlias.kt");
     }
 
     @TestMetadata("incompletePropertyWithDelegate.kt")
@@ -500,6 +515,16 @@ public class LightTree2FirConverterTestCaseGenerated extends AbstractLightTree2F
 
       public void testAllFilesPresentInInvalidCode() {
         KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/invalidCode"), Pattern.compile("^(.+)\\.kt$"), null, true);
+      }
+
+      @TestMetadata("destructuringInsideCallChain.kt")
+      public void testDestructuringInsideCallChain() {
+        runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/invalidCode/destructuringInsideCallChain.kt");
+      }
+
+      @TestMetadata("duplicatedContextParameter.kt")
+      public void testDuplicatedContextParameter() {
+        runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/invalidCode/duplicatedContextParameter.kt");
       }
 
       @TestMetadata("setterWithNoBodyAndDifferentValueParameterType.kt")

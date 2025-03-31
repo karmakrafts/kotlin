@@ -7,9 +7,12 @@ package org.jetbrains.kotlin.ir.util
 
 import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
+import org.jetbrains.kotlin.descriptors.annotations.KotlinTarget
 import org.jetbrains.kotlin.ir.*
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
+import org.jetbrains.kotlin.ir.expressions.IrGetEnumValue
+import org.jetbrains.kotlin.ir.expressions.IrVararg
 import org.jetbrains.kotlin.ir.symbols.*
 import org.jetbrains.kotlin.ir.types.isArray
 import org.jetbrains.kotlin.name.*
@@ -154,7 +157,7 @@ fun IrSymbol.hasEqualFqName(fqName: FqName): Boolean {
     }
 }
 
-private fun IrSymbol.hasTopLevelEqualFqName(packageName: String, declarationName: String): Boolean {
+fun IrSymbol.hasTopLevelEqualFqName(packageName: String, declarationName: String): Boolean {
     return with(signature as? IdSignature.CommonSignature ?: return false) {
         // optimized version of FqName("$packageFqName.$declarationFqName") == fqName
         packageFqName == packageName && declarationFqName == declarationName
@@ -203,24 +206,36 @@ val IrDeclaration.isAnonymousObject get() = this is IrClass && name == SpecialNa
 
 val IrDeclaration.isAnonymousFunction get() = this is IrSimpleFunction && name == SpecialNames.NO_NAME_PROVIDED
 
-val IrDeclaration.isLocal: Boolean
-    get() {
-        var current: IrElement = this
-        while (current !is IrPackageFragment) {
-            require(current is IrDeclaration)
+/**
+ * Used to mark local classes that have been lifted out of their local scope and changed their visibility to a non-local one.
+ *
+ * Sometimes it is useful to be able to distinguish such classes even after they were lifted.
+ */
+var IrClass.isOriginallyLocalClass: Boolean by irFlag(copyByDefault = true)
 
-            if (current is IrDeclarationWithVisibility) {
-                if (current.visibility == DescriptorVisibilities.LOCAL) return true
-            }
+private inline fun IrDeclaration.isLocalImpl(isLocal: (IrDeclarationWithVisibility) -> Boolean): Boolean {
+    var current: IrElement = this
+    while (current !is IrPackageFragment) {
+        require(current is IrDeclaration)
 
-            if (current.isAnonymousObject) return true
-            if (current is IrScript || (current is IrClass && current.origin == IrDeclarationOrigin.SCRIPT_CLASS)) return true
-
-            current = current.parent
+        if (current is IrDeclarationWithVisibility) {
+            if (isLocal(current)) return true
         }
 
-        return false
+        if (current.isAnonymousObject) return true
+        if (current is IrScript || (current is IrClass && current.origin == IrDeclarationOrigin.SCRIPT_CLASS)) return true
+
+        current = current.parent
     }
+
+    return false
+}
+
+val IrDeclaration.isLocal: Boolean
+    get() = isLocalImpl { it.visibility == DescriptorVisibilities.LOCAL }
+
+val IrDeclaration.isOriginallyLocal: Boolean
+    get() = isLocalImpl { it.visibility == DescriptorVisibilities.LOCAL || it is IrClass && it.isOriginallyLocalClass }
 
 @ObsoleteDescriptorBasedAPI
 val IrDeclaration.module get() = this.descriptor.module
@@ -300,3 +315,24 @@ fun IrFunction.isBuiltInSuspendCoroutineUninterceptedOrReturn(): Boolean =
         "suspendCoroutineUninterceptedOrReturn",
         StandardNames.COROUTINES_INTRINSICS_PACKAGE_FQ_NAME
     )
+
+/**
+ * @return null - if [this] class is not an annotation class ([isAnnotationClass])
+ * set of [KotlinTarget] representing the annotation targets of the annotation
+ * ```
+ * @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY, AnnotationTarget.CONSTRUCTOR)
+ * annotation class Foo
+ * ```
+ *
+ * shall return Class, Function, Property & Constructor
+ */
+fun IrClass.getAnnotationTargets(): Set<KotlinTarget>? {
+    if (!this.isAnnotationClass) return null
+
+    val valueArgument = getAnnotation(StandardNames.FqNames.target)
+        ?.getValueArgument(StandardClassIds.Annotations.ParameterNames.targetAllowedTargets) as? IrVararg
+        ?: return KotlinTarget.DEFAULT_TARGET_SET
+    return valueArgument.elements.filterIsInstance<IrGetEnumValue>().mapNotNull {
+        KotlinTarget.valueOrNull(it.symbol.owner.name.asString())
+    }.toSet()
+}

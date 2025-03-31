@@ -5,7 +5,10 @@
 
 package org.jetbrains.kotlin.sir.providers
 
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaLibraryModule
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
 import org.jetbrains.kotlin.analysis.api.scopes.KaScope
 import org.jetbrains.kotlin.analysis.api.symbols.KaDeclarationSymbol
@@ -34,6 +37,8 @@ public interface SirSession :
     public val sirSession: SirSession
         get() = this
 
+    public val useSiteModule: KaModule
+
     public val enumGenerator: SirEnumGenerator
 
     public val declarationNamer: SirDeclarationNamer
@@ -57,6 +62,9 @@ public interface SirSession :
     override fun KaDeclarationSymbol.getSirParent(ktAnalysisSession: KaSession): SirDeclarationParent =
         with(parentProvider) { this@getSirParent.getSirParent(ktAnalysisSession) }
 
+    override fun KaDeclarationSymbol.getOriginalSirParent(ktAnalysisSession: KaSession): SirElement =
+        with(parentProvider) { this@getOriginalSirParent.getOriginalSirParent(ktAnalysisSession) }
+
     override fun SirDeclaration.trampolineDeclarations(): List<SirDeclaration> = with (trampolineDeclarationsProvider) {
         this@trampolineDeclarations.trampolineDeclarations()
     }
@@ -78,11 +86,16 @@ public interface SirSession :
             )
         }
 
+    @Deprecated("Use this.sirAvailability instead", ReplaceWith("this.sirAvailability(ktAnalysisSession)"))
+    @Suppress("DEPRECATION")
     override fun KaDeclarationSymbol.sirVisibility(ktAnalysisSession: KaSession): SirVisibility? =
         with(visibilityChecker) { this@sirVisibility.sirVisibility(ktAnalysisSession) }
 
-    override fun KaScope.extractDeclarations(ktAnalysisSession: KaSession): Sequence<SirDeclaration> =
-        with(childrenProvider) { this@extractDeclarations.extractDeclarations(ktAnalysisSession) }
+    override fun KaDeclarationSymbol.sirAvailability(ktAnalysisSession: KaSession): SirAvailability =
+        with(visibilityChecker) { this@sirAvailability.sirAvailability(ktAnalysisSession) }
+
+    override fun Sequence<KaDeclarationSymbol>.extractDeclarations(kaSession: KaSession): Sequence<SirDeclaration> =
+        with(childrenProvider) { this@extractDeclarations.extractDeclarations(kaSession) }
 }
 
 /**
@@ -150,6 +163,20 @@ public sealed interface SirTranslationResult {
         override val primaryDeclaration: SirDeclaration get() = declaration
         override val allDeclarations: List<SirDeclaration> = listOfNotNull(declaration, bridgedImplementation)
     }
+
+    public data class StubClass(
+        public val declaration: SirClass,
+    ) : SirTranslationResult {
+        override val primaryDeclaration: SirDeclaration get() = declaration
+        override val allDeclarations: List<SirDeclaration> = listOfNotNull(declaration)
+    }
+
+    public data class StubInterface(
+        public val declaration: SirProtocol,
+    ) : SirTranslationResult {
+        override val primaryDeclaration: SirDeclaration get() = declaration
+        override val allDeclarations: List<SirDeclaration> = listOfNotNull(declaration)
+    }
 }
 
 /**
@@ -175,6 +202,17 @@ public interface SirDeclarationProvider {
  */
 public interface SirParentProvider {
     public fun KaDeclarationSymbol.getSirParent(ktAnalysisSession: KaSession): SirDeclarationParent
+
+    /**
+     * Get original sir parent
+     * Some bridged kotlin declaration is unsuitable for hosting other declarations in swift (e.g. protocols, packaged top-levels etc).
+     * When that is the case, [SirParentProvider] attempts to relocate children declarations into the most appropriate place.
+     * This method returns the original intended parent declaration that the receiver may have been relocated from.
+     *
+     * @param ktAnalysisSession session
+     * @return Sir element for original parent symbol. This is the same as [getSirParent] if the receiver was never relocated.
+     */
+    public fun KaDeclarationSymbol.getOriginalSirParent(ktAnalysisSession: KaSession): SirElement
 }
 
 /**
@@ -193,8 +231,14 @@ public interface SirModuleProvider {
     public fun KaModule.sirModule(): SirModule
 }
 
+// TODO: SirChildrenProvider probably does not make much sense as a provider,
+//  as it acts as a combination of several other provider (declaration, trampoline, visibility)
 public interface SirChildrenProvider {
-    public fun KaScope.extractDeclarations(ktAnalysisSession: KaSession): Sequence<SirDeclaration>
+
+    public fun KaScope.extractDeclarations(ktAnalysisSession: KaSession): Sequence<SirDeclaration> =
+        declarations.extractDeclarations(ktAnalysisSession)
+
+    public fun Sequence<KaDeclarationSymbol>.extractDeclarations(kaSession: KaSession): Sequence<SirDeclaration>
 }
 
 public interface SirTypeProvider {
@@ -221,10 +265,33 @@ public interface SirTypeProvider {
     ): SirType
 }
 
+
+
 public interface SirVisibilityChecker {
     /**
      * Determines visibility of the given [KaDeclarationSymbol].
      * @return null if symbol should not be exposed to SIR completely.
      */
-    public fun KaDeclarationSymbol.sirVisibility(ktAnalysisSession: KaSession): SirVisibility?
+    @Deprecated(
+        "Use sirAvailability instead",
+        level = DeprecationLevel.WARNING,
+        replaceWith = ReplaceWith("this.sirAvailability(ktAnalysisSession)")
+    )
+    public fun KaDeclarationSymbol.sirVisibility(ktAnalysisSession: KaSession): SirVisibility? =
+        this.sirAvailability(ktAnalysisSession).visibility
+
+    /**
+     * Determines availability of the given [KaDeclarationSymbol].
+     */
+    public fun KaDeclarationSymbol.sirAvailability(ktAnalysisSession: KaSession): SirAvailability
+}
+
+public interface SirAndKaSession : KaSession, SirSession
+
+public inline fun <T> SirSession.withSessions(crossinline block: SirAndKaSession.() -> T): T {
+    return analyze(this.useSiteModule) {
+        object : SirSession by this@withSessions, KaSession by this@analyze, SirAndKaSession {
+            override val useSiteModule: KaModule get() = this@analyze.useSiteModule
+        }.block()
+    }
 }

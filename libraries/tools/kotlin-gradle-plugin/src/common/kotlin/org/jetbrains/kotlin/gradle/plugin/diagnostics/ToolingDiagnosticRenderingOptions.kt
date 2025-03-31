@@ -12,6 +12,9 @@ import org.gradle.api.logging.configuration.WarningMode
 import org.jetbrains.kotlin.gradle.internal.isInIdeaEnvironment
 import org.jetbrains.kotlin.gradle.internal.isInIdeaSync
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.Companion.kotlinPropertiesProvider
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.ToolingDiagnostic.Severity.ERROR
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.ToolingDiagnostic.Severity.WARNING
+import org.jetbrains.kotlin.gradle.utils.ConfigurationCacheOpaqueValueSource
 import org.jetbrains.kotlin.konan.target.HostManager
 import java.io.Serializable
 
@@ -23,7 +26,7 @@ internal class ToolingDiagnosticRenderingOptions(
     val showSeverityEmoji: Boolean,
     val coloredOutput: Boolean,
     val ignoreWarningMode: Boolean,
-    val warningMode: WarningMode
+    val warningMode: WarningMode,
 ) : Serializable {
     companion object {
         fun forProject(project: Project): ToolingDiagnosticRenderingOptions {
@@ -46,10 +49,28 @@ internal class ToolingDiagnosticRenderingOptions(
                     showStacktrace = showStacktrace,
                     showSeverityEmoji = !project.isInIdeaEnvironment.get() && !HostManager.hostIsMingw,
                     coloredOutput = project.showColoredDiagnostics(),
-                    ignoreWarningMode = internalDiagnosticsIgnoreWarningMode ?: false,
+                    ignoreWarningMode = internalDiagnosticsIgnoreWarningMode == true,
                     warningMode = project.gradle.startParameter.warningMode
                 )
             }
+        }
+    }
+
+    fun effectiveSeverity(severity: ToolingDiagnostic.Severity): ToolingDiagnostic.Severity? {
+        return if (ignoreWarningMode) {
+            severity
+        } else {
+            // Early return if warnings are disabled and it's not an error and not fatal
+            if (warningMode == WarningMode.None && severity == WARNING) {
+                return null
+            }
+
+            return if (severity == WARNING && warningMode == WarningMode.Fail)
+                ERROR
+            else
+                severity
+
+            //TODO: KT-74986 Support WarningMode.Summary mode for gradle diagnostics
         }
     }
 }
@@ -58,7 +79,7 @@ private fun Project.showColoredDiagnostics(): Boolean {
     // Based on Gradle's console output mode, determine if we should use colors
     return when (gradle.startParameter.consoleOutput) {
         // In Auto mode, check if we're in a terminal that supports colors
-        ConsoleOutput.Auto -> isAttachedToTerminal()
+        ConsoleOutput.Auto -> isAttachedToTerminal.get()
         // Plain mode explicitly disables colors
         ConsoleOutput.Plain -> false
         // Rich and Verbose modes force colors on regardless of terminal
@@ -68,19 +89,41 @@ private fun Project.showColoredDiagnostics(): Boolean {
     }
 }
 
-private fun isAttachedToTerminal(): Boolean {
-    // Check various environment variables that indicate terminal capabilities
-    val term = System.getenv("TERM")              // Basic terminal type
-    val colorTerm = System.getenv("COLORTERM")    // Explicit color support flag
-    val termProgram = System.getenv("TERM_PROGRAM") // Terminal emulator program
+private val Project.isAttachedToTerminal
+    get() = providers.of(IsAttachedToTerminalValueSource::class.java) {}.map { it.value }
 
-    // Check multiple indicators of a terminal that supports colors:
-    // - TERM exists and isn't "dumb" (basic terminal)
-    // - COLORTERM exists (explicit color support)
-    // - TERM_PROGRAM exists (modern terminal emulator)
-    return (term != null && term != "dumb") ||
-            colorTerm != null ||
-            termProgram != null
+/**
+ * Configuration cache value source that determines if the application is running in an
+ * interactive terminal with advanced capabilities across different platforms.
+ */
+private abstract class IsAttachedToTerminalValueSource : ConfigurationCacheOpaqueValueSource<Boolean>("isAttachedToTerminal") {
+    override fun obtainValue(): Boolean {
+        // Unix/Linux/macOS terminal detection
+        val term = System.getenv("TERM")              // Standard UNIX environment variable
+        val colorTerm = System.getenv("COLORTERM")    // Explicit color support flag
+        val termProgram = System.getenv("TERM_PROGRAM") // Terminal emulator program
+
+        // Common terminal types:
+        // - "dumb": Basic terminal with minimal features (often in CI environments or redirected output)
+        // - "xterm", "xterm-256color": Standard terminal types with good feature support
+        // - Terminal emulators like "iTerm.app", "Apple_Terminal" will set TERM_PROGRAM
+
+        // Windows-specific terminal detection
+        val ansicon = System.getenv("ANSICON")        // Set by ANSICON and similar Windows terminal enhancers
+        val conEmuANSI = System.getenv("ConEmuANSI")  // Set by ConEmu terminal
+        val wtSession = System.getenv("WT_SESSION")    // Set by Windows Terminal
+
+        // Check for PowerShell
+        val psVersion = System.getenv("PSModulePath") // Typically set in PowerShell environment
+
+        return (term != null && term != "dumb") ||    // Unix terminal check
+                colorTerm != null ||                  // Color support check
+                termProgram != null ||                // Modern terminal emulator check
+                ansicon != null ||                    // Windows ANSI support
+                "ON" == conEmuANSI ||                 // ConEmu with ANSI
+                wtSession != null ||                  // Windows Terminal
+                (psVersion != null && System.console() != null) // Interactive PowerShell session
+    }
 }
 
 internal fun ToolingDiagnostic.isSuppressed(options: ToolingDiagnosticRenderingOptions): Boolean {
@@ -88,9 +131,9 @@ internal fun ToolingDiagnostic.isSuppressed(options: ToolingDiagnosticRenderingO
         // Non-suppressible
         id == KotlinToolingDiagnostics.InternalKotlinGradlePluginPropertiesUsed.id -> false
 
-        severity == ToolingDiagnostic.Severity.WARNING -> id in options.suppressedWarningIds
+        severity == WARNING -> id in options.suppressedWarningIds
 
-        severity == ToolingDiagnostic.Severity.ERROR -> id in options.suppressedErrorIds
+        severity == ERROR -> id in options.suppressedErrorIds
 
         // NB: FATALs can not be suppressed
         else -> false

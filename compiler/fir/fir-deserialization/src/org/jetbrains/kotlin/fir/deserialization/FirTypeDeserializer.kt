@@ -156,7 +156,7 @@ class FirTypeDeserializer(
                     upperBound?.classId == StandardClassIds.Any
 
             return if (isDynamic) {
-                flexibleTypeFactory.createDynamicType(proto, lowerBound!!, upperBound!!)
+                flexibleTypeFactory.createDynamicType(proto, lowerBound, upperBound)
             } else {
                 flexibleTypeFactory.createFlexibleType(proto, lowerBound!!, upperBound!!)
             }
@@ -183,7 +183,7 @@ class FirTypeDeserializer(
                 proto: Type,
                 lowerBound: ConeRigidType,
                 upperBound: ConeRigidType,
-            ): ConeFlexibleType = ConeFlexibleType(lowerBound, upperBound)
+            ): ConeFlexibleType = ConeFlexibleType(lowerBound, upperBound, isTrivial = false)
 
             override fun createDynamicType(
                 proto: Type,

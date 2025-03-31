@@ -1,5 +1,6 @@
 // RUN_PIPELINE_TILL: FRONTEND
 // DIAGNOSTICS: -DEPRECATION -TOPLEVEL_TYPEALIASES_ONLY
+// LANGUAGE: +UnnamedLocalVariables
 
 import kotlin.Deprecated as <!UNDERSCORE_IS_RESERVED!>___<!>
 
@@ -13,12 +14,12 @@ fun <!UNDERSCORE_IS_RESERVED!>__<!>(<!UNDERSCORE_IS_RESERVED!>___<!>: Int, y: <!
     val (x, <!UNDERSCORE_IS_RESERVED!>__________<!>) = Pair(<!UNDERSCORE_USAGE_WITHOUT_BACKTICKS!>___<!> - 1, 42)
     val <!UNDERSCORE_IS_RESERVED!>____<!> = x
     // in backquotes: allowed
-    val <!REDECLARATION!>`_`<!> = <!UNDERSCORE_USAGE_WITHOUT_BACKTICKS!>__________<!>
+    val `_` = <!UNDERSCORE_USAGE_WITHOUT_BACKTICKS!>__________<!>
 
     val q = fun(_: Int, <!UNDERSCORE_IS_RESERVED!>__<!>: Int) {}
     q(1, 2)
 
-    val <!REDECLARATION, UNDERSCORE_IS_RESERVED!>_<!> = 56
+    val _ = 56
 
     fun localFun(<!UNDERSCORE_IS_RESERVED!>_<!>: String) = 1
 

@@ -43,12 +43,14 @@ import org.jetbrains.kotlin.library.metadata.*
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.platform.CommonPlatforms
 import org.jetbrains.kotlin.platform.TargetPlatform
-import org.jetbrains.kotlin.resolve.CompilerDeserializationConfiguration
 import org.jetbrains.kotlin.resolve.CompilerEnvironment
 import org.jetbrains.kotlin.resolve.PlatformDependentAnalyzerServices
 import org.jetbrains.kotlin.storage.LockBasedStorageManager
 import org.jetbrains.kotlin.cli.common.disposeRootInWriteAction
+import org.jetbrains.kotlin.metadata.deserialization.MetadataVersion
+import org.jetbrains.kotlin.resolve.KlibCompilerDeserializationConfiguration
 import org.jetbrains.kotlin.util.DummyLogger
+import org.jetbrains.kotlin.util.toKlibMetadataVersion
 import java.io.File
 import java.io.IOException
 import java.nio.file.Path
@@ -126,7 +128,7 @@ object KlibTestUtil {
 
         val serializer = KlibMetadataMonolithicSerializer(
             languageVersionSettings = LanguageVersionSettingsImpl.DEFAULT,
-            metadataVersion = KLIB_LEGACY_METADATA_VERSION,
+            metadataVersion = LanguageVersionSettingsImpl.DEFAULT.languageVersion.toKlibMetadataVersion(),
             exportKDoc = false,
             skipExpects = false,
             project = null,
@@ -143,7 +145,7 @@ object KlibTestUtil {
             versions = KotlinLibraryVersioning(
                 compilerVersion = null,
                 abiVersion = null,
-                metadataVersion = KLIB_LEGACY_METADATA_VERSION,
+                metadataVersion = LanguageVersionSettingsImpl.DEFAULT.languageVersion.toKlibMetadataVersion(),
             ),
             builtInsPlatform = BuiltInsPlatform.COMMON,
             nativeTargets = emptyList(),
@@ -226,7 +228,7 @@ private fun createAndInitializeKlibBasedStdlibCommonDescriptor(
         packageFragmentNames = parseModuleHeader(stdlibKlib.moduleHeaderData).packageFragmentNameList,
         storageManager = projectContext.storageManager,
         moduleDescriptor = stdlibCommonDescriptor,
-        configuration = CompilerDeserializationConfiguration(environment.configuration.languageVersionSettings),
+        configuration = KlibCompilerDeserializationConfiguration(environment.configuration.languageVersionSettings),
         compositePackageFragmentAddend = null,
         lookupTracker = LookupTracker.DO_NOTHING,
     )

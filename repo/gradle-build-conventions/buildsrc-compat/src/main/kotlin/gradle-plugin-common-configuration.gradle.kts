@@ -17,7 +17,7 @@ val signPublication = !version.toString().contains("-SNAPSHOT") &&
         (project.gradle.startParameter.taskNames.contains("publishPlugins") || signLibraryPublication)
 
 configureCommonPublicationSettingsForGradle(signPublication)
-configureKotlinCompileTasksGradleCompatibility()
+configureBuildToolsApiVersionForGradleCompatibility()
 addBomCheckTask()
 extensions.extraProperties["kotlin.stdlib.default.dependency"] = "false"
 
@@ -94,4 +94,32 @@ if (!kotlinBuildProperties.isInJpsBuildIdeaSync) {
         commonSourceSet = commonSourceSet
     )
     publishShadowedJar(gradle85SourceSet, commonSourceSet)
+
+    // Used for Gradle 8.6+ versions
+    val gradle86SourceSet = createGradlePluginVariant(
+        GradlePluginVariant.GRADLE_86,
+        commonSourceSet = commonSourceSet
+    )
+    publishShadowedJar(gradle86SourceSet, commonSourceSet)
+
+    // Used for Gradle 8.8+ versions
+    val gradle88SourceSet = createGradlePluginVariant(
+        GradlePluginVariant.GRADLE_88,
+        commonSourceSet = commonSourceSet
+    )
+    publishShadowedJar(gradle88SourceSet, commonSourceSet)
+
+    // Used for Gradle 8.11+ versions
+    val gradle811SourceSet = createGradlePluginVariant(
+        GradlePluginVariant.GRADLE_811,
+        commonSourceSet = commonSourceSet
+    )
+    publishShadowedJar(gradle811SourceSet, commonSourceSet)
+
+    // Used for Gradle 8.13+ versions
+    val gradle813SourceSet = createGradlePluginVariant(
+        GradlePluginVariant.GRADLE_813,
+        commonSourceSet = commonSourceSet
+    )
+    publishShadowedJar(gradle813SourceSet, commonSourceSet)
 }

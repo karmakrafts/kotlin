@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -114,9 +114,14 @@ internal object FirReferenceResolveHelper {
                 listOfNotNull(resolvedSymbol.buildSymbol(symbolBuilder))
             }
             is FirThisReference -> {
-                if (isInLabelReference) {
+                val boundSymbol = boundSymbol
+
+                // Probably the workaround for a script receiver parameter should be dropped
+                // as soon as `KaScriptSymbol` API will be properly designed KT-76360
+                // (currently we don't have a dedicated KaSymbol for script receiver parameter)
+                if (isInLabelReference || boundSymbol?.fir is FirScriptReceiverParameter) {
                     listOfNotNull(
-                        when (val boundSymbol = boundSymbol) {
+                        when (boundSymbol) {
                             is FirReceiverParameterSymbol -> boundSymbol.containingDeclarationSymbol
                             is FirValueParameterSymbol -> boundSymbol.containingDeclarationSymbol
                             else -> boundSymbol as FirBasedSymbol<*>?
@@ -425,7 +430,7 @@ internal object FirReferenceResolveHelper {
         // If the cursor position is on the label of `super`, we want to resolve to the current class. FIR represents `super` as
         // accessing the `super` property on `this`, hence this weird looking if condition. In addition, the current class type is available
         // from the dispatch receiver `this`.
-        if (expression is KtLabelReferenceExpression && fir is FirPropertyAccessExpression && fir.calleeReference is FirSuperReference) {
+        if (expression is KtLabelReferenceExpression && fir is FirSuperReceiverExpression) {
             return listOfNotNull(fir.dispatchReceiver?.resolvedType?.toTargetSymbol(session, symbolBuilder))
         }
         val receiverOrImplicitInvoke = if (fir is FirImplicitInvokeCall) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 package org.jetbrains.kotlin.analysis.decompiler.konan
@@ -12,8 +12,9 @@ import com.intellij.psi.compiled.ClassFileDecompilers
 import org.jetbrains.annotations.TestOnly
 import org.jetbrains.kotlin.analysis.decompiler.psi.KotlinDecompiledFileViewProvider
 import org.jetbrains.kotlin.analysis.decompiler.psi.text.DecompiledText
-import org.jetbrains.kotlin.analysis.decompiler.psi.text.createIncompatibleAbiVersionDecompiledText
+import org.jetbrains.kotlin.analysis.decompiler.psi.text.createIncompatibleMetadataVersionDecompiledText
 import org.jetbrains.kotlin.metadata.deserialization.BinaryVersion
+import org.jetbrains.kotlin.metadata.deserialization.MetadataVersion
 import org.jetbrains.kotlin.serialization.SerializerExtensionProtocol
 import org.jetbrains.kotlin.serialization.deserialization.FlexibleTypeDeserializer
 import java.io.IOException
@@ -22,8 +23,6 @@ abstract class KlibMetadataDecompiler<out V : BinaryVersion>(
     private val fileType: FileType,
     private val serializerProtocol: () -> SerializerExtensionProtocol,
     private val flexibleTypeDeserializer: FlexibleTypeDeserializer,
-    private val expectedBinaryVersion: () -> V,
-    private val invalidBinaryVersion: () -> V
 ) : ClassFileDecompilers.Full() {
     protected abstract val metadataStubBuilder: KlibMetadataStubBuilder
 
@@ -67,13 +66,13 @@ abstract class KlibMetadataDecompiler<out V : BinaryVersion>(
 
         return when (val fileWithMetadata = readFileSafely(virtualFile)) {
             is FileWithMetadata.Incompatible -> {
-                createIncompatibleAbiVersionDecompiledText(expectedBinaryVersion(), fileWithMetadata.version)
+                createIncompatibleMetadataVersionDecompiledText(MetadataVersion.INSTANCE_NEXT, fileWithMetadata.version)
             }
             is FileWithMetadata.Compatible -> {
                 getDecompiledText(fileWithMetadata, virtualFile, serializerProtocol(), flexibleTypeDeserializer)
             }
             null -> {
-                createIncompatibleAbiVersionDecompiledText(expectedBinaryVersion(), invalidBinaryVersion())
+                createIncompatibleMetadataVersionDecompiledText(MetadataVersion.INSTANCE_NEXT, MetadataVersion.INVALID_VERSION)
             }
         }
     }

@@ -5,14 +5,16 @@
 
 package org.jetbrains.kotlin.konan.test.blackbox.support
 
-import org.jetbrains.kotlin.ir.linkage.partial.PartialLinkageConfig
-import org.jetbrains.kotlin.ir.linkage.partial.PartialLinkageLogLevel
-import org.jetbrains.kotlin.ir.linkage.partial.PartialLinkageMode
+import org.jetbrains.kotlin.backend.common.linkage.partial.PartialLinkageConfig
+import org.jetbrains.kotlin.backend.common.linkage.partial.PartialLinkageLogLevel
+import org.jetbrains.kotlin.backend.common.linkage.partial.PartialLinkageMode
 import org.jetbrains.kotlin.konan.target.Distribution
 import org.jetbrains.kotlin.konan.target.HostManager
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.jetbrains.kotlin.konan.test.blackbox.AbstractNativeBlackBoxTest
 import org.jetbrains.kotlin.konan.test.blackbox.AbstractNativeSimpleTest
+import org.jetbrains.kotlin.konan.test.blackbox.support.NativeTestSupport.computeBinariesForBlackBoxTests
+import org.jetbrains.kotlin.konan.test.blackbox.support.NativeTestSupport.computeBinariesForSimpleTests
 import org.jetbrains.kotlin.konan.test.blackbox.support.NativeTestSupport.computeBlackBoxTestInstances
 import org.jetbrains.kotlin.konan.test.blackbox.support.NativeTestSupport.createSimpleTestRunSettings
 import org.jetbrains.kotlin.konan.test.blackbox.support.NativeTestSupport.createTestRunSettings
@@ -22,7 +24,6 @@ import org.jetbrains.kotlin.konan.test.blackbox.support.group.*
 import org.jetbrains.kotlin.konan.test.blackbox.support.runner.SimpleTestRunProvider
 import org.jetbrains.kotlin.konan.test.blackbox.support.runner.TestRunProvider
 import org.jetbrains.kotlin.konan.test.blackbox.support.settings.*
-import org.jetbrains.kotlin.konan.test.blackbox.support.settings.CacheMode
 import org.jetbrains.kotlin.konan.test.blackbox.support.util.*
 import org.jetbrains.kotlin.test.TestMetadata
 import org.jetbrains.kotlin.test.directives.model.RegisteredDirectives
@@ -50,7 +51,6 @@ class NativeBlackBoxTestSupport : BeforeEachCallback {
      * not allow accessing its parent test instance in case there are inner test classes in the generated test suite.
      */
     override fun beforeEach(extensionContext: ExtensionContext): Unit = with(extensionContext) {
-        extensionContext.tags.enforceFrontendMarks()
         val settings = createTestRunSettings(computeBlackBoxTestInstances())
 
         // Inject the required properties to test instance.
@@ -63,7 +63,6 @@ class NativeBlackBoxTestSupport : BeforeEachCallback {
 
 class NativeSimpleTestSupport : BeforeEachCallback {
     override fun beforeEach(extensionContext: ExtensionContext): Unit = with(extensionContext) {
-        extensionContext.tags.enforceFrontendMarks()
         val settings = createSimpleTestRunSettings()
 
         // Inject the required properties to test instance.
@@ -71,12 +70,6 @@ class NativeSimpleTestSupport : BeforeEachCallback {
             testRunSettings = settings
             testRunProvider = getOrCreateSimpleTestRunProvider()
         }
-    }
-}
-
-private fun Set<String>.enforceFrontendMarks() {
-    if (!(("frontend-fir" in this) xor ("frontend-classic" in this))) {
-        error("Test should be marked either with \"frontend-fir\" or \"frontend-classic\" tag")
     }
 }
 
@@ -194,8 +187,6 @@ object NativeTestSupport {
         enclosingTestClass: Class<*>,
         output: MutableCollection<Any>,
     ): KotlinNativeTargets {
-        tags.enforceFrontendMarks()
-
         val enforcedProperties = EnforcedProperties(enclosingTestClass)
 
         val optimizationMode = computeOptimizationMode(enforcedProperties)
@@ -570,8 +561,7 @@ object NativeTestSupport {
     private fun computePipelineType(enforcedProperties: EnforcedProperties, testClass: Class<*>): PipelineType {
         val pipelineTypeFromPipelineAnnotation = if (testClass.annotations.any { it is ClassicPipeline })
             PipelineType.K1
-        else if (testClass.annotations.any { it is FirPipeline }) PipelineType.K2
-        else error("Pipeline has to be explicitly specified!")
+        else PipelineType.K2
 
         return ClassLevelProperty.PIPELINE_TYPE.readValue(
             enforcedProperties,

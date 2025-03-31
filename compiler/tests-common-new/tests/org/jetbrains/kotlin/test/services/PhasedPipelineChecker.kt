@@ -35,7 +35,7 @@ class PhasedPipelineChecker(
         get() = listOf(TestPhaseDirectives)
 
     override fun suppressIfNeeded(failedAssertions: List<WrappedException>): List<WrappedException> {
-        checkLatestPhaseDirective()?.let { return failedAssertions + it }
+        latestPhaseDirectiveOr { return failedAssertions + it }
         val targetedPhase = getTargetedPhase()
         if (targetedPhase == null) {
             return failedAssertions + reportMissingDirective(failedAssertions)
@@ -60,14 +60,14 @@ class PhasedPipelineChecker(
         else -> null
     }
 
-    private fun checkLatestPhaseDirective(): WrappedException? {
+    private inline fun latestPhaseDirectiveOr(otherwise: (WrappedException) -> Nothing): TestPhase {
         val latestPhases = testServices.moduleStructure.allDirectives[LATEST_PHASE_IN_PIPELINE].distinct()
         val message = when (latestPhases.size) {
+            1 -> return latestPhases[0]
             0 -> "LATEST_PHASE_IN_PIPELINE directive is not specified for the test"
-            1 -> return null
             else -> "LATEST_PHASE_IN_PIPELINE directive defined multiple times: $latestPhases"
         }
-        return WrappedException.FromAfterAnalysisChecker(IllegalStateException(message))
+        return otherwise(WrappedException.FromAfterAnalysisChecker(IllegalStateException(message)))
     }
 
     private fun checkPhaseConsistency(): List<WrappedException> {
@@ -75,6 +75,9 @@ class PhasedPipelineChecker(
         if (DISABLE_NEXT_PHASE_SUGGESTION in directives) return emptyList()
         val expectedLastPhase = directives[LATEST_PHASE_IN_PIPELINE].first()
         val targetedPhase = getTargetedPhase()
+        if (targetedPhase == expectedLastPhase) {
+            return emptyList()
+        }
         if (targetedPhase != null && targetedPhase > expectedLastPhase) {
             val message = "RUN_PIPELINE_TILL ($targetedPhase) cannot be greater than $LATEST_PHASE_IN_PIPELINE ($expectedLastPhase)"
             return listOf(WrappedException.FromAfterAnalysisChecker(IllegalStateException(message)))
@@ -83,21 +86,14 @@ class PhasedPipelineChecker(
         return createDiffsForAllTestDataFiles("Phase $targetedPhase could be promoted to $expectedLastPhase") {
             val proposedDirectiveDeclaration = when (targetedPhase) {
                 defaultRunPipelineTill -> ""
-                else -> "// RUN_PIPELINE_TILL: $expectedLastPhase\n"
+                else -> "// RUN_PIPELINE_TILL: $expectedLastPhase"
             }
-            it.replace("// RUN_PIPELINE_TILL: $targetedPhase\n", proposedDirectiveDeclaration)
+            it.replace("// RUN_PIPELINE_TILL: $targetedPhase", proposedDirectiveDeclaration)
         }
     }
 
     private fun reportMissingDirective(failedAssertions: List<WrappedException>): List<WrappedException> {
-        val latestPhases = testServices.moduleStructure.allDirectives[LATEST_PHASE_IN_PIPELINE]
-        val expectedLastPhase = latestPhases.singleOrNull() ?: run {
-            val message = when (latestPhases.size) {
-                0 -> "LATEST_PHASE_IN_PIPELINE directive is not specified for the test"
-                else -> "LATEST_PHASE_IN_PIPELINE directive defined multiple times: $latestPhases"
-            }
-            WrappedException.FromAfterAnalysisChecker(IllegalStateException(message))
-        }
+        val expectedLastPhase = latestPhaseDirectiveOr { return failedAssertions + it }
         val proposedPhase = failedAssertions.mapNotNull {
             when (it) {
                 is WrappedException.FromFacade -> it.facade.outputKind

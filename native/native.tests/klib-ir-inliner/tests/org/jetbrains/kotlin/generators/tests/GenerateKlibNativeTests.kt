@@ -15,7 +15,6 @@ import org.jetbrains.kotlin.konan.test.blackbox.support.EnforcedProperty
 import org.jetbrains.kotlin.konan.test.blackbox.support.KLIB_IR_INLINER
 import org.jetbrains.kotlin.konan.test.blackbox.support.TestKind
 import org.jetbrains.kotlin.konan.test.blackbox.support.group.ClassicPipeline
-import org.jetbrains.kotlin.konan.test.blackbox.support.group.FirPipeline
 import org.jetbrains.kotlin.konan.test.blackbox.support.group.UseExtTestCaseGroupProvider
 import org.jetbrains.kotlin.konan.test.blackbox.support.settings.CacheMode
 import org.jetbrains.kotlin.konan.test.diagnostics.*
@@ -24,7 +23,8 @@ import org.jetbrains.kotlin.konan.test.headerklib.*
 import org.jetbrains.kotlin.konan.test.inlining.AbstractNativeUnboundIrSerializationTest
 import org.jetbrains.kotlin.konan.test.irText.*
 import org.jetbrains.kotlin.konan.test.dump.*
-import org.jetbrains.kotlin.konan.test.serialization.AbstractFirNativeSerializationTest
+import org.jetbrains.kotlin.konan.test.serialization.AbstractNativeIrDeserializationTest
+import org.jetbrains.kotlin.konan.test.serialization.AbstractNativeIrDeserializationWithInlinedFunInKlibTest
 import org.jetbrains.kotlin.konan.test.syntheticAccessors.*
 import org.jetbrains.kotlin.test.TargetBackend
 import org.jetbrains.kotlin.test.utils.CUSTOM_TEST_DATA_EXTENSION_PATTERN
@@ -70,21 +70,19 @@ fun main() {
 
             testClass<AbstractFirPsiNativeDiagnosticsTest>(
                 suiteTestClassName = "FirPsiOldFrontendNativeDiagnosticsTestGenerated",
-                annotations = listOf(*frontendFir()),
             ) {
                 model("nativeTests", excludedPattern = CUSTOM_TEST_DATA_EXTENSION_PATTERN)
             }
 
             testClass<AbstractFirLightTreeNativeDiagnosticsTest>(
                 suiteTestClassName = "FirLightTreeOldFrontendNativeDiagnosticsTestGenerated",
-                annotations = listOf(*frontendFir()),
             ) {
                 model("nativeTests", excludedPattern = CUSTOM_TEST_DATA_EXTENSION_PATTERN)
             }
 
             testClass<AbstractFirPsiNativeDiagnosticsWithBackendTestBase>(
                 suiteTestClassName = "FirPsiNativeKlibDiagnosticsTestGenerated",
-                annotations = listOf(*frontendFir(), klib())
+                annotations = listOf(klib())
             ) {
                 model("klibSerializationTests")
                 // KT-67300: TODO: extract specialBackendChecks into own test runner, invoking Native backend facade at the end
@@ -93,7 +91,16 @@ fun main() {
 
             testClass<AbstractFirLightTreeNativeDiagnosticsWithBackendTestBase>(
                 suiteTestClassName = "FirLightTreeNativeKlibDiagnosticsTestGenerated",
-                annotations = listOf(*frontendFir(), klib())
+                annotations = listOf(klib())
+            ) {
+                model("klibSerializationTests")
+                // KT-67300: TODO: extract specialBackendChecks into own test runner, invoking Native backend facade at the end
+                model("nativeTests/specialBackendChecks")
+            }
+
+            testClass<AbstractFirNativeDiagnosticsWithBackendWithInlinedFunInKlibTestBase>(
+                suiteTestClassName = "FirNativeKlibDiagnosticsWithInlinedFunInKlibTestGenerated",
+                annotations = listOf(klib())
             ) {
                 model("klibSerializationTests")
                 // KT-67300: TODO: extract specialBackendChecks into own test runner, invoking Native backend facade at the end
@@ -105,7 +112,7 @@ fun main() {
         testGroup(testsRoot = "native/native.tests/klib-ir-inliner/tests-gen", testDataRoot = "compiler/testData") {
             testClass<AbstractNativeUnboundIrSerializationTest>(
                 suiteTestClassName = "NativeUnboundIrSerializationTestGenerated",
-                annotations = listOf(*frontendFir(), klib())
+                annotations = listOf(klib())
             ) {
                 /*
                  * Note: "all-files" tests are consciously not generated to have a more clear picture of test coverage:
@@ -131,9 +138,6 @@ fun main() {
             }
             testClass<AbstractNativeKlibDumpMetadataTest>(
                 suiteTestClassName = "FirNativeKlibDumpMetadataTestGenerated",
-                annotations = listOf(
-                    *frontendFir()
-                )
             ) {
                 model(pattern = "^([^_](.+)).kt$", recursive = true)
             }
@@ -151,9 +155,6 @@ fun main() {
             }
             testClass<AbstractNativeKlibDumpIrTest>(
                 suiteTestClassName = "FirNativeKlibDumpIrTestGenerated",
-                annotations = listOf(
-                    *frontendFir()
-                )
             ) {
                 model(pattern = "^([^_](.+)).kt$", recursive = true)
             }
@@ -171,9 +172,6 @@ fun main() {
             }
             testClass<AbstractNativeKlibDumpIrSignaturesTest>(
                 suiteTestClassName = "FirNativeKlibDumpIrSignaturesTestGenerated",
-                annotations = listOf(
-                    *frontendFir()
-                )
             ) {
                 model(pattern = "^([^_](.+)).kt$", recursive = true)
             }
@@ -191,9 +189,6 @@ fun main() {
             }
             testClass<AbstractNativeKlibDumpMetadataSignaturesTest>(
                 suiteTestClassName = "FirNativeKlibDumpMetadataSignaturesTestGenerated",
-                annotations = listOf(
-                    *frontendFir()
-                )
             ) {
                 model(pattern = "^([^_](.+)).(kt|def)$", recursive = true)
             }
@@ -209,7 +204,6 @@ fun main() {
             }
             testClass<AbstractNativeHeaderKlibComparisonTest>(
                 suiteTestClassName = "FirNativeHeaderKlibComparisonTestGenerated",
-                annotations = listOf(*frontendFir()),
             ) {
                 model(extension = null, recursive = false)
             }
@@ -225,7 +219,6 @@ fun main() {
             }
             testClass<AbstractNativeHeaderKlibCompilationTest>(
                 suiteTestClassName = "FirNativeHeaderKlibCompilationTestGenerated",
-                annotations = listOf(*frontendFir()),
             ) {
                 model(extension = null, recursive = false)
             }
@@ -243,9 +236,6 @@ fun main() {
             }
             testClass<AbstractNativeKlibEvolutionTest>(
                 suiteTestClassName = "FirNativeKlibEvolutionTestGenerated",
-                annotations = listOf(
-                    *frontendFir()
-                )
             ) {
                 model(recursive = false)
             }
@@ -256,7 +246,6 @@ fun main() {
             testClass<AbstractNativeCodegenBoxTest>(
                 suiteTestClassName = "FirNativeCodegenBoxWithInlinedFunInKlibTestGenerated",
                 annotations = listOf(
-                    *frontendFir(),
                     klibIrInliner(),
                     provider<UseExtTestCaseGroupProvider>()
                 )
@@ -264,7 +253,11 @@ fun main() {
                 model("box", targetBackend = TargetBackend.NATIVE, excludeDirs = k1BoxTestDir)
                 model("boxInline", targetBackend = TargetBackend.NATIVE, excludeDirs = k1BoxTestDir)
             }
-            testClass<AbstractFirNativeSerializationTest> {
+            testClass<AbstractNativeIrDeserializationTest> {
+                model("box", excludeDirs = k1BoxTestDir, nativeTestInNonNativeTestInfra = true)
+                model("boxInline", excludeDirs = k1BoxTestDir, nativeTestInNonNativeTestInfra = true)
+            }
+            testClass<AbstractNativeIrDeserializationWithInlinedFunInKlibTest> {
                 model("box", excludeDirs = k1BoxTestDir, nativeTestInNonNativeTestInfra = true)
                 model("boxInline", excludeDirs = k1BoxTestDir, nativeTestInNonNativeTestInfra = true)
             }
@@ -275,7 +268,6 @@ fun main() {
             testClass<AbstractNativeCodegenBoxTest>(
                 suiteTestClassName = "FirNativeKlibSyntheticAccessorsBoxTestGenerated",
                 annotations = listOf(
-                    *frontendFir(),
                     klibIrInliner(),
                     provider<UseExtTestCaseGroupProvider>(),
                 )
@@ -289,7 +281,6 @@ fun main() {
             testClass<AbstractNativeKlibSyntheticAccessorInPhase1Test>(
                 annotations = listOf(
                     *klibSyntheticAccessors(),
-                    *frontendFir(),
                 )
             ) {
                 model(targetBackend = TargetBackend.NATIVE)
@@ -297,7 +288,6 @@ fun main() {
             testClass<AbstractNativeKlibSyntheticAccessorInPhase2Test>(
                 annotations = listOf(
                     *klibSyntheticAccessors(),
-                    *frontendFir(),
                 )
             ) {
                 model(targetBackend = TargetBackend.NATIVE)
@@ -317,19 +307,12 @@ fun main() {
             }
             testClass<AbstractFirNativeLibraryAbiReaderTest>(
                 suiteTestClassName = "FirNativeLibraryAbiReaderTestGenerated",
-                annotations = listOf(
-                    *frontendFir()
-                )
             ) {
                 model()
             }
         }
     }
 }
-
-fun frontendFir() = arrayOf(
-    annotation(FirPipeline::class.java)
-)
 
 fun frontendClassic() = arrayOf(
     annotation(ClassicPipeline::class.java)

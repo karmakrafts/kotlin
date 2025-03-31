@@ -412,12 +412,6 @@ public class NativeCodegenLocalTestGenerated extends AbstractNativeCodegenBoxTes
       }
 
       @Test
-      @TestMetadata("unsupported.kt")
-      public void testUnsupported() {
-        runTest("native/native.tests/testData/codegen/cinterop/basics/unsupported.kt");
-      }
-
-      @Test
       @TestMetadata("values.kt")
       public void testValues() {
         runTest("native/native.tests/testData/codegen/cinterop/basics/values.kt");
@@ -463,6 +457,12 @@ public class NativeCodegenLocalTestGenerated extends AbstractNativeCodegenBoxTes
       @TestMetadata("blockToFunction.kt")
       public void testBlockToFunction() {
         runTest("native/native.tests/testData/codegen/cinterop/objc/blockToFunction.kt");
+      }
+
+      @Test
+      @TestMetadata("blockToFunctionLifetime.kt")
+      public void testBlockToFunctionLifetime() {
+        runTest("native/native.tests/testData/codegen/cinterop/objc/blockToFunctionLifetime.kt");
       }
 
       @Test
@@ -788,6 +788,48 @@ public class NativeCodegenLocalTestGenerated extends AbstractNativeCodegenBoxTes
     @Test
     public void testAllFilesPresentInEscapeAnalysis() {
       KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("native/native.tests/testData/codegen/escapeAnalysis"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.NATIVE, true);
+    }
+
+    @Test
+    @TestMetadata("kt75317.kt")
+    public void testKt75317() {
+      runTest("native/native.tests/testData/codegen/escapeAnalysis/kt75317.kt");
+    }
+
+    @Test
+    @TestMetadata("kt75317_2.kt")
+    public void testKt75317_2() {
+      runTest("native/native.tests/testData/codegen/escapeAnalysis/kt75317_2.kt");
+    }
+
+    @Test
+    @TestMetadata("kt75317_2_nocms.kt")
+    public void testKt75317_2_nocms() {
+      runTest("native/native.tests/testData/codegen/escapeAnalysis/kt75317_2_nocms.kt");
+    }
+
+    @Test
+    @TestMetadata("kt75861.kt")
+    public void testKt75861() {
+      runTest("native/native.tests/testData/codegen/escapeAnalysis/kt75861.kt");
+    }
+
+    @Test
+    @TestMetadata("kt76104.kt")
+    public void testKt76104() {
+      runTest("native/native.tests/testData/codegen/escapeAnalysis/kt76104.kt");
+    }
+
+    @Test
+    @TestMetadata("kt76104_2.kt")
+    public void testKt76104_2() {
+      runTest("native/native.tests/testData/codegen/escapeAnalysis/kt76104_2.kt");
+    }
+
+    @Test
+    @TestMetadata("localAllocatedArray.kt")
+    public void testLocalAllocatedArray() {
+      runTest("native/native.tests/testData/codegen/escapeAnalysis/localAllocatedArray.kt");
     }
 
     @Test
@@ -1802,6 +1844,12 @@ public class NativeCodegenLocalTestGenerated extends AbstractNativeCodegenBoxTes
     @TestMetadata("immutable_blob_in_lambda.kt")
     public void testImmutable_blob_in_lambda() {
       runTest("native/native.tests/testData/codegen/lower/immutable_blob_in_lambda.kt");
+    }
+
+    @Test
+    @TestMetadata("liveness_analysis_fallback.kt")
+    public void testLiveness_analysis_fallback() {
+      runTest("native/native.tests/testData/codegen/lower/liveness_analysis_fallback.kt");
     }
 
     @Test

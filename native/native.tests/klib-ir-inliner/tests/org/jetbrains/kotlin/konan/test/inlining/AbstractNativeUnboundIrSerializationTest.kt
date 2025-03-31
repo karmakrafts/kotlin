@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -15,7 +15,7 @@ import org.jetbrains.kotlin.backend.konan.serialization.KonanIrFileSerializer
 import org.jetbrains.kotlin.backend.konan.serialization.KonanManglerIr
 import org.jetbrains.kotlin.cli.common.messages.getLogger
 import org.jetbrains.kotlin.config.CompilerConfiguration
-import org.jetbrains.kotlin.config.languageVersionSettings
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.builders.declarations.buildProperty
@@ -31,6 +31,7 @@ import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
 import org.jetbrains.kotlin.konan.test.Fir2IrNativeResultsConverter
 import org.jetbrains.kotlin.konan.test.FirNativeKlibSerializerFacade
+import org.jetbrains.kotlin.konan.test.converters.NativeInliningFacade
 import org.jetbrains.kotlin.library.metadata.KlibDeserializedContainerSource
 import org.jetbrains.kotlin.library.resolveSingleFileKlib
 import org.jetbrains.kotlin.platform.konan.NativePlatforms
@@ -39,11 +40,14 @@ import org.jetbrains.kotlin.test.FirParser
 import org.jetbrains.kotlin.test.TargetBackend
 import org.jetbrains.kotlin.test.backend.handlers.KlibArtifactHandler
 import org.jetbrains.kotlin.test.backend.handlers.NoFirCompilationErrorsHandler
+import org.jetbrains.kotlin.test.backend.ir.IrDiagnosticsHandler
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
 import org.jetbrains.kotlin.test.builders.firHandlersStep
+import org.jetbrains.kotlin.test.builders.inlinedIrHandlersStep
 import org.jetbrains.kotlin.test.builders.klibArtifactsHandlersStep
 import org.jetbrains.kotlin.test.directives.ConfigurationDirectives
 import org.jetbrains.kotlin.test.directives.KlibBasedCompilerTestDirectives
+import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives.LANGUAGE
 import org.jetbrains.kotlin.test.directives.configureFirParser
 import org.jetbrains.kotlin.test.frontend.fir.FirFrontendFacade
 import org.jetbrains.kotlin.test.model.*
@@ -85,6 +89,7 @@ open class AbstractNativeUnboundIrSerializationTest : AbstractKotlinCompilerWith
             // Kotlin/Native does not have "minimal" stdlib(like other backends do), so full stdlib is needed to resolve
             // `Any`, `String`, `println`, etc.
             +ConfigurationDirectives.WITH_STDLIB
+            LANGUAGE with "+${LanguageFeature.IrInlinerBeforeKlibSerialization.name}"
         }
 
         configureFirParser(FirParser.LightTree)
@@ -104,6 +109,10 @@ open class AbstractNativeUnboundIrSerializationTest : AbstractKotlinCompilerWith
             useHandlers(::NoFirCompilationErrorsHandler)
         }
         facadeStep(::Fir2IrNativeResultsConverter)
+
+        facadeStep(::NativeInliningFacade)
+        inlinedIrHandlersStep { useHandlers(::IrDiagnosticsHandler) }
+
         facadeStep(::FirNativeKlibSerializerFacade)
         klibArtifactsHandlersStep {
             useHandlers(::UnboundIrSerializationHandler)
@@ -150,7 +159,8 @@ private class UnboundIrSerializationHandler(testServices: TestServices) : KlibAr
             val deserializedContainerSource = KlibDeserializedContainerSource(
                 isPreReleaseInvisible = false,
                 presentableString = "Emulation of lazy IR inline function ${functionUnderTest.fullyLinkedIrFunction.render()} from ${library.libraryFile.absolutePath}",
-                library
+                klib = library,
+                incompatibility = null,
             )
 
             functionUnderTest.partiallyLinkedIrFunction = emulateInlineFunctionRepresentedByLazyIr(
@@ -195,33 +205,32 @@ private class UnboundIrSerializationHandler(testServices: TestServices) : KlibAr
         irBuiltIns: IrBuiltIns,
         functionsUnderTest: Set<InlineFunctionUnderTest>
     ) {
+        val irSerializationSettings = IrSerializationSettings(
+            configuration = configuration,
+            /*
+             * Important: Do not recompute a signature for a symbol that already has the signature. Why?
+             *
+             * Normally, symbols coming from the frontend should not have any signatures. And there should not be
+             * any problems with computing signatures for them, as far as their IR is fully linked.
+             *
+             * But for symbols coming from `NonLinkingIrInlineFunctionDeserializer` the IR is unlinked (or partially linked).
+             * Computing signatures for such symbols in 99% cases would result in "X is unbound. Signature: Y" error.
+             * So, for such symbols it's better to take the signature as it is and not try to recompute it. Hopefully,
+             * the signature should already be deserialized together with the symbol.
+             */
+            reuseExistingSignaturesForSymbols = true
+        )
+
         for (function in functionsUnderTest) {
             function.fullyLinkedSerializedFunction = SingleFunctionSerializer(
-                IrSerializationSettings(
-                    languageVersionSettings = configuration.languageVersionSettings,
-                    reuseExistingSignaturesForSymbols = false,
-                ),
+                irSerializationSettings,
                 irBuiltIns
             ).serializeSingleFunction(function.fullyLinkedIrFunction)
         }
 
         for (function in functionsUnderTest) {
             function.partiallyLinkedSerializedFunction = SingleFunctionSerializer(
-                IrSerializationSettings(
-                    languageVersionSettings = configuration.languageVersionSettings,
-                    /*
-                     * Important: Do not recompute a signature for a symbol that already has the signature. Why?
-                     *
-                     * Normally, symbols coming from the frontend should not have any signatures. And there should not be
-                     * any problems with computing signatures for them, as far as their IR is fully linked.
-                     *
-                     * But for symbols coming from `NonLinkingIrInlineFunctionDeserializer` the IR is unlinked (or partially linked).
-                     * Computing signatures for such symbols in 99% cases would result in "X is unbound. Signature: Y" error.
-                     * So, for such symbols it's better to take the signature as it is and not try to recompute it. Hopefully,
-                     * the signature should already be deserialized together with the symbol.
-                     */
-                    reuseExistingSignaturesForSymbols = true
-                ),
+                irSerializationSettings,
                 irBuiltIns
             ).serializeSingleFunction(function.partiallyLinkedIrFunction)
         }
@@ -384,7 +393,7 @@ private class DeepCopyForLazyIrEmulation(
 private class SingleFunctionSerializer(
     settings: IrSerializationSettings,
     irBuiltIns: IrBuiltIns,
-) : KonanIrFileSerializer(settings, KonanDeclarationTable(KonanGlobalDeclarationTable(irBuiltIns))) {
+) : KonanIrFileSerializer(settings, KonanDeclarationTable(KonanGlobalDeclarationTable(irBuiltIns, settings))) {
     fun serializeSingleFunction(irFunction: IrSimpleFunction): SerializedFunction {
         check(protoTypeArray.protoTypes.isEmpty())
         check(protoIdSignatureArray.isEmpty())

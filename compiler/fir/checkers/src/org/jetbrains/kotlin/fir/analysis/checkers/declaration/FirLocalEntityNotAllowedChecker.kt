@@ -15,11 +15,12 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.declarations.utils.isCompanion
+import org.jetbrains.kotlin.fir.declarations.utils.isReplSnippetDeclaration
 import org.jetbrains.kotlin.fir.declarations.utils.visibility
 
 object FirLocalEntityNotAllowedChecker : FirRegularClassChecker(MppCheckerKind.Common) {
     override fun check(declaration: FirRegularClass, context: CheckerContext, reporter: DiagnosticReporter) {
-        if (declaration.visibility != Visibilities.Local) {
+        if (declaration.visibility != Visibilities.Local || declaration.isReplSnippetDeclaration == true) {
             return
         }
 

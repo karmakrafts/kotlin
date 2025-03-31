@@ -28,23 +28,57 @@ class Bar: Barable, Foeble, Bazzable {
 
 // FILE: less_trivial.kt
 
-interface OUTSIDE_PROTO {
-    // FIXME: KT-70541
-    // We can not properly detect nested classes as unsopported
-    /*
-   open class INSIDE_PROTO
-    */
+interface ContainerProtocol {
+    open class NestedClass
+
+    interface NestedProtocol {
+        open class NestedClass
+    }
 }
 
-// FIXME: See the commend above on OUTSIDE_PROTO.INSIDE_PROTO
-/*
-    class INHERITANCE_COUPLE : OUTSIDE_PROTO.INSIDE_PROTO(), OUTSIDE_PROTO
-    class INHERITANCE_SINGLE_PROTO : OUTSIDE_PROTO.INSIDE_PROTO()
-*/
+interface SiblingProtocol {
+    class NestedClass {
+        class NestedClass
+    }
+}
 
-object OBJECT_WITH_INTERFACE_INHERITANCE: OUTSIDE_PROTO
+fun ContainerProtocol.foo(): Unit { TODO() }
+fun ContainerProtocol.NestedProtocol.NestedClass.foo(): Unit { TODO() }
+fun SiblingProtocol.NestedClass.foo(): Unit { TODO() }
+fun ContainerProtocol.NestedProtocol.foo(): Unit { TODO() }
 
-enum class ENUM_WITH_INTERFACE_INHERITANCE: OUTSIDE_PROTO
+// FILE: packaged.kt
+
+package packagewithprotocols
+
+interface ContainerProtocol {
+    open class NestedClass
+
+    interface NestedProtocol {
+        open class NestedClass
+    }
+}
+
+interface SiblingProtocol {
+    class NestedClass {
+        class NestedClass
+    }
+}
+
+fun ContainerProtocol.foo(): Unit { TODO() }
+fun ContainerProtocol.NestedProtocol.NestedClass.foo(): Unit { TODO() }
+fun SiblingProtocol.NestedClass.foo(): Unit { TODO() }
+fun ContainerProtocol.NestedProtocol.foo(): Unit { TODO() }
+
+// FIXME: See the commend above on ContainerProtocol.NestedClass
+
+class INHERITANCE_COUPLE : ContainerProtocol.NestedClass(), ContainerProtocol
+class INHERITANCE_SINGLE_PROTO : ContainerProtocol.NestedClass()
+
+
+object OBJECT_WITH_INTERFACE_INHERITANCE: ContainerProtocol
+
+enum class ENUM_WITH_INTERFACE_INHERITANCE: ContainerProtocol
 
 // FILE: existentials.kt
 
@@ -81,3 +115,17 @@ open class GrandChild4: Child4(), Barable
 open class Parent5
 open class Child5: Parent5()
 open class GrandChild5: Child5(), Barable, Foeble
+
+// FILE: sealed_interface.kt
+
+sealed interface SealedFoeble {
+    sealed interface SealedBarable: SealedFoeble
+
+    object SomeFoeble: SealedFoeble
+
+    object SomeBarable: SealedBarable
+}
+
+sealed interface SealedBazzable: SealedFoeble
+
+object SomeBazzable: SealedBazzable

@@ -75,6 +75,12 @@ public class LLNativeDiagnosticsTestGenerated extends AbstractLLNativeDiagnostic
   }
 
   @Test
+  @TestMetadata("identityHashCodeOnValueClass.kt")
+  public void testIdentityHashCodeOnValueClass() {
+    runTest("compiler/testData/diagnostics/nativeTests/identityHashCodeOnValueClass.kt");
+  }
+
+  @Test
   @TestMetadata("isInitialized.kt")
   public void testIsInitialized() {
     runTest("compiler/testData/diagnostics/nativeTests/isInitialized.kt");
@@ -168,6 +174,12 @@ public class LLNativeDiagnosticsTestGenerated extends AbstractLLNativeDiagnostic
   @TestMetadata("objcOverrideApplicability.kt")
   public void testObjcOverrideApplicability() {
     runTest("compiler/testData/diagnostics/nativeTests/objcOverrideApplicability.kt");
+  }
+
+  @Test
+  @TestMetadata("oldAtomicTypes.kt")
+  public void testOldAtomicTypes() {
+    runTest("compiler/testData/diagnostics/nativeTests/oldAtomicTypes.kt");
   }
 
   @Test

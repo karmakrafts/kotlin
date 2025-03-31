@@ -40,6 +40,12 @@ public class FirSourceLazyBodiesCalculatorTestGenerated extends AbstractFirSourc
     }
 
     @Test
+    @TestMetadata("annotationArguments.kt")
+    public void testAnnotationArguments() {
+      runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/annotationArguments.kt");
+    }
+
+    @Test
     @TestMetadata("annotationOnContextParameters.kt")
     public void testAnnotationOnContextParameters() {
       runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/annotationOnContextParameters.kt");
@@ -184,6 +190,12 @@ public class FirSourceLazyBodiesCalculatorTestGenerated extends AbstractFirSourc
     }
 
     @Test
+    @TestMetadata("danglingModifierInsideEnumEntry.kt")
+    public void testDanglingModifierInsideEnumEntry() {
+      runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/danglingModifierInsideEnumEntry.kt");
+    }
+
+    @Test
     @TestMetadata("dataClassWithAnnotations.kt")
     public void testDataClassWithAnnotations() {
       runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/dataClassWithAnnotations.kt");
@@ -319,6 +331,12 @@ public class FirSourceLazyBodiesCalculatorTestGenerated extends AbstractFirSourc
     @TestMetadata("genericProperty.kt")
     public void testGenericProperty() {
       runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/genericProperty.kt");
+    }
+
+    @Test
+    @TestMetadata("importAlias.kt")
+    public void testImportAlias() {
+      runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/importAlias.kt");
     }
 
     @Test
@@ -562,6 +580,18 @@ public class FirSourceLazyBodiesCalculatorTestGenerated extends AbstractFirSourc
       @Test
       public void testAllFilesPresentInInvalidCode() {
         KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/invalidCode"), Pattern.compile("^(.+)\\.(kt)$"), null, true);
+      }
+
+      @Test
+      @TestMetadata("destructuringInsideCallChain.kt")
+      public void testDestructuringInsideCallChain() {
+        runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/invalidCode/destructuringInsideCallChain.kt");
+      }
+
+      @Test
+      @TestMetadata("duplicatedContextParameter.kt")
+      public void testDuplicatedContextParameter() {
+        runTest("compiler/fir/raw-fir/psi2fir/testData/rawBuilder/declarations/invalidCode/duplicatedContextParameter.kt");
       }
 
       @Test

@@ -28,12 +28,9 @@ import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.compiler.plugin.ComponentRegistrar
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
-import org.jetbrains.kotlin.config.JVMConfigurationKeys
-import org.jetbrains.kotlin.config.JvmTarget
 import org.jetbrains.kotlin.config.languageVersionSettings
 import org.jetbrains.kotlin.config.messageCollector
 import org.jetbrains.kotlin.config.moduleName
-import org.jetbrains.kotlin.config.useFirExtraCheckers
 import org.jetbrains.kotlin.config.useLightTree
 import org.jetbrains.kotlin.diagnostics.impl.BaseDiagnosticsCollector
 import org.jetbrains.kotlin.fir.DependencyListForCliModule
@@ -65,14 +62,15 @@ object JvmFrontendPipelinePhase : PipelinePhase<ConfigurationPipelineArtifact, J
         val messageCollector = configuration.messageCollector
 
         val perfManager = configuration.perfManager
+        val chunk = configuration.moduleChunk!!
+        val targetDescription = chunk.targetDescription()
+        perfManager?.targetDescription = targetDescription
 
         if (!checkNotSupportedPlugins(configuration, messageCollector)) {
             perfManager?.notifyPhaseFinished(PhaseType.Initialization)
             return null
         }
 
-        val chunk = configuration.moduleChunk!!
-        val targetDescription = chunk.targetDescription()
         val (environment, sourcesProvider) = createEnvironmentAndSources(
             configuration,
             rootDisposable,
@@ -329,24 +327,37 @@ object JvmFrontendPipelinePhase : PipelinePhase<ConfigurationPipelineArtifact, J
         var firJvmIncrementalCompilationSymbolProviders: FirJvmIncrementalCompilationSymbolProviders? = null
         var firJvmIncrementalCompilationSymbolProvidersIsInitialized = false
 
+        val packagePartProviderForLibraries = projectEnvironment.getPackagePartProvider(librariesScope)
         return SessionConstructionUtils.prepareSessions(
             files, configuration, rootModuleName, JvmPlatforms.unspecifiedJvmPlatform,
             metadataCompilationMode = false, libraryList, isCommonSource, isScript, fileBelongsToModule,
-            createLibrarySession = { sessionProvider ->
-                FirJvmSessionFactory.createLibrarySession(
+            createSharedLibrarySession = { sessionProvider ->
+                FirJvmSessionFactory.createSharedLibrarySession(
                     rootModuleName,
                     sessionProvider,
+                    projectEnvironment,
+                    extensionRegistrars,
+                    librariesScope,
+                    packagePartProviderForLibraries,
+                    configuration.languageVersionSettings,
+                    predefinedJavaComponents = predefinedJavaComponents,
+                )
+            },
+            createLibrarySession = { sessionProvider, sharedLibrarySession ->
+                FirJvmSessionFactory.createLibrarySession(
+                    sessionProvider,
+                    sharedLibrarySession,
                     libraryList.moduleDataProvider,
                     projectEnvironment,
                     extensionRegistrars,
                     librariesScope,
-                    projectEnvironment.getPackagePartProvider(librariesScope),
+                    packagePartProviderForLibraries,
                     configuration.languageVersionSettings,
                     predefinedJavaComponents = predefinedJavaComponents,
                 )
             },
         ) { moduleFiles, moduleData, sessionProvider, sessionConfigurator ->
-            FirJvmSessionFactory.createModuleBasedSession(
+            FirJvmSessionFactory.createSourceSession(
                 moduleData,
                 sessionProvider,
                 javaSourcesScope,
@@ -368,12 +379,7 @@ object JvmFrontendPipelinePhase : PipelinePhase<ConfigurationPipelineArtifact, J
                     }
                 },
                 extensionRegistrars,
-                configuration.languageVersionSettings,
-                configuration.useFirExtraCheckers,
-                configuration.get(JVMConfigurationKeys.JVM_TARGET, JvmTarget.DEFAULT),
-                configuration.get(CommonConfigurationKeys.LOOKUP_TRACKER),
-                configuration.get(CommonConfigurationKeys.ENUM_WHEN_TRACKER),
-                configuration.get(CommonConfigurationKeys.IMPORT_TRACKER),
+                configuration,
                 predefinedJavaComponents = predefinedJavaComponents,
                 needRegisterJavaElementFinder = true,
                 sessionConfigurator,

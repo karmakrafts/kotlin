@@ -7,7 +7,6 @@ package org.jetbrains.kotlin.konan.test.blackbox;
 
 import com.intellij.testFramework.TestDataPath;
 import org.jetbrains.kotlin.test.util.KtTestUtil;
-import org.jetbrains.kotlin.konan.test.blackbox.support.group.FirPipeline;
 import org.jetbrains.kotlin.test.TestMetadata;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +17,6 @@ import java.util.regex.Pattern;
 @SuppressWarnings("all")
 @TestMetadata("compiler/testData/klib/partial-linkage")
 @TestDataPath("$PROJECT_ROOT")
-@FirPipeline()
 public class FirNativePartialLinkageTestGenerated extends AbstractNativePartialLinkageTest {
   @Test
   @TestMetadata("addEnumEntry")
@@ -35,6 +33,12 @@ public class FirNativePartialLinkageTestGenerated extends AbstractNativePartialL
   @Test
   public void testAllFilesPresentInPartial_linkage() {
     KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/klib/partial-linkage"), Pattern.compile("^([^_](.+))$"), null, false);
+  }
+
+  @Test
+  @TestMetadata("callableReferenceOperations")
+  public void testCallableReferenceOperations() {
+    runTest("compiler/testData/klib/partial-linkage/callableReferenceOperations/");
   }
 
   @Test
@@ -119,6 +123,12 @@ public class FirNativePartialLinkageTestGenerated extends AbstractNativePartialL
   @TestMetadata("referencingUnusableDeclarations")
   public void testReferencingUnusableDeclarations() {
     runTest("compiler/testData/klib/partial-linkage/referencingUnusableDeclarations/");
+  }
+
+  @Test
+  @TestMetadata("referencingUnusableDeclarationsWithRichReferences")
+  public void testReferencingUnusableDeclarationsWithRichReferences() {
+    runTest("compiler/testData/klib/partial-linkage/referencingUnusableDeclarationsWithRichReferences/");
   }
 
   @Test

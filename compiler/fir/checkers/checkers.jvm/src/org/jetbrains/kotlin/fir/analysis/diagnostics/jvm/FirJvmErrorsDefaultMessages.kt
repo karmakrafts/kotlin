@@ -12,8 +12,8 @@ import org.jetbrains.kotlin.diagnostics.KtDiagnosticRenderers.TO_STRING
 import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
 import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers.NAME
 import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers.STRING
-import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.DECLARATION_NAME
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.DECLARATION_FQ_NAME
+import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.DECLARATION_NAME
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.OPTIONAL_SENTENCE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.RENDER_TYPE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.STRING_TARGETS
@@ -21,6 +21,7 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.SYMB
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.SYMBOL_WITH_CONTAINING_DECLARATION
 import org.jetbrains.kotlin.fir.analysis.diagnostics.formatKotlinWithVersion
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.ACCIDENTAL_OVERRIDE_CLASH_BY_JVM_SIGNATURE
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.ANNOTATION_TARGETS_ONLY_IN_JAVA
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.CONCURRENT_HASH_MAP_CONTAINS_OPERATOR
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.DANGEROUS_CHARACTERS
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.DELEGATION_BY_IN_JVM_RECORD
@@ -32,6 +33,7 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.EXTERNAL_D
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.EXTERNAL_DECLARATION_IN_INTERFACE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.FIELD_IN_JVM_RECORD
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.FUNCTION_DELEGATE_MEMBER_NAME_CLASH
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.IDENTITY_SENSITIVE_OPERATIONS_WITH_VALUE_TYPE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.ILLEGAL_JAVA_LANG_RECORD_SUPERTYPE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.ILLEGAL_JVM_NAME
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.IMPLEMENTATION_BY_DELEGATION_WITH_DIFFERENT_GENERIC_SIGNATURE
@@ -50,9 +52,8 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JAVA_MODUL
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JAVA_MODULE_DOES_NOT_READ_UNNAMED_MODULE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JAVA_SAM_INTERFACE_CONSTRUCTOR_REFERENCE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JAVA_TYPE_MISMATCH
-import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_DEFAULT_IN_DECLARATION
-import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_DEFAULT_WITH_COMPATIBILITY_IN_DECLARATION
-import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_DEFAULT_WITH_COMPATIBILITY_NOT_ON_INTERFACE
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_DEFAULT_WITHOUT_COMPATIBILITY_NOT_IN_ENABLE_MODE
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_DEFAULT_WITH_COMPATIBILITY_NOT_IN_NO_COMPATIBILITY_MODE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_INLINE_WITHOUT_VALUE_CLASS
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_PACKAGE_NAME_CANNOT_BE_EMPTY
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.JVM_PACKAGE_NAME_MUST_BE_VALID_NAME
@@ -97,6 +98,7 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SPREAD_ON_
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.STRICTFP_ON_CLASS
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SUBCLASS_CANT_CALL_COMPANION_PROTECTED_NON_STATIC
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SUSPENSION_POINT_INSIDE_CRITICAL_SECTION
+import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SYNCHRONIZED_BLOCK_ON_JAVA_VALUE_BASED_CLASS
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SYNCHRONIZED_BLOCK_ON_VALUE_CLASS_OR_PRIMITIVE
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SYNCHRONIZED_IN_ANNOTATION
 import org.jetbrains.kotlin.fir.analysis.diagnostics.jvm.FirJvmErrors.SYNCHRONIZED_IN_INTERFACE
@@ -197,6 +199,11 @@ object FirJvmErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         map.put(SYNCHRONIZED_ON_ABSTRACT, "'@Synchronized' annotation cannot be used on abstract functions.")
         map.put(SYNCHRONIZED_ON_INLINE, "'@Synchronized' annotation has no effect on inline functions.")
         map.put(SYNCHRONIZED_ON_VALUE_CLASS, "'@Synchronized' annotation has no effect on value classes.")
+        map.put(
+            SYNCHRONIZED_BLOCK_ON_JAVA_VALUE_BASED_CLASS,
+            "Synchronizing on an instance of Java value-based class ''{0}'' will produce a runtime exception in future JVM releases.",
+            RENDER_TYPE,
+        )
         map.put(SYNCHRONIZED_BLOCK_ON_VALUE_CLASS_OR_PRIMITIVE, "Synchronizing on ''{0}'' is forbidden.", RENDER_TYPE)
         map.put(SYNCHRONIZED_ON_SUSPEND, "'@Synchronized' annotation is not applicable to 'suspend' functions and lambdas.")
         map.put(SYNCHRONIZED_IN_INTERFACE, "'@Synchronized' annotation cannot be used on interface members.")
@@ -281,14 +288,13 @@ object FirJvmErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         map.put(VALUE_CLASS_WITHOUT_JVM_INLINE_ANNOTATION, "Value classes without '@JvmInline' annotation are not yet supported.")
         map.put(JVM_INLINE_WITHOUT_VALUE_CLASS, "'@JvmInline' annotation is applicable only to value classes.")
 
-        map.put(JVM_DEFAULT_IN_DECLARATION, "Usage of ''@{0}'' is only allowed with ''-jvm-default'' option.", STRING)
         map.put(
-            JVM_DEFAULT_WITH_COMPATIBILITY_IN_DECLARATION,
-            "Usage of '@JvmDefaultWithCompatibility' is only allowed with '-jvm-default=no-compatibility' option."
+            JVM_DEFAULT_WITHOUT_COMPATIBILITY_NOT_IN_ENABLE_MODE,
+            "Usage of '@JvmDefaultWithoutCompatibility' is only allowed with '-jvm-default=enable' option."
         )
         map.put(
-            JVM_DEFAULT_WITH_COMPATIBILITY_NOT_ON_INTERFACE,
-            "'@JvmDefaultWithCompatibility' annotation is allowed only on interfaces."
+            JVM_DEFAULT_WITH_COMPATIBILITY_NOT_IN_NO_COMPATIBILITY_MODE,
+            "Usage of '@JvmDefaultWithCompatibility' is only allowed with '-jvm-default=no-compatibility' option."
         )
 
         map.put(EXTERNAL_DECLARATION_IN_INTERFACE, "Members of interfaces cannot be external.")
@@ -389,9 +395,13 @@ object FirJvmErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         )
         map.put(
             INCOMPATIBLE_ANNOTATION_TARGETS,
-            "Java {0} missing, corresponding to Kotlin {1}.",
+            "Incompatible annotation targets: Java {0} missing, corresponding to Kotlin {1}.",
             STRING_TARGETS,
             STRING_TARGETS
+        )
+        map.put(
+            ANNOTATION_TARGETS_ONLY_IN_JAVA,
+            "No Kotlin '@Target' annotation specified (implicitly targeting everything), but one exists for Java."
         )
         map.put(
             NO_REFLECTION_IN_CLASS_PATH,
@@ -432,6 +442,12 @@ object FirJvmErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
             DANGEROUS_CHARACTERS,
             "Name contains character(s) that can cause problems on Windows: {0}",
             STRING
+        )
+
+        map.put(
+            IDENTITY_SENSITIVE_OPERATIONS_WITH_VALUE_TYPE,
+            "Identity-sensitive operation on an instance of value type ''{0}'' may cause unexpected behavior or errors.",
+            RENDER_TYPE,
         )
     }
 }

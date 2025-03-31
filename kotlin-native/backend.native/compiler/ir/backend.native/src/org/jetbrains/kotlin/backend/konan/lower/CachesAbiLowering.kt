@@ -26,9 +26,9 @@ import org.jetbrains.kotlin.ir.visitors.*
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.utils.addToStdlib.getOrSetIfNull
 
-private var IrClass.outerThisAccessor: IrSimpleFunction? by irAttribute(followAttributeOwner = false)
-private var IrProperty.lateinitPropertyAccessor: IrSimpleFunction? by irAttribute(followAttributeOwner = false)
-private var IrField.topLevelFieldAccessor: IrSimpleFunction? by irAttribute(followAttributeOwner = false)
+private var IrClass.outerThisAccessor: IrSimpleFunction? by irAttribute(copyByDefault = false)
+private var IrProperty.lateinitPropertyAccessor: IrSimpleFunction? by irAttribute(copyByDefault = false)
+private var IrField.topLevelFieldAccessor: IrSimpleFunction? by irAttribute(copyByDefault = false)
 
 /**
  * Allows to distinguish external declarations to internal ABI.
@@ -128,7 +128,7 @@ internal class ExportCachesAbiVisitor(val context: Context) : IrVisitor<Unit, Mu
     override fun visitClass(declaration: IrClass, data: MutableList<IrFunction>) {
         declaration.acceptChildren(this, data)
 
-        if (declaration.isLocal) return
+        if (declaration.isOriginallyLocal) return
 
 
         if (declaration.isInner) {
@@ -149,7 +149,7 @@ internal class ExportCachesAbiVisitor(val context: Context) : IrVisitor<Unit, Mu
         declaration.acceptChildren(this, data)
 
         if (!declaration.isLateinit || declaration.isFakeOverride
-                || DescriptorVisibilities.isPrivate(declaration.visibility) || declaration.isLocal)
+                || DescriptorVisibilities.isPrivate(declaration.visibility) || declaration.isOriginallyLocal)
             return
 
         val backingField = declaration.backingField ?: error("Lateinit property ${declaration.render()} should have a backing field")

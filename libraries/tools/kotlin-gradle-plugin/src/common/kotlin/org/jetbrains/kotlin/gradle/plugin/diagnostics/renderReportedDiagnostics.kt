@@ -7,45 +7,37 @@ package org.jetbrains.kotlin.gradle.plugin.diagnostics
 
 import org.gradle.api.InvalidUserCodeException
 import org.gradle.api.logging.Logger
-import org.gradle.api.logging.configuration.WarningMode
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.ToolingDiagnostic.Severity.*
 
-internal fun renderReportedDiagnostics(
-    diagnostics: Collection<ToolingDiagnostic>,
-    logger: Logger,
-    renderingOptions: ToolingDiagnosticRenderingOptions,
-) {
-    for (diagnostic in diagnostics) {
-        renderReportedDiagnostic(diagnostic, logger, renderingOptions)
-    }
+internal sealed class ReportedDiagnostic(val severity: ToolingDiagnostic.Severity) {
+    class Message(
+        severity: ToolingDiagnostic.Severity
+    ) : ReportedDiagnostic(severity)
+
+    class Throwable(
+        severity: ToolingDiagnostic.Severity,
+        val throwable: KotlinDiagnosticsException,
+    ) : ReportedDiagnostic(severity)
 }
 
-internal fun renderReportedDiagnostic(
-    diagnostic: ToolingDiagnostic,
+internal fun ToolingDiagnostic.renderReportedDiagnostic(
     logger: Logger,
     renderingOptions: ToolingDiagnosticRenderingOptions
-) {
-    val effectiveSeverity = if (renderingOptions.ignoreWarningMode) {
-        diagnostic.severity
-    } else {
-        // Early return if warnings are disabled and it's not an error and not fatal
-        if (renderingOptions.warningMode == WarningMode.None && diagnostic.severity == WARNING) {
-            return
-        }
-
-        if (diagnostic.severity == WARNING && renderingOptions.warningMode == WarningMode.Fail)
-            ERROR
-        else
-            diagnostic.severity
-
-        //TODO: KT-74986 Support WarningMode.Summary mode for gradle diagnostics
-    }
+): ReportedDiagnostic? {
+    if (isSuppressed(renderingOptions)) return null
+    val effectiveSeverity = renderingOptions.effectiveSeverity(severity) ?: return null
+    val message by lazy { render(renderingOptions, effectiveSeverity = effectiveSeverity) }
 
     when (effectiveSeverity) {
-        WARNING -> logger.warn("w: ${diagnostic.render(renderingOptions)}\n")
-        ERROR -> logger.error("e: ${diagnostic.render(renderingOptions)}\n")
-        FATAL -> throw diagnostic.createAnExceptionForFatalDiagnostic(renderingOptions)
+        WARNING -> logger.warn("w: ${message}\n")
+        ERROR -> logger.error("e: ${message}\n")
+        else -> {}
     }
+
+    return if (effectiveSeverity == FATAL)
+        ReportedDiagnostic.Throwable(effectiveSeverity, createAnExceptionForFatalDiagnostic(renderingOptions))
+    else
+        ReportedDiagnostic.Message(effectiveSeverity)
 }
 
 internal typealias KotlinDiagnosticsException = InvalidUserCodeException
@@ -54,23 +46,29 @@ internal fun ToolingDiagnostic.createAnExceptionForFatalDiagnostic(
     renderingOptions: ToolingDiagnosticRenderingOptions
 ): KotlinDiagnosticsException {
     // NB: override showStacktrace to false, because it will be shown as 'cause' anyways
-    val message = render(renderingOptions, showStacktrace = false)
-    if (throwable != null)
-        throw KotlinDiagnosticsException(message, throwable)
+    // override coloredOutput to false, because it's exception message
+    val message = render(renderingOptions, showStacktrace = false, coloredOutput = false)
+    return if (throwable != null)
+        KotlinDiagnosticsException(message, throwable)
     else
-        throw KotlinDiagnosticsException(message)
+        KotlinDiagnosticsException(message)
 }
 
 private fun ToolingDiagnostic.render(
     renderingOptions: ToolingDiagnosticRenderingOptions,
     showStacktrace: Boolean = renderingOptions.showStacktrace,
+    coloredOutput: Boolean = renderingOptions.coloredOutput,
+    effectiveSeverity: ToolingDiagnostic.Severity = severity
 ): String = buildString {
     with(renderingOptions) {
-        val diagnosticOutput = if (coloredOutput) styled(showSeverityEmoji) else plain(showSeverityEmoji)
+        val diagnosticOutput = if (coloredOutput)
+            styled(showSeverityEmoji, effectiveSeverity)
+        else
+            plain(showSeverityEmoji, effectiveSeverity)
 
         // Main message
         if (useParsableFormat) {
-            appendLine(this@render)
+            appendLine(parsableFormat(effectiveSeverity))
         } else {
             appendLine(diagnosticOutput.name)
             appendLine(diagnosticOutput.message)

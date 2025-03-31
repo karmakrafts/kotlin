@@ -171,6 +171,8 @@ internal class KaFirSymbolRelationProvider(
 
         if (symbol.isTopLevel) {
             val containingFile = (symbol.firSymbol.fir as? FirElementWithResolveState)?.getContainingFile()
+
+            @OptIn(DirectDeclarationsAccess::class)
             if (containingFile == null || containingFile.declarations.firstOrNull() !is FirScript) {
                 // Should be replaced with proper check after KT-61451 and KT-61887
                 return false
@@ -407,7 +409,7 @@ internal class KaFirSymbolRelationProvider(
                 .filterIsInstance<FirCallableSymbol<*>>()
                 // TODO: KT-73050. This code in fact does nothing
                 .mapNotNull { callableSymbol ->
-                    callableSymbol.receiverParameter?.symbol?.let {
+                    callableSymbol.receiverParameterSymbol?.let {
                         analysisSession.firSymbolBuilder.callableBuilder.buildExtensionReceiverSymbol(it)
                     }
                 }

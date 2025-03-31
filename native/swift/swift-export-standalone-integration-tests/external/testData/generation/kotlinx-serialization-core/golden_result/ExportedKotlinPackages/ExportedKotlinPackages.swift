@@ -1,5 +1,5 @@
 public enum kotlin {
-    public enum reflect {
+    public enum time {
     }
 }
 public enum kotlinx {

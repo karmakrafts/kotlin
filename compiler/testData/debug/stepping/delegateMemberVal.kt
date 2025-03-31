@@ -19,15 +19,7 @@ fun box() {
     val z0 = A().z
 }
 
-// EXPECTATIONS JVM_IR
-// test.kt:19 box
-// EXPECTATIONS FIR JVM_IR
-// test.kt:5 <clinit>
-// test.kt:5 <clinit>
 // EXPECTATIONS ClassicFrontend JVM_IR
-// test.kt:4 <clinit>
-// test.kt:4 <clinit>
-// EXPECTATIONS JVM_IR
 // test.kt:19 box
 // test.kt:2 <init>
 // test.kt:5 <init>
@@ -37,18 +29,30 @@ fun box() {
 // test.kt:5 <init>
 // test.kt:2 <init>
 // test.kt:19 box
-// EXPECTATIONS ClassicFrontend JVM_IR
 // test.kt:4 getZ
 // test.kt:1 getZ
 // test.kt:4 getZ
-// EXPECTATIONS JVM_IR
 // test.kt:5 getZ
 // test.kt:14 getValue
-// EXPECTATIONS FIR JVM_IR
-// test.kt:6 z_delegate$lambda$0
-// EXPECTATIONS ClassicFrontend JVM_IR
 // test.kt:6 invoke
-// EXPECTATIONS JVM_IR
+// test.kt:14 getValue
+// test.kt:5 getZ
+// test.kt:19 box
+// test.kt:20 box
+
+// EXPECTATIONS FIR JVM_IR
+// test.kt:19 box
+// test.kt:2 <init>
+// test.kt:5 <init>
+// test.kt:10 <init>
+// test.kt:11 <init>
+// test.kt:10 <init>
+// test.kt:5 <init>
+// test.kt:2 <init>
+// test.kt:19 box
+// test.kt:5 getZ
+// test.kt:14 getValue
+// test.kt:6 z_delegate$lambda$0
 // test.kt:14 getValue
 // test.kt:5 getZ
 // test.kt:19 box
@@ -64,11 +68,10 @@ fun box() {
 // test.kt:19 box
 // EXPECTATIONS ClassicFrontend JS_IR
 // test.kt:4 <get-z>
-// test.kt:4 z$factory
 // EXPECTATIONS FIR JS_IR
 // test.kt:5 <get-z>
-// test.kt:5 z$factory
 // EXPECTATIONS JS_IR
+// test.kt:5 <get-z>
 // test.kt:5 <get-z>
 // test.kt:14 getValue
 // test.kt:6 A$z$delegate$lambda

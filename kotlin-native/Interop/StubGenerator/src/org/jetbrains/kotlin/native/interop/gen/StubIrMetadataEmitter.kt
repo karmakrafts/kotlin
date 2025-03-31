@@ -2,15 +2,15 @@
  * Copyright 2010-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license
  * that can be found in the LICENSE file.
  */
+@file:OptIn(ExperimentalAnnotationsInMetadata::class)
+
 package org.jetbrains.kotlin.native.interop.gen
 
-import kotlinx.metadata.klib.KlibEnumEntry
-import kotlinx.metadata.klib.KlibModuleMetadata
-import kotlin.metadata.*
 import kotlinx.metadata.klib.*
-import kotlin.metadata.internal.common.KmModuleFragment
 import org.jetbrains.kotlin.metadata.serialization.Interner
 import org.jetbrains.kotlin.utils.addIfNotNull
+import kotlin.metadata.*
+import kotlin.metadata.internal.common.KmModuleFragment
 
 class StubIrMetadataEmitter(
         private val context: StubIrContext,
@@ -120,7 +120,7 @@ internal class ModuleMetadataEmitter(
             val elements = KmElements(children.mapNotNull { it.accept(this, classVisitingContext) })
             val kmClass = data.withMappingExtensions {
                 KmClass().also { km ->
-                    element.annotations.mapTo(km.klibAnnotations) { it.map() }
+                    element.annotations.mapTo(km.annotations) { it.map() }
                     km.modifiersFrom(element)
                     km.name = element.classifier.fqNameSerialized
                     element.superClassInit?.let { km.supertypes += it.type.map() }
@@ -132,7 +132,7 @@ internal class ModuleMetadataEmitter(
                     km.constructors += elements.constructors.toList()
                     km.companionObject = element.companion?.nestedName()
                     if (element is ClassStub.Enum) {
-                        element.entries.mapTo(km.klibEnumEntries) { mapEnumEntry(it, classVisitingContext) }
+                        km.kmEnumEntries += element.entries.map { mapEnumEntry(it, classVisitingContext) }
                     }
                 }
             }
@@ -165,7 +165,7 @@ internal class ModuleMetadataEmitter(
                         km.receiverParameterType = function.receiver?.type?.map()
                         function.typeParameters.mapTo(km.typeParameters) { it.map() }
                         function.parameters.mapTo(km.valueParameters) { it.map() }
-                        function.annotations.mapTo(km.klibAnnotations) { it.map() }
+                        function.annotations.mapTo(km.annotations) { it.map() }
                         km.returnType = function.returnType.map()
                     }
                 }
@@ -185,16 +185,16 @@ internal class ModuleMetadataEmitter(
                         km.modifiersFrom(property)
                         km.getter.getterModifiersFrom(property)
                         km.setter = setterFrom(property)
-                        property.annotations.mapTo(km.klibAnnotations) { it.map() }
+                        property.annotations.mapTo(km.annotations) { it.map() }
                         km.receiverParameterType = property.receiverType?.map()
                         km.returnType = property.type.map()
                         val kind = property.kind
                         if (kind is PropertyStub.Kind.Var) {
-                            kind.setter.annotations.mapTo(km.klibSetterAnnotations) { it.map() }
+                            kind.setter.annotations.mapTo(km.setter!!.annotations) { it.map() }
                             // TODO: Maybe it's better to explicitly add setter parameter in stub.
                             km.setterParameter = FunctionParameterStub("value", property.type).map()
                         }
-                        km.klibGetterAnnotations += when (kind) {
+                        km.getter.annotations += when (kind) {
                             is PropertyStub.Kind.Val -> kind.getter.annotations.map { it.map() }
                             is PropertyStub.Kind.Var -> kind.getter.annotations.map { it.map() }
                             is PropertyStub.Kind.Constant -> emptyList()
@@ -210,7 +210,7 @@ internal class ModuleMetadataEmitter(
                     KmConstructor().apply {
                         modifiersFrom(constructorStub)
                         constructorStub.parameters.mapTo(valueParameters, { it.map() })
-                        constructorStub.annotations.mapTo(klibAnnotations, { it.map() })
+                        constructorStub.annotations.mapTo(annotations, { it.map() })
                     }
                 }
 
@@ -222,13 +222,12 @@ internal class ModuleMetadataEmitter(
                 simpleStubContainer.children.mapNotNull { it.accept(this, data) } +
                         simpleStubContainer.simpleContainers.flatMap { visitSimpleStubContainer(it, data) }
 
-        private fun mapEnumEntry(enumEntry: EnumEntryStub, data: VisitingContext): KlibEnumEntry =
+        private fun mapEnumEntry(enumEntry: EnumEntryStub, data: VisitingContext): KmEnumEntry =
                 data.withMappingExtensions {
-                    KlibEnumEntry(
-                            name = enumEntry.name,
-                            ordinal = enumEntry.ordinal,
-                            annotations = mutableListOf(enumEntry.constant.mapToConstantAnnotation())
-                    )
+                    KmEnumEntry(enumEntry.name).apply {
+                        ordinal = enumEntry.ordinal
+                        annotations.add(enumEntry.constant.mapToConstantAnnotation())
+                    }
                 }
     }
 }
@@ -264,7 +263,6 @@ private class MappingExtensions(
         visibility = Visibility.PUBLIC
         modality = fs.modality.kmModality
         isExternal = fs.external
-        hasAnnotations = fs.annotations.isNotEmpty()
         hasNonStableParameterNames = !fs.hasStableParameterNames
     }
 
@@ -282,7 +280,6 @@ private class MappingExtensions(
         visibility = Visibility.PUBLIC
         modality = ps.modality.kmModality
         kind = MemberKind.DECLARATION
-        hasAnnotations = ps.annotations.isNotEmpty()
         when (ps.kind) {
             is PropertyStub.Kind.Val -> {}
             is PropertyStub.Kind.Var -> {
@@ -308,7 +305,6 @@ private class MappingExtensions(
         } else {
             visibility = Visibility.PUBLIC
             modality = ps.modality.kmModality
-            hasAnnotations = getter.annotations.isNotEmpty()
             isNotDefault = true
             isExternal = getter is PropertyAccessor.Getter.ExternalGetter
         }
@@ -317,7 +313,6 @@ private class MappingExtensions(
     fun setterFrom(ps: PropertyStub): KmPropertyAccessorAttributes? {
         val setter = if (ps.kind is PropertyStub.Kind.Var) ps.kind.setter else return null
         return KmPropertyAccessorAttributes().apply {
-            hasAnnotations = setter.annotations.isNotEmpty()
             visibility = Visibility.PUBLIC
             modality = ps.modality.kmModality
             isNotDefault = true
@@ -330,7 +325,6 @@ private class MappingExtensions(
     }
 
     fun KmClass.modifiersFrom(cs: ClassStub) {
-        hasAnnotations = cs.annotations.isNotEmpty()
         visibility = Visibility.PUBLIC
         kind = when (cs) {
             is ClassStub.Simple -> {
@@ -349,7 +343,6 @@ private class MappingExtensions(
     fun KmConstructor.modifiersFrom(cs: ConstructorStub) {
         visibility = cs.visibility.kmVisibility
         isSecondary = !cs.isPrimary
-        hasAnnotations = cs.annotations.isNotEmpty()
     }
 
     private tailrec fun StubType.isEffectivelyNullable(): Boolean =
@@ -505,7 +498,6 @@ private class MappingExtensions(
 
     fun FunctionParameterStub.map(): KmValueParameter =
             KmValueParameter(name).also { km ->
-                km.hasAnnotations = annotations.isNotEmpty()
                 val kmType = type.map()
                 if (isVararg) {
                     km.varargElementType = kmType
@@ -516,7 +508,7 @@ private class MappingExtensions(
                 } else {
                     km.type = kmType
                 }
-                annotations.mapTo(km.klibAnnotations, { it.map() })
+                annotations.mapTo(km.annotations, { it.map() })
             }
 
     fun TypeParameterStub.map(): KmTypeParameter =

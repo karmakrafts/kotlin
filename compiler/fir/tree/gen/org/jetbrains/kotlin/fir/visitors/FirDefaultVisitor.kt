@@ -183,7 +183,7 @@ abstract class FirDefaultVisitor<out R, in D> : FirVisitor<R, D>() {
         visitStatement(variableAssignment, data)
 
     override fun visitWhenSubjectExpression(whenSubjectExpression: FirWhenSubjectExpression, data: D): R =
-        visitExpression(whenSubjectExpression, data)
+        visitPropertyAccessExpression(whenSubjectExpression, data)
 
     override fun visitDesugaredAssignmentValueReferenceExpression(desugaredAssignmentValueReferenceExpression: FirDesugaredAssignmentValueReferenceExpression, data: D): R =
         visitExpression(desugaredAssignmentValueReferenceExpression, data)
@@ -253,6 +253,9 @@ abstract class FirDefaultVisitor<out R, in D> : FirVisitor<R, D>() {
 
     override fun visitThisReceiverExpression(thisReceiverExpression: FirThisReceiverExpression, data: D): R =
         visitQualifiedAccessExpression(thisReceiverExpression, data)
+
+    override fun visitSuperReceiverExpression(superReceiverExpression: FirSuperReceiverExpression, data: D): R =
+        visitQualifiedAccessExpression(superReceiverExpression, data)
 
     override fun visitTypeProjectionWithVariance(typeProjectionWithVariance: FirTypeProjectionWithVariance, data: D): R =
         visitTypeProjection(typeProjectionWithVariance, data)

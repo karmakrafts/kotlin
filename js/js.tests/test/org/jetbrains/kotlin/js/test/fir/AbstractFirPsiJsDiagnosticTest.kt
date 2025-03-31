@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.test.backend.handlers.KlibBackendDiagnosticsHandler
 import org.jetbrains.kotlin.test.backend.ir.IrDiagnosticsHandler
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
 import org.jetbrains.kotlin.test.builders.firHandlersStep
+import org.jetbrains.kotlin.test.builders.inlinedIrHandlersStep
 import org.jetbrains.kotlin.test.builders.irHandlersStep
 import org.jetbrains.kotlin.test.builders.klibArtifactsHandlersStep
 import org.jetbrains.kotlin.test.directives.ConfigurationDirectives
@@ -88,6 +89,9 @@ abstract class AbstractFirJsDiagnosticWithBackendTestBase(parser: FirParser) : A
         super.configure(builder)
 
         facadeStep(::Fir2IrResultsConverter)
+        facadeStep(::JsIrInliningFacade)
+        inlinedIrHandlersStep { useHandlers(::IrDiagnosticsHandler) }
+
         facadeStep(::FirJsKlibSerializerFacade)
 
         // TODO: Currently do not run lowerings, because they don't report anything;
@@ -96,6 +100,15 @@ abstract class AbstractFirJsDiagnosticWithBackendTestBase(parser: FirParser) : A
 
         klibArtifactsHandlersStep {
             useHandlers(::KlibBackendDiagnosticsHandler)
+        }
+    }
+}
+
+abstract class AbstractFirJsDiagnosticWithBackendWithInlinedFunInKlibTestBase : AbstractFirJsDiagnosticWithBackendTestBase(FirParser.LightTree) {
+    override fun configure(builder: TestConfigurationBuilder) = with(builder) {
+        super.configure(builder)
+        defaultDirectives {
+            LANGUAGE with "+${LanguageFeature.IrInlinerBeforeKlibSerialization.name}"
         }
     }
 }

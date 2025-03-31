@@ -59,7 +59,8 @@ open class UpgradeCallableReferences(
     private data class AdaptedBlock(
         val function: IrSimpleFunction,
         val reference: IrFunctionReference,
-        val samType: IrType
+        val samConversionType: IrType?,
+        val referenceType: IrType,
     )
 
     private inner class UpgradeTransformer : IrTransformer<IrDeclarationParent>() {
@@ -144,11 +145,15 @@ open class UpgradeCallableReferences(
             val (function, reference) = statements
             if (function !is IrSimpleFunction) return null
             return when (reference) {
-                is IrFunctionReference -> AdaptedBlock(function, reference, reference.type)
+                is IrFunctionReference -> AdaptedBlock(function, reference, null, reference.type)
                 is IrTypeOperatorCall -> {
                     if (reference.operator != IrTypeOperator.SAM_CONVERSION) return null
                     val argument = reference.argument as? IrFunctionReference ?: return null
-                    AdaptedBlock(function, argument, reference.typeOperand)
+                    if (upgradeSamConversions) {
+                        AdaptedBlock(function, argument, null, reference.typeOperand)
+                    } else {
+                        AdaptedBlock(function, argument, reference.typeOperand, argument.type)
+                    }
                 }
                 else -> null
             }
@@ -156,7 +161,7 @@ open class UpgradeCallableReferences(
 
         override fun visitBlock(expression: IrBlock, data: IrDeclarationParent): IrExpression {
             if (!upgradeFunctionReferencesAndLambdas) return super.visitBlock(expression, data)
-            val (function, reference, samType) = expression.parseAdaptedBlock() ?: return super.visitBlock(expression, data)
+            val (function, reference, samType, referenceType) = expression.parseAdaptedBlock() ?: return super.visitBlock(expression, data)
             function.transformChildren(this, function)
             reference.transformChildren(this, data)
             val isRestrictedSuspension = function.isRestrictedSuspensionFunction()
@@ -167,9 +172,9 @@ open class UpgradeCallableReferences(
             return IrRichFunctionReferenceImpl(
                 startOffset = expression.startOffset,
                 endOffset = expression.endOffset,
-                type = samType,
+                type = referenceType,
                 reflectionTargetSymbol = reflectionTarget,
-                overriddenFunctionSymbol = selectSAMOverriddenFunction(samType),
+                overriddenFunctionSymbol = selectSAMOverriddenFunction(referenceType),
                 invokeFunction = function,
                 origin = expression.origin,
                 hasSuspendConversion = reflectionTarget != null && reflectionTarget.isSuspend == false && function.isSuspend,
@@ -179,6 +184,18 @@ open class UpgradeCallableReferences(
             ).apply {
                 copyAttributes(reference)
                 boundValues.addAll(reference.arguments.filterNotNull())
+            }.let {
+                if (samType != null) {
+                    IrTypeOperatorCallImpl(
+                        startOffset = expression.startOffset, endOffset = expression.endOffset,
+                        type = samType,
+                        operator = IrTypeOperator.SAM_CONVERSION,
+                        typeOperand = samType,
+                        argument = it
+                    )
+                } else {
+                    it
+                }
             }
         }
 
@@ -188,9 +205,11 @@ open class UpgradeCallableReferences(
                 val argument = expression.argument
                 if (argument !is IrRichFunctionReference) return expression
                 return argument.apply {
+                    startOffset = expression.startOffset
+                    endOffset = expression.endOffset
                     type = expression.typeOperand
                     overriddenFunctionSymbol = selectSAMOverriddenFunction(expression.typeOperand)
-                }.copyWithOffsets(expression.startOffset, expression.endOffset)
+                }
             }
             return super.visitTypeOperator(expression, data)
         }
@@ -302,7 +321,7 @@ open class UpgradeCallableReferences(
                         this.type = type
                     }
                 }
-                this.body = context.createIrBuilder(symbol).at(this@buildWrapperFunction).run {
+                this.body = context.createIrBuilder(symbol).run {
                     irBlockBody {
                         body(parameters)
                     }
@@ -354,20 +373,24 @@ open class UpgradeCallableReferences(
             ) { parameters ->
                 // Unfortunately, some plugins sometimes generate the wrong number of arguments in references
                 // we already have such klib, so need to handle it. We just ignore extra type parameters
-                val cleanedTypeArgumentCount = minOf(typeArguments.size, referencedFunction.typeParameters.size)
-                val exprToReturn = irCallWithSubstitutedType(
-                    referencedFunction.symbol,
-                    typeArguments = (0 until cleanedTypeArgumentCount).map { typeArguments[it] ?: context.irBuiltIns.anyNType },
-                ).apply {
-                    val bound = captured.map { it.first }.toSet()
-                    val (boundParameters, unboundParameters) = referencedFunction.parameters.partition { it in bound }
-                    require(boundParameters.size + unboundParameters.size == parameters.size) {
-                        "Wrong number of parameters in wrapper: expected: ${boundParameters.size} bound and ${unboundParameters.size} unbound, but ${parameters.size} found"
+                val cleanedTypeArgumentCount = minOf(typeArguments.size, referencedFunction.allTypeParameters.size)
+                val exprToReturn = this@UpgradeCallableReferences
+                    .context
+                    .createIrBuilder(symbol)
+                    .at(this@wrapFunction)
+                    .irCallWithSubstitutedType(
+                        referencedFunction.symbol,
+                        typeArguments = (0 until cleanedTypeArgumentCount).map { typeArguments[it] ?: context.irBuiltIns.anyNType },
+                    ).apply {
+                        val bound = captured.map { it.first }.toSet()
+                        val (boundParameters, unboundParameters) = referencedFunction.parameters.partition { it in bound }
+                        require(boundParameters.size + unboundParameters.size == parameters.size) {
+                            "Wrong number of parameters in wrapper: expected: ${boundParameters.size} bound and ${unboundParameters.size} unbound, but ${parameters.size} found"
+                        }
+                        for ((originalParameter, localParameter) in (boundParameters + unboundParameters).zip(parameters)) {
+                            arguments[originalParameter.indexInParameters] = irGet(localParameter)
+                        }
                     }
-                    for ((originalParameter, localParameter) in (boundParameters + unboundParameters).zip(parameters)) {
-                        arguments[originalParameter.indexInParameters] = irGet(localParameter)
-                    }
-                }
                 +irReturn(exprToReturn)
             }
         }

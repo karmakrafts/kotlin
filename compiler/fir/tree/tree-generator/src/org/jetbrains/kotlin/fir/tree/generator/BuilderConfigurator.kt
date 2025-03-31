@@ -288,6 +288,10 @@ class BuilderConfigurator(model: Model) : AbstractFirBuilderConfigurator<Abstrac
             withCopy()
         }
 
+        builder(superReceiverExpression) {
+            parents += qualifiedAccessExpressionBuilder
+        }
+
         builder(anonymousFunction) {
             parents += functionBuilder
             parents += typeParametersOwnerBuilder
@@ -411,10 +415,10 @@ class BuilderConfigurator(model: Model) : AbstractFirBuilderConfigurator<Abstrac
 //        builder(checkedSafeCallSubject) {
 //            useTypes(expressionType)
 //        }
-//
-//        builder(whenSubjectExpression) {
-//            useTypes(whenExpressionType)
-//        }
+
+        builder(whenSubjectExpression) {
+            parents += qualifiedAccessExpressionBuilder
+        }
 
         noBuilder(literalExpression)
 

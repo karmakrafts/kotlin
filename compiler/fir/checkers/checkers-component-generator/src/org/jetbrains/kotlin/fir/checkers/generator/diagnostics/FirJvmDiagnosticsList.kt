@@ -145,6 +145,7 @@ object JVM_DIAGNOSTICS_LIST : DiagnosticList("FirJvmErrors") {
             parameter<Collection<String>>("missingJavaTargets")
             parameter<Collection<String>>("correspondingKotlinTargets")
         }
+        val ANNOTATION_TARGETS_ONLY_IN_JAVA by warning<KtAnnotationEntry>()
     }
 
     val SUPER by object : DiagnosticGroup("Super") {
@@ -185,11 +186,8 @@ object JVM_DIAGNOSTICS_LIST : DiagnosticList("FirJvmErrors") {
     }
 
     val JVM_DEFAULT by object : DiagnosticGroup("JVM Default") {
-        val JVM_DEFAULT_IN_DECLARATION by error<KtElement>(PositioningStrategy.DECLARATION_SIGNATURE_OR_DEFAULT) {
-            parameter<String>("annotation")
-        }
-        val JVM_DEFAULT_WITH_COMPATIBILITY_IN_DECLARATION by error<KtElement>()
-        val JVM_DEFAULT_WITH_COMPATIBILITY_NOT_ON_INTERFACE by error<KtElement>()
+        val JVM_DEFAULT_WITHOUT_COMPATIBILITY_NOT_IN_ENABLE_MODE by error<KtElement>(PositioningStrategy.DECLARATION_SIGNATURE_OR_DEFAULT)
+        val JVM_DEFAULT_WITH_COMPATIBILITY_NOT_IN_NO_COMPATIBILITY_MODE by error<KtElement>()
     }
 
     val EXTERNAL_DECLARATION by object : DiagnosticGroup("External Declaration") {
@@ -248,6 +246,12 @@ object JVM_DIAGNOSTICS_LIST : DiagnosticList("FirJvmErrors") {
         }
         val INAPPLICABLE_JVM_FIELD_WARNING by warning<KtAnnotationEntry> {
             parameter<String>("message")
+        }
+        val IDENTITY_SENSITIVE_OPERATIONS_WITH_VALUE_TYPE by warning<KtElement> {
+            parameter<ConeKotlinType>("type")
+        }
+        val SYNCHRONIZED_BLOCK_ON_JAVA_VALUE_BASED_CLASS by warning<KtElement> {
+            parameter<ConeKotlinType>("type")
         }
         val SYNCHRONIZED_BLOCK_ON_VALUE_CLASS_OR_PRIMITIVE by deprecationError<PsiElement>(ProhibitSynchronizationByValueClassesAndPrimitives) {
             parameter<ConeKotlinType>("valueClassOrPrimitive")

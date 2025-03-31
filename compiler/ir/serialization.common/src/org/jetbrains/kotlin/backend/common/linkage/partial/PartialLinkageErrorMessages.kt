@@ -7,7 +7,9 @@ package org.jetbrains.kotlin.backend.common.linkage.partial
 
 import com.intellij.util.PathUtil
 import org.jetbrains.kotlin.backend.common.linkage.partial.DeclarationKind.*
+import org.jetbrains.kotlin.backend.common.linkage.partial.ExploredClassifier.Unusable
 import org.jetbrains.kotlin.backend.common.linkage.partial.ExpressionKind.*
+import org.jetbrains.kotlin.backend.common.linkage.partial.PartialLinkageCase.*
 import org.jetbrains.kotlin.backend.common.linkage.partial.PartialLinkageUtils.DeclarationId.Companion.declarationId
 import org.jetbrains.kotlin.backend.common.linkage.partial.PartialLinkageUtils.UNKNOWN_NAME
 import org.jetbrains.kotlin.backend.common.linkage.partial.PartialLinkageUtils.guessName
@@ -16,18 +18,16 @@ import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
-import org.jetbrains.kotlin.ir.linkage.partial.ExploredClassifier.Unusable
-import org.jetbrains.kotlin.ir.linkage.partial.PartialLinkageCase
-import org.jetbrains.kotlin.ir.linkage.partial.PartialLinkageCase.*
 import org.jetbrains.kotlin.ir.symbols.*
 import org.jetbrains.kotlin.ir.types.classifierOrFail
 import org.jetbrains.kotlin.ir.util.IdSignature.*
+import org.jetbrains.kotlin.ir.util.invokeFunction
 import org.jetbrains.kotlin.ir.util.isAnonymousObject
 import org.jetbrains.kotlin.ir.util.parentAsClass
 import org.jetbrains.kotlin.ir.util.parentClassOrNull
 import org.jetbrains.kotlin.ir.util.render
 import org.jetbrains.kotlin.name.SpecialNames.DEFAULT_NAME_FOR_COMPANION_OBJECT
-import org.jetbrains.kotlin.ir.linkage.partial.PartialLinkageUtils.Module as PLModule
+import org.jetbrains.kotlin.backend.common.linkage.partial.PartialLinkageSources.Module as PLModule
 
 internal fun PartialLinkageCase.renderLinkageError(): String = buildString {
     when (this@renderLinkageError) {
@@ -155,22 +155,21 @@ private data class Expression(val kind: ExpressionKind, val referencedDeclaratio
 // More can be added for verbosity in the future.
 private val IrExpression.expression: Expression
     get() = when (this) {
-        is IrDeclarationReference -> when (this) {
-            is IrFunctionReference -> Expression(REFERENCE, symbol.declarationKind)
-            is IrPropertyReference,
-            is IrLocalDelegatedPropertyReference -> Expression(REFERENCE, PROPERTY)
-            is IrCall -> Expression(CALLING, symbol.declarationKind)
-            is IrConstructorCall,
-            is IrEnumConstructorCall,
-            is IrDelegatingConstructorCall -> Expression(CALLING, CONSTRUCTOR)
-            is IrClassReference -> Expression(REFERENCE, symbol.declarationKind)
-            is IrGetField -> Expression(READING, symbol.declarationKind)
-            is IrSetField -> Expression(WRITING, symbol.declarationKind)
-            is IrGetValue -> Expression(READING, symbol.declarationKind)
-            is IrSetValue -> Expression(WRITING, symbol.declarationKind)
-            is IrGetSingletonValue -> Expression(GETTING_INSTANCE, symbol.declarationKind)
-            else -> Expression(REFERENCE, OTHER_DECLARATION)
-        }
+        is IrFunctionReference -> Expression(REFERENCE, symbol.declarationKind)
+        is IrRichFunctionReference -> Expression(REFERENCE, reflectionTargetSymbol?.declarationKind ?: DeclarationKind.FUNCTION)
+        is IrPropertyReference, is IrRichPropertyReference,
+        is IrLocalDelegatedPropertyReference -> Expression(REFERENCE, PROPERTY)
+        is IrCall -> Expression(CALLING, symbol.declarationKind)
+        is IrConstructorCall,
+        is IrEnumConstructorCall,
+        is IrDelegatingConstructorCall -> Expression(CALLING, CONSTRUCTOR)
+        is IrClassReference -> Expression(REFERENCE, symbol.declarationKind)
+        is IrGetField -> Expression(READING, symbol.declarationKind)
+        is IrSetField -> Expression(WRITING, symbol.declarationKind)
+        is IrGetValue -> Expression(READING, symbol.declarationKind)
+        is IrSetValue -> Expression(WRITING, symbol.declarationKind)
+        is IrGetSingletonValue -> Expression(GETTING_INSTANCE, symbol.declarationKind)
+        is IrDeclarationReference -> Expression(REFERENCE, OTHER_DECLARATION)
         is IrInstanceInitializerCall -> Expression(CALLING_INSTANCE_INITIALIZER, classSymbol.declarationKind)
         is IrTypeOperatorCall -> {
             if (operator == IrTypeOperator.SAM_CONVERSION)
@@ -498,6 +497,7 @@ private fun StringBuilder.expression(expression: IrExpression, continuation: (Ex
             is IrGetSingletonValue -> appendCapitalized("singleton", capitalized = !hasPrefix)
                 .append(" ").declarationName(expression.symbol)
             is IrDeclarationReference -> declarationKindName(expression.symbol, capitalized = !hasPrefix)
+            is IrRichCallableReference<*> -> declarationKindName(expression.reflectionTargetSymbol ?: expression.invokeFunction.symbol, capitalized = !hasPrefix)
             is IrInstanceInitializerCall -> declarationKindName(expression.classSymbol, capitalized = !hasPrefix)
             else -> appendCapitalized(referencedDeclarationKind.displayName, capitalized = !hasPrefix)
         }

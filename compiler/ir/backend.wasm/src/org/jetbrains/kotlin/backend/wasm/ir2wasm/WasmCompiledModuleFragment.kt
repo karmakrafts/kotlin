@@ -5,16 +5,19 @@
 
 package org.jetbrains.kotlin.backend.wasm.ir2wasm
 
+import org.jetbrains.kotlin.backend.common.compilationException
+import org.jetbrains.kotlin.backend.common.serialization.Hash128Bits
+import org.jetbrains.kotlin.backend.wasm.WasmBackendContext
 import org.jetbrains.kotlin.backend.wasm.ir2wasm.WasmCompiledModuleFragment.*
-import org.jetbrains.kotlin.backend.wasm.utils.DisjointUnions
 import org.jetbrains.kotlin.ir.backend.js.ic.IrICProgramFragment
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationWithName
 import org.jetbrains.kotlin.ir.declarations.IrExternalPackageFragment
-import org.jetbrains.kotlin.ir.symbols.*
+import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
+import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
+import org.jetbrains.kotlin.ir.symbols.IrSymbol
 import org.jetbrains.kotlin.ir.util.IdSignature
 import org.jetbrains.kotlin.ir.util.fqNameWhenAvailable
 import org.jetbrains.kotlin.ir.util.getPackageFragment
-import org.jetbrains.kotlin.backend.common.compilationException
 import org.jetbrains.kotlin.utils.addToStdlib.runIf
 import org.jetbrains.kotlin.wasm.ir.*
 import org.jetbrains.kotlin.wasm.ir.source.location.SourceLocation
@@ -27,6 +30,24 @@ class BuiltinIdSignatures(
     val runRootSuites: IdSignature?,
 )
 
+class SpecialITableTypes(
+    val wasmAnyArrayType: WasmSymbol<WasmArrayDeclaration> = WasmSymbol<WasmArrayDeclaration>(),
+    val wasmFuncArrayType: WasmSymbol<WasmArrayDeclaration> = WasmSymbol<WasmArrayDeclaration>(),
+    val specialSlotITableType: WasmSymbol<WasmStructDeclaration> = WasmSymbol<WasmStructDeclaration>(),
+)
+
+class RttiGlobal(
+    val global: WasmGlobal,
+    val classSignature: IdSignature,
+    val superClassSignature: IdSignature?,
+)
+
+class RttiElements(
+    val globals: MutableList<RttiGlobal> = mutableListOf(),
+    val globalReferences: ReferencableElements<IdSignature, WasmGlobal> = ReferencableElements(),
+    val rttiType: WasmSymbol<WasmStructDeclaration> = WasmSymbol()
+)
+
 class WasmCompiledFileFragment(
     val fragmentTag: String?,
     val functions: ReferencableAndDefinable<IdSignature, WasmFunction> = ReferencableAndDefinable(),
@@ -36,21 +57,12 @@ class WasmCompiledFileFragment(
     val functionTypes: ReferencableAndDefinable<IdSignature, WasmFunctionType> = ReferencableAndDefinable(),
     val gcTypes: ReferencableAndDefinable<IdSignature, WasmTypeDeclaration> = ReferencableAndDefinable(),
     val vTableGcTypes: ReferencableAndDefinable<IdSignature, WasmTypeDeclaration> = ReferencableAndDefinable(),
-    val classITableGcType: ReferencableElements<IdSignature, WasmTypeDeclaration> = ReferencableElements(),
-    val classITableInterfaceSlot: ReferencableElements<IdSignature, Int> = ReferencableElements(),
-    val classITableInterfaceTableSize: ReferencableElements<IdSignature, Int> = ReferencableElements(),
-    val classITableInterfaceHasImplementors: ReferencableElements<IdSignature, Int> = ReferencableElements(),
-    val typeInfo: MutableMap<IdSignature, ConstantDataElement> = mutableMapOf(),
-    val classIds: ReferencableElements<IdSignature, Int> = ReferencableElements(),
-    val interfaceIds: ReferencableElements<IdSignature, Int> = ReferencableElements(),
     val stringLiteralAddress: ReferencableElements<String, Int> = ReferencableElements(),
     val stringLiteralPoolId: ReferencableElements<String, Int> = ReferencableElements(),
     val constantArrayDataSegmentId: ReferencableElements<Pair<List<Long>, WasmType>, Int> = ReferencableElements(),
-    val interfaceUnions: MutableList<List<IdSignature>> = mutableListOf(),
     val jsFuns: MutableMap<IdSignature, JsCodeSnippet> = mutableMapOf(),
     val jsModuleImports: MutableMap<IdSignature, String> = mutableMapOf(),
     val exports: MutableList<WasmExport<*>> = mutableListOf(),
-    var scratchMemAddr: WasmSymbol<Int>? = null,
     var stringPoolSize: WasmSymbol<Int>? = null,
     var throwableTagIndex: WasmSymbol<Int>? = null,
     var jsExceptionTagIndex: WasmSymbol<Int>? = null,
@@ -61,6 +73,8 @@ class WasmCompiledFileFragment(
     val jsModuleAndQualifierReferences: MutableSet<JsModuleAndQualifierReference> = mutableSetOf(),
     val classAssociatedObjectsInstanceGetters: MutableList<ClassAssociatedObjects> = mutableListOf(),
     var builtinIdSignatures: BuiltinIdSignatures? = null,
+    var specialITableTypes: SpecialITableTypes? = null,
+    var rttiElements: RttiElements? = null,
 ) : IrICProgramFragment()
 
 class WasmCompiledModuleFragment(
@@ -123,75 +137,6 @@ class WasmCompiledModuleFragment(
         }
     }
 
-    fun createInterfaceTablesAndLinkTableSymbols() {
-        val disjointUnions = DisjointUnions<IdSignature>()
-        for (fileFragment in wasmCompiledFileFragments) {
-            for (iFaces in fileFragment.interfaceUnions) {
-                disjointUnions.addUnion(iFaces)
-            }
-        }
-
-        disjointUnions.compress()
-
-        val iSlots = mutableMapOf<IdSignature, Int>()
-        val iTableGcType = mutableMapOf<IdSignature, WasmStructDeclaration>()
-
-        val iTableGcTypesRefs = ReferencableElements<IdSignature, WasmTypeDeclaration>()
-
-        for (union in disjointUnions.allUnions()) {
-            val fields = union.mapIndexed { index, unionIFace ->
-                iSlots[unionIFace] = index
-                WasmStructFieldDeclaration(
-                    name = "${unionIFace.packageFqName().asString()}.itable",
-                    type = WasmRefNullType(WasmHeapType.Type(iTableGcTypesRefs.reference(unionIFace))),
-                    isMutable = false
-                )
-            }
-
-            val struct = WasmStructDeclaration(
-                name = "classITable",
-                fields = fields,
-                superType = null,
-                isFinal = true,
-            )
-
-            union.forEach {
-                iTableGcType[it] = struct
-            }
-        }
-
-        // Binding iTable structures
-        for (fileFragment in wasmCompiledFileFragments) {
-            for (unbound in fileFragment.classITableInterfaceHasImplementors.unbound) {
-                unbound.value.bind(if (unbound.key in disjointUnions) 1 else 0)
-            }
-            for (unbound in fileFragment.classITableInterfaceTableSize.unbound) {
-                if (unbound.key in disjointUnions) {
-                    unbound.value.bind(disjointUnions[unbound.key].size)
-                }
-            }
-            for (unbound in fileFragment.classITableInterfaceSlot.unbound) {
-                val iSlot = iSlots[unbound.key]
-                if (iSlot != null) {
-                    unbound.value.bind(iSlot)
-                }
-            }
-            for (unbound in fileFragment.classITableGcType.unbound) {
-                val gcType = iTableGcType[unbound.key]
-                if (gcType != null) {
-                    unbound.value.bind(gcType)
-                }
-            }
-
-            for (unbound in iTableGcTypesRefs.unbound) {
-                val vTable = fileFragment.vTableGcTypes.defined[unbound.key]
-                if (vTable != null) {
-                    unbound.value.bind(vTable)
-                }
-            }
-        }
-    }
-
     private fun partitionDefinedAndImportedFunctions(): Pair<MutableList<WasmFunction.Defined>, MutableList<WasmFunction.Imported>> {
         val definedFunctions = mutableListOf<WasmFunction.Defined>()
         val importedFunctions = mutableListOf<WasmFunction.Imported>()
@@ -226,52 +171,151 @@ class WasmCompiledModuleFragment(
         bindUnboundSymbols()
         val canonicalFunctionTypes = bindUnboundFunctionTypes()
 
-        val (typeIds, scratchAddress) = bindTypeIds()
-        bindScratchMemAddr(scratchAddress)
-        createTryGetAssociatedObjectFunction(typeIds)
+        createTryGetAssociatedObjectFunction()
 
         val data = mutableListOf<WasmData>()
         bindStringPoolSymbols(data)
         bindConstantArrayDataSegmentIds(data)
-        addCompileTimePerClassData(data, typeIds)
 
         val (definedFunctions, importedFunctions) = partitionDefinedAndImportedFunctions()
 
         val exports = mutableListOf<WasmExport<*>>()
         wasmCompiledFileFragments.flatMapTo(exports) { it.exports }
 
-        val memory = createAndExportMemory(scratchAddress, exports)
+        val memory = createAndExportMemory(exports)
 
         createAndExportServiceFunctions(definedFunctions, exports)
 
-        val (recGroupTypes, nonRecursiveFunctionTypes, importsInOrder, definedTags) = getTypes(importedFunctions, canonicalFunctionTypes)
+        val throwableDeclaration = tryFindBuiltInType { it.throwable }
+            ?: compilationException("kotlin.Throwable is not found in fragments", null)
+
+        val tags = getTags(throwableDeclaration)
+        val (importedTags, definedTags) = tags.partition { it.importPair != null }
+        val importsInOrder = importedFunctions + importedTags
+
+        val additionalTypes = mutableListOf<WasmTypeDeclaration>()
+        additionalTypes.add(parameterlessNoReturnFunctionType)
+        tags.forEach { additionalTypes.add(it.type) }
+
+        val syntheticTypes = mutableListOf<WasmTypeDeclaration>()
+        createAndBindSpecialITableTypes(syntheticTypes)
+        val globals = getGlobals(syntheticTypes)
+
+        val recursiveTypeGroups = getTypes(syntheticTypes, canonicalFunctionTypes, additionalTypes)
 
         return WasmModule(
-            functionTypes = nonRecursiveFunctionTypes,
-            recGroupTypes = recGroupTypes,
+            recGroups = recursiveTypeGroups,
             importsInOrder = importsInOrder,
             importedFunctions = importedFunctions,
             definedFunctions = definedFunctions,
             tables = emptyList(),
             memories = listOf(memory),
-            globals = getGlobals(),
+            globals = globals,
             exports = exports,
             startFunction = null,  // Module is initialized via export call
             elements = emptyList(),
             data = data,
             dataCount = true,
-            tags = definedTags
+            tags = definedTags,
+            importedTags = importedTags,
         ).apply { calculateIds() }
     }
 
-    private fun getTypes(
-        importedFunctions: List<WasmFunction.Imported>,
-        canonicalFunctionTypes: Map<WasmFunctionType, WasmFunctionType>
-    ): WasmTypes {
-        val recGroupTypes = getRecGroupTypesWithoutPotentiallyRecursiveFunctionTypes()
+    private fun createRttiTypeAndProcessRttiGlobals(globals: MutableList<WasmGlobal>, additionalTypes: MutableList<WasmTypeDeclaration>) {
+        val wasmLongArray = WasmArrayDeclaration("LongArray", WasmStructFieldDeclaration("Long", WasmI64, false))
+        additionalTypes.add(wasmLongArray)
 
-        val throwableDeclaration = tryFindBuiltInType { it.throwable }
-            ?: compilationException("kotlin.Throwable is not found in fragments", null)
+        val rttiTypeDeclarationSymbol = WasmSymbol<WasmStructDeclaration>()
+        val rttiTypeDeclaration = WasmStructDeclaration(
+            name = "RTTI",
+            fields = listOf(
+                WasmStructFieldDeclaration("implementedIFaceIds", WasmRefNullType(WasmHeapType.Type(WasmSymbol(wasmLongArray))), false),
+                WasmStructFieldDeclaration("superClassRtti", WasmRefNullType(WasmHeapType.Type(rttiTypeDeclarationSymbol)), false),
+                WasmStructFieldDeclaration("packageNameAddress", WasmI32, false),
+                WasmStructFieldDeclaration("packageNameLength", WasmI32, false),
+                WasmStructFieldDeclaration("packageNamePoolId", WasmI32, false),
+                WasmStructFieldDeclaration("simpleNameAddress", WasmI32, false),
+                WasmStructFieldDeclaration("simpleNameLength", WasmI32, false),
+                WasmStructFieldDeclaration("simpleNamePoolId", WasmI32, false),
+                WasmStructFieldDeclaration("klassId", WasmI64, false),
+            ),
+            superType = null,
+            isFinal = true
+        )
+        rttiTypeDeclarationSymbol.bind(rttiTypeDeclaration)
+        additionalTypes.add(rttiTypeDeclaration)
+
+        val rttiGlobals = mutableMapOf<IdSignature, RttiGlobal>()
+        wasmCompiledFileFragments.forEach { fragment ->
+            fragment.rttiElements?.globals?.forEach { global ->
+                rttiGlobals[global.classSignature] = global
+            }
+        }
+
+        wasmCompiledFileFragments.forEach { fragment ->
+            fragment.rttiElements?.run {
+                globalReferences.unbound.forEach { unbound ->
+                    unbound.value.bind(rttiGlobals[unbound.key]!!.global)
+                }
+                rttiType.bind(rttiTypeDeclaration)
+            }
+        }
+
+        fun wasmRttiGlobalOrderKey(rttiGlobal: RttiGlobal?): Int =
+            rttiGlobal?.superClassSignature?.let { wasmRttiGlobalOrderKey(rttiGlobals[it]) + 1 } ?: 0
+
+        rttiGlobals.values.sortedBy(::wasmRttiGlobalOrderKey).mapTo(globals) { it.global }
+    }
+
+    private fun createAndBindSpecialITableTypes(syntheticTypes: MutableList<WasmTypeDeclaration>): MutableList<WasmTypeDeclaration> {
+        val wasmAnyArrayType = WasmArrayDeclaration(
+            name = "AnyArray",
+            field = WasmStructFieldDeclaration("", WasmRefNullType(WasmHeapType.Simple.Any), false)
+        )
+        syntheticTypes.add(wasmAnyArrayType)
+
+        val wasmFuncArrayType = WasmArrayDeclaration(
+            name = "FuncArray",
+            field = WasmStructFieldDeclaration(
+                name = "",
+                type = WasmRefNullType(WasmHeapType.Simple.Func),
+                isMutable = false
+            )
+        )
+        syntheticTypes.add(wasmFuncArrayType)
+
+        val specialSlotITableTypeSlots = mutableListOf<WasmStructFieldDeclaration>()
+        val wasmAnyRefStructField = WasmStructFieldDeclaration("", WasmAnyRef, false)
+        repeat(WasmBackendContext.SPECIAL_INTERFACE_TABLE_SIZE) {
+            specialSlotITableTypeSlots.add(wasmAnyRefStructField)
+        }
+        specialSlotITableTypeSlots.add(
+            WasmStructFieldDeclaration(
+                name = "",
+                type = WasmRefNullType(WasmHeapType.Type(WasmSymbol(wasmFuncArrayType))),
+                isMutable = false
+            )
+        )
+        val specialSlotITableType = WasmStructDeclaration(
+            name = "SpecialITable",
+            fields = specialSlotITableTypeSlots,
+            superType = null,
+            isFinal = true
+        )
+        syntheticTypes.add(specialSlotITableType)
+
+        wasmCompiledFileFragments.forEach { fragment ->
+            fragment.specialITableTypes?.let { specialITableTypes ->
+                specialITableTypes.wasmAnyArrayType.bind(wasmAnyArrayType)
+                specialITableTypes.wasmFuncArrayType.bind(wasmFuncArrayType)
+                specialITableTypes.specialSlotITableType.bind(specialSlotITableType)
+            }
+        }
+
+        return syntheticTypes
+    }
+
+    private fun getTags(throwableDeclaration: WasmTypeDeclaration): List<WasmTag> {
         val tagFuncType = WasmRefNullType(WasmHeapType.Type(WasmSymbol(throwableDeclaration)))
 
         val throwableTagFuncType = WasmFunctionType(
@@ -282,6 +326,7 @@ class WasmCompiledModuleFragment(
             parameterTypes = listOf(WasmExternRef),
             resultTypes = emptyList()
         )
+
         val tags = listOfNotNull(
             runIf(!generateTrapsInsteadOfExceptions && itsPossibleToCatchJsErrorSeparately) {
                 WasmTag(jsExceptionTagFuncType, WasmImportDescriptor("intrinsics", WasmSymbol("js_error_tag")))
@@ -297,52 +342,52 @@ class WasmCompiledModuleFragment(
             it.jsExceptionTagIndex?.bind(jsExceptionTagIndex)
         }
 
-        val (importedTags, definedTags) = tags.partition { it.importPair != null }
-        val importsInOrder = importedFunctions + importedTags
-
-        val allFunctionTypes = canonicalFunctionTypes.values.toList() + parameterlessNoReturnFunctionType + throwableTagFuncType + jsExceptionTagFuncType
-
-        // Partition out function types that can't be recursive that don't need to be put into a
-        //  rec group so that they can be matched with function types from other Wasm modules.
-        val (potentiallyRecursiveFunctionTypes, nonRecursiveFunctionTypes) = allFunctionTypes.partition { it.referencesTypeDeclarations() }
-        recGroupTypes.addAll(potentiallyRecursiveFunctionTypes)
-
-        return WasmTypes(recGroupTypes, nonRecursiveFunctionTypes, importsInOrder, definedTags)
+        return tags
     }
 
-    private fun getRecGroupTypesWithoutPotentiallyRecursiveFunctionTypes(): MutableList<WasmTypeDeclaration> {
-        fun wasmTypeDeclarationOrderKey(declaration: WasmTypeDeclaration): Int {
-            return when (declaration) {
-                is WasmArrayDeclaration -> 0
-                is WasmFunctionType -> 0
-                is WasmStructDeclaration ->
-                    // Subtype depth
-                    declaration.superType?.let { wasmTypeDeclarationOrderKey(it.owner) + 1 } ?: 0
+    private fun getTypes(
+        additionalRecGroupTypes: List<WasmTypeDeclaration>,
+        canonicalFunctionTypes: Map<WasmFunctionType, WasmFunctionType>,
+        additionalTypes: List<WasmTypeDeclaration>,
+    ): List<RecursiveTypeGroup> {
+        val gcTypes = wasmCompiledFileFragments.flatMap { it.gcTypes.elements }
+
+        val recGroupTypes = sequence {
+            yieldAll(additionalRecGroupTypes)
+            yieldAll(gcTypes)
+            yieldAll(wasmCompiledFileFragments.asSequence().flatMap { it.vTableGcTypes.elements })
+            yieldAll(canonicalFunctionTypes.values)
+        }
+
+        val recursiveGroups = createRecursiveTypeGroups(recGroupTypes)
+
+        val mixInIndexesForGroups = mutableMapOf<Hash128Bits, Int>()
+        val groupsWithMixIns = mutableListOf<RecursiveTypeGroup>()
+
+        recursiveGroups.mapTo(groupsWithMixIns) { group ->
+            if (group.any { it in gcTypes } && group.singleOrNull() !is WasmArrayDeclaration) {
+                addMixInGroup(group, mixInIndexesForGroups)
+            } else {
+                group
             }
         }
 
-        val recGroupTypes = mutableSetOf<WasmTypeDeclaration>()
-        wasmCompiledFileFragments.forEach { fragment ->
-            recGroupTypes.addAll(fragment.vTableGcTypes.elements)
-            recGroupTypes.addAll(fragment.gcTypes.elements)
-            recGroupTypes.addAll(fragment.classITableGcType.unbound.values.mapNotNull { it.takeIf { it.isBound() }?.owner })
-        }
+        additionalTypes.forEach { groupsWithMixIns.add(listOf(it)) }
 
-        val recGroupTypesList = recGroupTypes.toMutableList()
-        recGroupTypesList.sortBy(::wasmTypeDeclarationOrderKey)
-        return recGroupTypesList
+        return groupsWithMixIns
     }
 
-    private fun getGlobals() = mutableListOf<WasmGlobal>().apply {
+    private fun getGlobals(additionalTypes: MutableList<WasmTypeDeclaration>) = mutableListOf<WasmGlobal>().apply {
         wasmCompiledFileFragments.forEach { fragment ->
             addAll(fragment.globalFields.elements)
             addAll(fragment.globalVTables.elements)
             addAll(fragment.globalClassITables.elements.distinct())
         }
+        createRttiTypeAndProcessRttiGlobals(this, additionalTypes)
     }
 
-    private fun createAndExportMemory(scratchAddress: Int, exports: MutableList<WasmExport<*>>): WasmMemory {
-        val memorySizeInPages = (scratchAddress / 65_536) + 1
+    private fun createAndExportMemory(exports: MutableList<WasmExport<*>>): WasmMemory {
+        val memorySizeInPages = 0
         val memory = WasmMemory(WasmLimits(memorySizeInPages.toUInt(), null /* "unlimited" */))
 
         // Need to export the memory in order to pass complex objects to the host language.
@@ -372,7 +417,7 @@ class WasmCompiledModuleFragment(
         return masterInitFunction
     }
 
-    private fun createTryGetAssociatedObjectFunction(typeIds: Map<IdSignature, Int>) {
+    private fun createTryGetAssociatedObjectFunction() {
         val tryGetAssociatedObject = tryFindBuiltInFunction { it.tryGetAssociatedObject } ?: return // Removed by DCE
         val jsToKotlinAnyAdapter by lazy {
             tryFindBuiltInFunction { it.jsToKotlinAnyAdapter }
@@ -385,24 +430,25 @@ class WasmCompiledModuleFragment(
         tryGetAssociatedObject.instructions.clear()
         with(WasmExpressionBuilder(tryGetAssociatedObject.instructions)) {
             wasmCompiledFileFragments.forEach { fragment ->
-                for ((klass, associatedObjectsInstanceGetters) in fragment.classAssociatedObjectsInstanceGetters) {
-                    val klassId = typeIds[klass] ?: continue // Can be removed by dce so no reflection for this
-                    buildGetLocal(WasmLocal(0, "classId", WasmI32, true), serviceCodeLocation)
-                    buildConstI32(klassId, serviceCodeLocation)
-                    buildInstr(WasmOp.I32_EQ, serviceCodeLocation)
+                for ((klassId, associatedObjectsInstanceGetters) in fragment.classAssociatedObjectsInstanceGetters) {
+                    buildGetLocal(WasmLocal(0, "classId", WasmI64, true), serviceCodeLocation)
+                    buildConstI64(klassId, serviceCodeLocation)
+                    buildInstr(WasmOp.I64_EQ, serviceCodeLocation)
                     buildIf("Class matches")
-                    associatedObjectsInstanceGetters.forEach { (obj, getter, isExternal) ->
-                        val keyId = typeIds[obj]!!
-                        buildGetLocal(WasmLocal(1, "keyId", WasmI32, true), serviceCodeLocation)
-                        buildConstI32(keyId, serviceCodeLocation)
-                        buildInstr(WasmOp.I32_EQ, serviceCodeLocation)
-                        buildIf("Object matches")
-                        buildCall(WasmSymbol(allDefinedFunctions[getter]!!), serviceCodeLocation)
-                        if (isExternal) {
-                            buildCall(WasmSymbol(jsToKotlinAnyAdapter), serviceCodeLocation)
+                    associatedObjectsInstanceGetters.forEach { (keyId, getter, isExternal) ->
+                        val getterFunction = allDefinedFunctions[getter]
+                        if (getterFunction != null) { //Could be deleted with DCE
+                            buildGetLocal(WasmLocal(1, "keyId", WasmI64, true), serviceCodeLocation)
+                            buildConstI64(keyId, serviceCodeLocation)
+                            buildInstr(WasmOp.I64_EQ, serviceCodeLocation)
+                            buildIf("Object matches")
+                            buildCall(WasmSymbol(getterFunction), serviceCodeLocation)
+                            if (isExternal) {
+                                buildCall(WasmSymbol(jsToKotlinAnyAdapter), serviceCodeLocation)
+                            }
+                            buildInstr(WasmOp.RETURN, serviceCodeLocation)
+                            buildEnd()
                         }
-                        buildInstr(WasmOp.RETURN, serviceCodeLocation)
-                        buildEnd()
                     }
                     buildEnd()
                 }
@@ -456,23 +502,6 @@ class WasmCompiledModuleFragment(
         return fieldInitializerFunction
     }
 
-    private fun addCompileTimePerClassData(data: MutableList<WasmData>, typeIds: Map<IdSignature, Int>) {
-        wasmCompiledFileFragments.forEach { fragment ->
-            fragment.typeInfo.forEach { (referenceKey, typeInfo) ->
-                val instructions = mutableListOf<WasmInstr>()
-                WasmExpressionBuilder(instructions).buildConstI32(
-                    typeIds.getValue(referenceKey),
-                    SourceLocation.NoLocation("Compile time data per class")
-                )
-                val typeData = WasmData(
-                    WasmDataMode.Active(0, instructions),
-                    typeInfo.toBytes()
-                )
-                data.add(typeData)
-            }
-        }
-    }
-
     private fun bindUnboundSymbols() {
         bindFileFragments(wasmCompiledFileFragments, { it.functions.unbound }, { it.functions.defined })
         bindFileFragments(wasmCompiledFileFragments, { it.globalFields.unbound }, { it.globalFields.defined })
@@ -518,39 +547,6 @@ class WasmCompiledModuleFragment(
             }
         }
         return canonicalFunctionTypes
-    }
-
-    private fun bindTypeIds(): Pair<Map<IdSignature, Int>, Int> {
-        val typeIds = mutableMapOf<IdSignature, Int>()
-        var currentDataSectionAddress = 0
-
-        wasmCompiledFileFragments.forEach { fragment ->
-            fragment.typeInfo.forEach { (referenceKey, dataElement) ->
-                typeIds[referenceKey] = currentDataSectionAddress
-                currentDataSectionAddress += dataElement.sizeInBytes
-            }
-        }
-
-        wasmCompiledFileFragments.forEach { fragment ->
-            bind(fragment.classIds.unbound, typeIds)
-        }
-
-        var interfaceId = 0
-        wasmCompiledFileFragments.forEach { fragment ->
-            fragment.interfaceIds.unbound.forEach { (signature, symbol) ->
-                val id = typeIds.getOrPut(signature) { interfaceId-- }
-                symbol.bind(id)
-            }
-        }
-
-        currentDataSectionAddress = alignUp(currentDataSectionAddress, INT_SIZE_BYTES)
-        return typeIds to currentDataSectionAddress
-    }
-
-    private fun bindScratchMemAddr(scratchAddress: Int) {
-        wasmCompiledFileFragments.forEach { fragment ->
-            fragment.scratchMemAddr?.bind(scratchAddress)
-        }
     }
 
     private fun bindStringPoolSymbols(data: MutableList<WasmData>) {
@@ -646,13 +642,6 @@ class WasmCompiledModuleFragment(
             }
         }
     }
-
-    private data class WasmTypes(
-        val recGroupTypes: List<WasmTypeDeclaration>,
-        val nonRecursiveFunctionTypes: List<WasmFunctionType>,
-        val importsInOrder: List<WasmNamedModuleField>,
-        val definedTags: List<WasmTag>
-    )
 }
 
 fun <IrSymbolType, WasmDeclarationType : Any, WasmSymbolType : WasmSymbol<WasmDeclarationType>> bind(
@@ -687,12 +676,12 @@ class FieldInitializer(
 )
 
 data class ClassAssociatedObjects(
-    val klass: IdSignature,
+    val klass: Long,
     val objects: List<AssociatedObject>
 )
 
 data class AssociatedObject(
-    val obj: IdSignature,
+    val obj: Long,
     val getterFunc: IdSignature,
     val isExternal: Boolean,
 )

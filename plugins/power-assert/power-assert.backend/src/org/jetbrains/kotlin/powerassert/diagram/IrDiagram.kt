@@ -55,6 +55,7 @@ fun IrBuilderWithScope.irDiagramString(
     }
 
     val valuesByRow = variables
+        .filterIsInstance<IrTemporaryVariable.Displayable>()
         .map { it.toValueDisplay(callInfo) }
         .sortedBy { it.indent }
         .groupBy { it.row }
@@ -136,7 +137,7 @@ private data class ValueDisplay(
     val row: Int,
 )
 
-private fun IrTemporaryVariable.toValueDisplay(
+private fun IrTemporaryVariable.Displayable.toValueDisplay(
     originalInfo: SourceRangeInfo,
 ): ValueDisplay {
     var indent = sourceRangeInfo.startColumnNumber
@@ -266,13 +267,21 @@ private fun IrCall.binaryOperatorLhs(): IrExpression? = when (origin) {
         val innerCall = (arguments[0] as? IrCall)?.takeIf { it.isInnerOfNotEqualOperator() } ?: this
         innerCall.simpleBinaryOperatorLhs()
     }
-    IrStatementOrigin.IN -> {
-        // The `in` operator call is actually a sugar for `rhs.contains(lhs)`.
-        arguments.last()
-    }
-    IrStatementOrigin.NOT_IN -> {
-        // The `!in` operator call is actually a sugar for `rhs.contains(lhs).not()`.
-        (arguments[0] as? IrCall)?.arguments?.last()
+    IrStatementOrigin.IN, IrStatementOrigin.NOT_IN -> {
+        val innerCall = when (origin) {
+            // The `!in` operator call is actually sugar for `rhs.contains(lhs).not()`.
+            IrStatementOrigin.NOT_IN -> arguments[0] as? IrCall ?: this
+            // The `in` operator call is actually sugar for `rhs.contains(lhs)`.
+            else -> this
+        }
+
+        // There are operator functions that do not conform to the normal signature requirement:
+        // * `operator fun CharSequence.contains(other: CharSequence, ignoreCase: Boolean = false): Boolean`
+        // * `operator fun CharSequence.contains(char: Char, ignoreCase: Boolean = false)`
+        // So, need to extract the argument for the first regular parameter.
+        val function = innerCall.symbol.owner
+        val parameter = function.parameters.firstOrNull { it.kind == IrParameterKind.Regular } ?: return null
+        innerCall.arguments[parameter]
     }
     IrStatementOrigin.LT, IrStatementOrigin.GT, IrStatementOrigin.LTEQ, IrStatementOrigin.GTEQ -> {
         // Comparison operator calls are actually sugar for `lhs.compareTo(rhs) <> 0`.

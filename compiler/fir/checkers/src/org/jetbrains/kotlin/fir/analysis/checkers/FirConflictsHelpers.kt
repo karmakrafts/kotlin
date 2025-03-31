@@ -32,6 +32,7 @@ import org.jetbrains.kotlin.fir.scopes.processClassifiersByName
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.*
+import org.jetbrains.kotlin.fir.symbols.impl.hasContextParameters
 import org.jetbrains.kotlin.fir.symbols.lazyResolveToPhase
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.util.ListMultimap
@@ -56,9 +57,9 @@ private val CallableId.isTopLevel get() = className == null
 private fun FirBasedSymbol<*>.isCollectable(): Boolean {
     if (this is FirCallableSymbol<*>) {
         if (this is FirErrorCallableSymbol<*>) return false
-        if (resolvedContextParameters.any { it.returnTypeRef.coneType.hasError() }) return false
+        if (contextParameterSymbols.any { it.resolvedReturnType.hasError() }) return false
         if (typeParameterSymbols.any { it.toConeType().hasError() }) return false
-        if (receiverParameter?.typeRef?.coneType?.hasError() == true) return false
+        if (resolvedReceiverType?.hasError() == true) return false
         if (this is FirFunctionSymbol<*> && valueParameterSymbols.any { it.resolvedReturnType.hasError() }) return false
         @OptIn(SymbolInternals::class)
         if (fir.isHiddenToOvercomeSignatureClash == true) return false
@@ -90,20 +91,8 @@ internal val FirBasedSymbol<*>.resolvedStatus
         else -> null
     }
 
-internal fun isExpectAndNonExpect(first: FirBasedSymbol<*>, second: FirBasedSymbol<*>): Boolean {
-    val firstIsExpect = first.resolvedStatus?.isExpect == true
-    val secondIsExpect = second.resolvedStatus?.isExpect == true
-    /*
-     * this `xor` is equivalent to the following check:
-     * when {
-     *    !firstIsExpect && secondIsExpect -> true
-     *    firstIsExpect && !secondIsExpect -> true
-     *    else -> false
-     * }
-     */
-
-    return firstIsExpect xor secondIsExpect
-}
+private fun isAtLeastOneExpect(first: FirBasedSymbol<*>, second: FirBasedSymbol<*>): Boolean =
+    first.resolvedStatus?.isExpect == true || second.resolvedStatus?.isExpect == true
 
 private class DeclarationBuckets {
     val simpleFunctions = mutableListOf<Pair<FirNamedFunctionSymbol, String>>()
@@ -242,6 +231,7 @@ fun FirDeclarationCollector<FirBasedSymbol<*>>.collectClassMembers(klass: FirCla
     // so only the last declaration is
     // observed when processing all
     // classifiers
+    @OptIn(DirectDeclarationsAccess::class)
     for (declaredClassifier in klass.declarationSymbols) {
         if (declaredClassifier is FirClassifierSymbol<*>) {
             processClassifier(declaredClassifier)
@@ -332,7 +322,7 @@ private fun <D : FirBasedSymbol<*>, S : D> FirDeclarationCollector<D>.collect(
  */
 @Suppress("GrazieInspection")
 fun FirDeclarationCollector<FirBasedSymbol<*>>.collectTopLevel(file: FirFile, packageMemberScope: FirPackageMemberScope) {
-
+    @OptIn(DirectDeclarationsAccess::class)
     for ((declarationName, group) in groupTopLevelByName(file.declarations, context)) {
         val groupHasClassLikesOrProperties = group.classLikes.isNotEmpty() || group.properties.isNotEmpty()
         val groupHasSimpleFunctions = group.simpleFunctions.isNotEmpty()
@@ -434,7 +424,7 @@ private fun shouldCheckForMultiplatformRedeclaration(dependency: FirBasedSymbol<
      * If one of declarations is expect and the other is not expect, ExpectActualChecker will handle this case
      * All other cases (both are expect or both are not expect) should be reported as declarations conflict
      */
-    return !isExpectAndNonExpect(dependency, dependent)
+    return !isAtLeastOneExpect(dependency, dependent)
 }
 
 private fun FirDeclarationCollector<FirBasedSymbol<*>>.collectTopLevelConflict(
@@ -474,7 +464,7 @@ private fun FirDeclarationCollector<FirBasedSymbol<*>>.collectTopLevelConflict(
 
 private fun FirNamedFunctionSymbol.representsMainFunctionAllowingConflictingOverloads(session: FirSession): Boolean {
     if (name != StandardNames.MAIN || !callableId.isTopLevel || !hasMainFunctionStatus) return false
-    if (receiverParameter != null || typeParameterSymbols.isNotEmpty()) return false
+    if (receiverParameterSymbol != null || typeParameterSymbols.isNotEmpty() || hasContextParameters) return false
     val returnType = resolvedReturnType.fullyExpandedType(session)
     if (!returnType.isUnit) return false
     if (valueParameterSymbols.isEmpty()) return true
@@ -500,10 +490,10 @@ private fun FirDeclarationCollector<*>.areNonConflictingCallables(
     declaration: FirBasedSymbol<*>,
     conflicting: FirBasedSymbol<*>,
 ): Boolean {
-    if (isExpectAndNonExpect(declaration, conflicting) && declaration.moduleData != conflicting.moduleData) return true
+    if (isAtLeastOneExpect(declaration, conflicting) && declaration.moduleData != conflicting.moduleData) return true
 
-    val declarationIsLowPriority = hasLowPriorityAnnotation(declaration.annotations)
-    val conflictingIsLowPriority = hasLowPriorityAnnotation(conflicting.annotations)
+    val declarationIsLowPriority = hasLowPriorityAnnotation(declaration.resolvedAnnotationsWithClassIds)
+    val conflictingIsLowPriority = hasLowPriorityAnnotation(conflicting.resolvedAnnotationsWithClassIds)
     if (declarationIsLowPriority != conflictingIsLowPriority) return true
 
     if (declaration !is FirCallableSymbol<*> || conflicting !is FirCallableSymbol<*>) return false
@@ -529,24 +519,11 @@ fun checkForLocalRedeclarations(elements: List<FirElement>, context: CheckerCont
     val multimap = ListMultimap<Name, FirBasedSymbol<*>>()
 
     for (element in elements) {
-        val name: Name?
-        val symbol: FirBasedSymbol<*>?
-        when (element) {
-            is FirVariable -> {
-                symbol = element.symbol
-                name = element.name
-            }
-            is FirOuterClassTypeParameterRef -> {
-                continue
-            }
-            is FirTypeParameterRef -> {
-                symbol = element.symbol
-                name = symbol.name
-            }
-            else -> {
-                symbol = null
-                name = null
-            }
+        val (symbol, name) = when (element) {
+            is FirVariable -> element.symbol to element.name
+            is FirOuterClassTypeParameterRef -> continue
+            is FirTypeParameterRef -> element.symbol.let { it to it.name }
+            else -> null to null
         }
         if (name?.isSpecial == false) {
             multimap.put(name, symbol!!)

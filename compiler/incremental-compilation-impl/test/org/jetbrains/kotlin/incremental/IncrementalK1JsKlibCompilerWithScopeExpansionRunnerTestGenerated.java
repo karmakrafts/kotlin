@@ -22,7 +22,7 @@ public class IncrementalK1JsKlibCompilerWithScopeExpansionRunnerTestGenerated ex
   @TestMetadata("jps/jps-plugin/testData/incremental/pureKotlin")
   @TestDataPath("$PROJECT_ROOT")
   @RunWith(JUnit3RunnerWithInners.class)
-  public static class PureKotlin extends AbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest {
+  public static class PureKotlinAbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest extends AbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest {
     private void runTest(String testDataFilePath) {
       KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
     }
@@ -57,8 +57,8 @@ public class IncrementalK1JsKlibCompilerWithScopeExpansionRunnerTestGenerated ex
       runTest("jps/jps-plugin/testData/incremental/pureKotlin/addTopLevelTypeAlias/");
     }
 
-    public void testAllFilesPresentInPureKotlin() {
-      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("jps/jps-plugin/testData/incremental/pureKotlin"), Pattern.compile("^([^\\.]+)$"), Pattern.compile("^sealed.*"), false);
+    public void testAllFilesPresentInPureKotlinAbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest() {
+      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("jps/jps-plugin/testData/incremental/pureKotlin"), Pattern.compile("^([^\\.]+)$"), Pattern.compile("(^sealed.*)|(.*SinceK2)"), false);
     }
 
     @TestMetadata("annotations")
@@ -571,6 +571,11 @@ public class IncrementalK1JsKlibCompilerWithScopeExpansionRunnerTestGenerated ex
       runTest("jps/jps-plugin/testData/incremental/pureKotlin/removeFileWithFunctionOverload/");
     }
 
+    @TestMetadata("removeImportedClass")
+    public void testRemoveImportedClass() {
+      runTest("jps/jps-plugin/testData/incremental/pureKotlin/removeImportedClass/");
+    }
+
     @TestMetadata("removeMemberTypeAlias")
     public void testRemoveMemberTypeAlias() {
       runTest("jps/jps-plugin/testData/incremental/pureKotlin/removeMemberTypeAlias/");
@@ -680,12 +685,12 @@ public class IncrementalK1JsKlibCompilerWithScopeExpansionRunnerTestGenerated ex
   @TestMetadata("jps/jps-plugin/testData/incremental/classHierarchyAffected")
   @TestDataPath("$PROJECT_ROOT")
   @RunWith(JUnit3RunnerWithInners.class)
-  public static class ClassHierarchyAffected extends AbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest {
+  public static class ClassHierarchyAffectedAbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest extends AbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest {
     private void runTest(String testDataFilePath) {
       KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
     }
 
-    public void testAllFilesPresentInClassHierarchyAffected() {
+    public void testAllFilesPresentInClassHierarchyAffectedAbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest() {
       KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("jps/jps-plugin/testData/incremental/classHierarchyAffected"), Pattern.compile("^([^\\.]+)$"), null, false);
     }
 
@@ -903,12 +908,12 @@ public class IncrementalK1JsKlibCompilerWithScopeExpansionRunnerTestGenerated ex
   @TestMetadata("jps/jps-plugin/testData/incremental/js")
   @TestDataPath("$PROJECT_ROOT")
   @RunWith(JUnit3RunnerWithInners.class)
-  public static class Js extends AbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest {
+  public static class JsAbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest extends AbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest {
     private void runTest(String testDataFilePath) {
       KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
     }
 
-    public void testAllFilesPresentInJs() {
+    public void testAllFilesPresentInJsAbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest() {
       KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("jps/jps-plugin/testData/incremental/js"), Pattern.compile("^([^\\.]+)$"), null, true);
     }
 
@@ -965,12 +970,12 @@ public class IncrementalK1JsKlibCompilerWithScopeExpansionRunnerTestGenerated ex
   @TestMetadata("jps/jps-plugin/testData/incremental/scopeExpansion")
   @TestDataPath("$PROJECT_ROOT")
   @RunWith(JUnit3RunnerWithInners.class)
-  public static class ScopeExpansion extends AbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest {
+  public static class ScopeExpansionAbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest extends AbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest {
     private void runTest(String testDataFilePath) {
       KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
     }
 
-    public void testAllFilesPresentInScopeExpansion() {
+    public void testAllFilesPresentInScopeExpansionAbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest() {
       KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("jps/jps-plugin/testData/incremental/scopeExpansion"), Pattern.compile("^([^\\.]+)$"), null, true);
     }
 

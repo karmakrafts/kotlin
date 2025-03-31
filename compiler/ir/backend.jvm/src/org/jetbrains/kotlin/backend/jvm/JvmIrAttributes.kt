@@ -15,35 +15,45 @@ import org.jetbrains.kotlin.ir.symbols.IrSymbol
 import org.jetbrains.kotlin.resolve.jvm.JvmClassName
 import org.jetbrains.org.objectweb.asm.Type
 
-var IrElement.localClassType: Type? by irAttribute(followAttributeOwner = true)
+private var IrElement._localClassType: Type? by irAttribute(copyByDefault = true)
+// This sort of a hack for IR inliner case, where IrFunctionExpression stores and "shares" localClassType
+// between IrFunctionReferences that are lowered from this IrFunctionExpression, but linked to it via attributeOwnerId.
+// It can be changed to simply store the attribute on the function reference itself when either:
+// - IR inliner (-Xserialize-ir) is dropped, or
+// - IrFunctionExpression is dropped (KT-74383).
+var IrElement.localClassType: Type?
+    get() = attributeOwnerId._localClassType
+    set(value) {
+        attributeOwnerId._localClassType = value
+    }
 
-var IrFunction.enclosingMethodOverride: IrFunction? by irAttribute(followAttributeOwner = false)
+var IrFunction.enclosingMethodOverride: IrFunction? by irAttribute(copyByDefault = false)
 
-var IrClass.localDelegatedProperties: List<IrLocalDelegatedPropertySymbol>? by irAttribute(followAttributeOwner = true)
+var IrClass.localDelegatedProperties: List<IrLocalDelegatedPropertySymbol>? by irAttribute(copyByDefault = true)
 
-var IrFunction.hasSpecialBridge: Boolean by irFlag(followAttributeOwner = false)
+var IrFunction.hasSpecialBridge: Boolean by irFlag(copyByDefault = false)
 
-var IrSimpleFunction.overridesWithoutStubs: List<IrSimpleFunctionSymbol>? by irAttribute(followAttributeOwner = false)
+var IrSimpleFunction.overridesWithoutStubs: List<IrSimpleFunctionSymbol>? by irAttribute(copyByDefault = false)
 
-var IrClass.multifileFacadeForPart: JvmClassName? by irAttribute(followAttributeOwner = true)
-var IrClass.multifileFacadeClassForPart: IrClass? by irAttribute(followAttributeOwner = true)
-var IrSimpleFunction.multifileFacadePartMember: IrSimpleFunction? by irAttribute(followAttributeOwner = false)
+var IrClass.multifileFacadeForPart: JvmClassName? by irAttribute(copyByDefault = true)
+var IrClass.multifileFacadeClassForPart: IrClass? by irAttribute(copyByDefault = true)
+var IrSimpleFunction.multifileFacadePartMember: IrSimpleFunction? by irAttribute(copyByDefault = false)
 
-var IrConstructor.hiddenConstructorMangledParams: IrConstructor? by irAttribute(followAttributeOwner = false)
-var IrConstructor.hiddenConstructorOfSealedClass: IrConstructor? by irAttribute(followAttributeOwner = false)
+var IrConstructor.hiddenConstructorMangledParams: IrConstructor? by irAttribute(copyByDefault = false)
+var IrConstructor.hiddenConstructorOfSealedClass: IrConstructor? by irAttribute(copyByDefault = false)
 
-var IrClass.continuationClassVarsCountByType: Map<Type, Int>? by irAttribute(followAttributeOwner = true)
+var IrClass.continuationClassVarsCountByType: Map<Type, Int>? by irAttribute(copyByDefault = true)
 
-var IrClass.isPublicAbi: Boolean by irFlag(followAttributeOwner = false)
+var IrClass.isPublicAbi: Boolean by irFlag(copyByDefault = false)
 
 // If the JVM fqname of a class differs from what is implied by its parent, e.g. if it's a file class
 // annotated with @JvmPackageName, the correct name is recorded here.
-var IrClass.classNameOverride: JvmClassName? by irAttribute(followAttributeOwner = false)
+var IrClass.classNameOverride: JvmClassName? by irAttribute(copyByDefault = false)
 
-var IrFunction.viewOfOriginalSuspendFunction: IrSimpleFunction? by irAttribute(followAttributeOwner = false)
+var IrFunction.viewOfOriginalSuspendFunction: IrSimpleFunction? by irAttribute(copyByDefault = false)
 
-var IrSimpleFunction.staticDefaultStub: IrSimpleFunction? by irAttribute(followAttributeOwner = false)
+var IrSimpleFunction.staticDefaultStub: IrSimpleFunction? by irAttribute(copyByDefault = false)
 
-var IrElement.isEnclosedInConstructor: Boolean by irFlag(followAttributeOwner = true)
+var IrElement.isEnclosedInConstructor: Boolean by irFlag(copyByDefault = true)
 
-var IrVariable.originalSnippetValueSymbol: IrSymbol? by irAttribute(followAttributeOwner = false)
+var IrVariable.originalSnippetValueSymbol: IrSymbol? by irAttribute(copyByDefault = false)

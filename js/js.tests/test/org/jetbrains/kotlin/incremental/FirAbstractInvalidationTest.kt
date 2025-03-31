@@ -5,6 +5,10 @@
 
 package org.jetbrains.kotlin.incremental
 
+import org.jetbrains.kotlin.backend.common.linkage.partial.PartialLinkageConfig
+import org.jetbrains.kotlin.backend.common.linkage.partial.PartialLinkageLogLevel
+import org.jetbrains.kotlin.backend.common.linkage.partial.PartialLinkageMode
+import org.jetbrains.kotlin.backend.common.linkage.partial.setupPartialLinkageConfig
 import org.jetbrains.kotlin.backend.common.phaser.PhaseEngine
 import org.jetbrains.kotlin.backend.js.JsGenerationGranularity
 import org.jetbrains.kotlin.cli.common.collectSources
@@ -16,6 +20,7 @@ import org.jetbrains.kotlin.cli.pipeline.web.WebFir2IrPipelinePhase.transformFir
 import org.jetbrains.kotlin.cli.pipeline.web.WebFrontendPipelinePhase.compileModulesToAnalyzedFirWithLightTree
 import org.jetbrains.kotlin.cli.pipeline.web.WebKlibSerializationPipelinePhase.serializeFirKlib
 import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.config.languageVersionSettings
 import org.jetbrains.kotlin.config.phaseConfig
 import org.jetbrains.kotlin.config.phaser.PhaseConfig
 import org.jetbrains.kotlin.config.phaser.PhaserState
@@ -24,10 +29,6 @@ import org.jetbrains.kotlin.ir.backend.js.JsPreSerializationLoweringContext
 import org.jetbrains.kotlin.ir.backend.js.MainModule
 import org.jetbrains.kotlin.ir.backend.js.ModulesStructure
 import org.jetbrains.kotlin.ir.backend.js.jsLoweringsOfTheFirstPhase
-import org.jetbrains.kotlin.ir.linkage.partial.PartialLinkageConfig
-import org.jetbrains.kotlin.ir.linkage.partial.PartialLinkageLogLevel
-import org.jetbrains.kotlin.ir.linkage.partial.PartialLinkageMode
-import org.jetbrains.kotlin.ir.linkage.partial.setupPartialLinkageConfig
 import org.jetbrains.kotlin.serialization.js.ModuleKind
 import org.jetbrains.kotlin.test.TargetBackend
 import java.io.ByteArrayOutputStream
@@ -128,7 +129,7 @@ abstract class FirAbstractInvalidationTest(
             configuration.phaseConfig ?: PhaseConfig(),
             PhaserState(),
             JsPreSerializationLoweringContext(fir2IrActualizedResult.irBuiltIns, configuration, diagnosticsReporter),
-        ).runPreSerializationLoweringPhases(fir2IrActualizedResult, jsLoweringsOfTheFirstPhase)
+        ).runPreSerializationLoweringPhases(fir2IrActualizedResult, jsLoweringsOfTheFirstPhase(configuration.languageVersionSettings))
 
         serializeFirKlib(
             moduleStructure = moduleStructure,

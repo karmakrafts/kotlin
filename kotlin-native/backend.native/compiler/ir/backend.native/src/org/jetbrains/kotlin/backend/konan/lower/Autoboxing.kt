@@ -106,6 +106,10 @@ private class AutoboxingTransformer(val context: Context) : AbstractValueUsageTr
         val skipTypeCheck = forceSkipTypeCheck || !insertSafeCasts || (this as? IrTypeOperatorCall)?.operator == IrTypeOperator.CAST
         val actualType = when (this) {
             is IrGetField -> this.symbol.owner.type
+            is IrCall -> when (this.symbol) {
+                symbols.reinterpret -> this.typeArguments[1]!!
+                else -> this.type
+            }
             is IrTypeOperatorCall -> when (this.operator) {
                 IrTypeOperator.CAST -> context.irBuiltIns.anyNType
                 IrTypeOperator.IMPLICIT_CAST -> if (insertSafeCasts) this.type else context.irBuiltIns.anyNType
@@ -521,7 +525,7 @@ private class InlineClassTransformer(private val context: Context) : IrBuildingT
             irClass.declarations.filterIsInstance<IrProperty>().mapNotNull { it.backingField?.takeUnless { it.isStatic } }.single()
 }
 
-private var IrConstructor.loweredInlineClassConstructor: IrSimpleFunction? by irAttribute(followAttributeOwner = false)
+private var IrConstructor.loweredInlineClassConstructor: IrSimpleFunction? by irAttribute(copyByDefault = false)
 
 private fun Context.getLoweredInlineClassConstructor(irConstructor: IrConstructor): IrSimpleFunction = irConstructor::loweredInlineClassConstructor.getOrSetIfNull {
     require(irConstructor.constructedClass.isInlined())

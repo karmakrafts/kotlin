@@ -264,7 +264,7 @@ class ResultTypeResolver(
         when (val type = this@makeFlexibleIfNecessary) {
             is RigidTypeMarker -> {
                 if (constraints.any { it.type.typeConstructor().isTypeVariable() && it.type.hasFlexibleNullability() }) {
-                    createFlexibleType(type.makeDefinitelyNotNullOrNotNull(), type.withNullability(true))
+                    createTrivialFlexibleTypeOrSelf(type.makeDefinitelyNotNullOrNotNull())
                 } else type
             }
             else -> type
@@ -465,8 +465,9 @@ class ResultTypeResolver(
     }
 
     private fun Context.findSuperType(variableWithConstraints: VariableWithConstraints): KotlinTypeMarker? {
-        val upperConstraints =
-            variableWithConstraints.constraints.filter { it.kind == ConstraintKind.UPPER && this@findSuperType.isProperTypeForFixation(it.type) }
+        val upperConstraints = variableWithConstraints.constraints.filter {
+            it.kind == ConstraintKind.UPPER && this@findSuperType.isProperTypeForFixation(it.type)
+        }
 
         if (upperConstraints.isNotEmpty()) {
             return computeUpperType(upperConstraints)

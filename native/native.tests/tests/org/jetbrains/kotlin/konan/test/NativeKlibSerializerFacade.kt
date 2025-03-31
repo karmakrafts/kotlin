@@ -5,19 +5,13 @@
 
 package org.jetbrains.kotlin.konan.test
 
-import org.jetbrains.kotlin.backend.common.serialization.CompatibilityMode
 import org.jetbrains.kotlin.backend.common.serialization.IrSerializationSettings
 import org.jetbrains.kotlin.backend.common.serialization.SerializerOutput
 import org.jetbrains.kotlin.backend.common.serialization.metadata.KlibMetadataMonolithicSerializer
 import org.jetbrains.kotlin.backend.common.serialization.serializeModuleIntoKlib
 import org.jetbrains.kotlin.backend.konan.serialization.KonanIrModuleSerializer
 import org.jetbrains.kotlin.builtins.konan.KonanBuiltIns
-import org.jetbrains.kotlin.config.CommonConfigurationKeys
-import org.jetbrains.kotlin.config.CompilerConfiguration
-import org.jetbrains.kotlin.config.KlibConfigurationKeys
-import org.jetbrains.kotlin.config.KotlinCompilerVersion
-import org.jetbrains.kotlin.config.languageVersionSettings
-import org.jetbrains.kotlin.config.messageCollector
+import org.jetbrains.kotlin.config.*
 import org.jetbrains.kotlin.descriptors.impl.ModuleDescriptorImpl
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporterFactory
 import org.jetbrains.kotlin.diagnostics.impl.BaseDiagnosticsCollector
@@ -28,7 +22,6 @@ import org.jetbrains.kotlin.konan.library.impl.buildLibrary
 import org.jetbrains.kotlin.library.*
 import org.jetbrains.kotlin.library.metadata.KlibMetadataFactories
 import org.jetbrains.kotlin.library.metadata.NullFlexibleTypeDeserializer
-import org.jetbrains.kotlin.metadata.deserialization.MetadataVersion
 import org.jetbrains.kotlin.storage.LockBasedStorageManager
 import org.jetbrains.kotlin.test.backend.ir.IrBackendFacade
 import org.jetbrains.kotlin.test.backend.ir.IrBackendInput
@@ -41,6 +34,7 @@ import org.jetbrains.kotlin.test.model.*
 import org.jetbrains.kotlin.test.services.*
 import org.jetbrains.kotlin.test.services.configuration.NativeEnvironmentConfigurator.Companion.getKlibArtifactFile
 import org.jetbrains.kotlin.test.services.configuration.nativeEnvironmentConfigurator
+import org.jetbrains.kotlin.util.klibMetadataVersionOrDefault
 
 abstract class AbstractNativeKlibSerializerFacade(
     testServices: TestServices
@@ -73,7 +67,7 @@ abstract class AbstractNativeKlibSerializerFacade(
             versions = KotlinLibraryVersioning(
                 abiVersion = KotlinAbiVersion.CURRENT,
                 compilerVersion = KotlinCompilerVersion.getVersion(),
-                metadataVersion = KLIB_LEGACY_METADATA_VERSION,
+                metadataVersion = configuration.klibMetadataVersionOrDefault(),
             ),
             target = testServices.nativeEnvironmentConfigurator.getNativeTarget(module),
             output = outputArtifact.outputFile.path,
@@ -145,21 +139,14 @@ class ClassicNativeKlibSerializerFacade(testServices: TestServices) : AbstractNa
 
         val serializedMetadata = KlibMetadataMonolithicSerializer(
             configuration.languageVersionSettings,
-            metadataVersion = configuration[CommonConfigurationKeys.METADATA_VERSION] as? MetadataVersion
-                ?: KLIB_LEGACY_METADATA_VERSION,
+            metadataVersion = configuration.klibMetadataVersionOrDefault(),
             frontendOutput.project,
             exportKDoc = false,
             skipExpects = true,
-            allowErrorTypes = false,
         ).serializeModule(frontendOutput.analysisResult.moduleDescriptor)
 
         val serializerIr = KonanIrModuleSerializer(
-            settings = IrSerializationSettings(
-                languageVersionSettings = configuration.languageVersionSettings,
-                normalizeAbsolutePaths = configuration.getBoolean(KlibConfigurationKeys.KLIB_NORMALIZE_ABSOLUTE_PATH),
-                sourceBaseDirs = configuration.getList(KlibConfigurationKeys.KLIB_RELATIVE_PATH_BASES),
-                shouldCheckSignaturesOnUniqueness = configuration.get(KlibConfigurationKeys.PRODUCE_KLIB_SIGNATURES_CLASH_CHECKS, true)
-            ),
+            settings = IrSerializationSettings(configuration),
             KtDiagnosticReporterWithImplicitIrBasedContext(diagnosticReporter, configuration.languageVersionSettings),
             inputArtifact.irPluginContext.irBuiltIns,
         ).serializedIrModule(inputArtifact.irModuleFragment)
@@ -185,31 +172,15 @@ class FirNativeKlibSerializerFacade(testServices: TestServices) : AbstractNative
     ) = serializeModuleIntoKlib(
         moduleName = inputArtifact.irModuleFragment.name.asString(),
         inputArtifact.irModuleFragment,
-        inputArtifact.irPluginContext.irBuiltIns,
         configuration,
         diagnosticReporter,
-        CompatibilityMode.CURRENT,
         cleanFiles = emptyList(),
         usedLibrariesForManifest,
-        createModuleSerializer = {
-                irDiagnosticReporter,
-                irBuiltIns,
-                compatibilityMode,
-                normalizeAbsolutePaths,
-                sourceBaseDirs,
-                languageVersionSettings,
-                shouldCheckSignaturesOnUniqueness,
-            ->
+        createModuleSerializer = { irDiagnosticReporter ->
             KonanIrModuleSerializer(
-                settings = IrSerializationSettings(
-                    compatibilityMode = compatibilityMode,
-                    normalizeAbsolutePaths = normalizeAbsolutePaths,
-                    sourceBaseDirs = sourceBaseDirs,
-                    languageVersionSettings = languageVersionSettings,
-                    shouldCheckSignaturesOnUniqueness = shouldCheckSignaturesOnUniqueness,
-                ),
+                settings = IrSerializationSettings(configuration),
                 diagnosticReporter = irDiagnosticReporter,
-                irBuiltIns = irBuiltIns,
+                irBuiltIns = inputArtifact.irPluginContext.irBuiltIns,
             )
         },
         inputArtifact.metadataSerializer ?: error("expected metadata serializer"),

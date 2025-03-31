@@ -11,7 +11,6 @@ import org.jetbrains.kotlin.KtPsiSourceFile
 import org.jetbrains.kotlin.KtSourceFile
 import org.jetbrains.kotlin.backend.common.serialization.metadata.KlibMetadataSerializer
 import org.jetbrains.kotlin.backend.common.serialization.metadata.KlibSingleFileMetadataSerializer
-import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.config.languageVersionSettings
@@ -20,7 +19,6 @@ import org.jetbrains.kotlin.descriptors.ClassifierDescriptor
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
-import org.jetbrains.kotlin.library.KLIB_LEGACY_METADATA_VERSION
 import org.jetbrains.kotlin.metadata.ProtoBuf
 import org.jetbrains.kotlin.metadata.deserialization.MetadataVersion
 import org.jetbrains.kotlin.name.FqName
@@ -30,6 +28,7 @@ import org.jetbrains.kotlin.resolve.BindingContextUtils
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
 import org.jetbrains.kotlin.serialization.DescriptorSerializer
+import org.jetbrains.kotlin.util.klibMetadataVersionOrDefault
 
 // TODO: need a refactoring between IncrementalSerializer and MonolithicSerializer.
 class KlibMetadataIncrementalSerializer(
@@ -39,15 +38,13 @@ class KlibMetadataIncrementalSerializer(
     languageVersionSettings: LanguageVersionSettings,
     metadataVersion: MetadataVersion,
     project: Project,
-    exportKDoc: Boolean,
-    allowErrorTypes: Boolean = false
+    exportKDoc: Boolean
 ) : KlibMetadataSerializer(
     languageVersionSettings = languageVersionSettings,
     metadataVersion = metadataVersion,
     project = project,
     exportKDoc = exportKDoc,
-    skipExpects = true, // Incremental compilation is not supposed to work when producing pure metadata (IR-less) KLIBs.
-    allowErrorTypes = allowErrorTypes
+    skipExpects = true // Incremental compilation is not supposed to work when producing pure metadata (IR-less) KLIBs.
 ), KlibSingleFileMetadataSerializer<KtFile> {
 
     constructor(
@@ -56,17 +53,14 @@ class KlibMetadataIncrementalSerializer(
         project: Project,
         bindingContext: BindingContext,
         moduleDescriptor: ModuleDescriptor,
-        allowErrorTypes: Boolean,
     ) : this(
         ktFiles = files,
         bindingContext = bindingContext,
         moduleDescriptor = moduleDescriptor,
         languageVersionSettings = configuration.languageVersionSettings,
-        metadataVersion = configuration.get(CommonConfigurationKeys.METADATA_VERSION) as? MetadataVersion
-            ?: KLIB_LEGACY_METADATA_VERSION,
+        metadataVersion = configuration.klibMetadataVersionOrDefault(),
         project = project,
         exportKDoc = false,
-        allowErrorTypes = allowErrorTypes,
     )
 
     constructor(modulesStructure: ModulesStructure, moduleFragment: IrModuleFragment) : this(
@@ -75,7 +69,6 @@ class KlibMetadataIncrementalSerializer(
         modulesStructure.project,
         modulesStructure.jsFrontEndResult.bindingContext,
         moduleFragment.descriptor,
-        modulesStructure.jsFrontEndResult.hasErrors,
     )
 
     override fun serializeSingleFileMetadata(file: KtFile): ProtoBuf.PackageFragment {

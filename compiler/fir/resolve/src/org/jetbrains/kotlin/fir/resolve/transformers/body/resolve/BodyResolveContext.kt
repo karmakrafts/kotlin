@@ -30,7 +30,6 @@ import org.jetbrains.kotlin.fir.scopes.computeImportingScopes
 import org.jetbrains.kotlin.fir.scopes.createImportingScopes
 import org.jetbrains.kotlin.fir.scopes.impl.FirLocalScope
 import org.jetbrains.kotlin.fir.scopes.impl.FirMemberTypeParameterScope
-import org.jetbrains.kotlin.fir.scopes.impl.FirWhenSubjectImportingScope
 import org.jetbrains.kotlin.fir.symbols.impl.FirAnonymousFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
@@ -77,9 +76,6 @@ class BodyResolveContext(
 
     val topContainerForTypeResolution: FirDeclaration?
         get() = containers.lastOrNull { it is FirTypeParameterRefsOwner && it !is FirAnonymousFunction }
-
-    @PrivateForInline
-    val whenSubjectImportingScopes: ArrayDeque<FirWhenSubjectImportingScope?> = ArrayDeque()
 
     @set:PrivateForInline
     var containingRegularClass: FirRegularClass? = null
@@ -625,17 +621,6 @@ class BodyResolveContext(
         return withContainer(replSnippet) {
             withTowerDataCleanup {
 
-                // TODO: robuster matching and error reporting on no extension (KT-72969)
-                for (resolveExt in holder.session.extensionService.replSnippetResolveExtensions) {
-                    val scope = resolveExt.getSnippetScope(replSnippet, holder.session)
-                    if (scope != null) {
-                        addNonLocalTowerDataElement(scope.asTowerDataElement(isLocal = false))
-                        break
-                    }
-                }
-
-                addLocalScope(FirLocalScope(holder.session))
-
                 replSnippet.receivers.mapIndexed { index, receiver ->
                     ImplicitReceiverValueForScriptOrSnippet(
                         receiver.symbol,
@@ -646,6 +631,15 @@ class BodyResolveContext(
                 }.asReversed().forEach {
                     val additionalLabelName = it.type.abbreviatedTypeOrSelf.labelName(holder.session)
                     addReceiver(null, it, additionalLabelName)
+                }
+
+                // TODO: robuster matching and error reporting on no extension (KT-72969)
+                for (resolveExt in holder.session.extensionService.replSnippetResolveExtensions) {
+                    val scope = resolveExt.getSnippetScope(replSnippet, holder.session)
+                    if (scope != null) {
+                        addNonLocalTowerDataElement(scope.asTowerDataElement(isLocal = false))
+                        break
+                    }
                 }
 
                 f()
@@ -681,45 +675,6 @@ class BodyResolveContext(
 
         return withTowerDataContexts(newContext) {
             withContainer(codeFragment, f)
-        }
-    }
-
-    @OptIn(PrivateForInline::class)
-    inline fun <T> withWhenSubjectType(
-        subjectType: ConeKotlinType?,
-        sessionHolder: SessionHolder,
-        f: () -> T,
-    ): T {
-        val session = sessionHolder.session
-
-        val withContextSensitiveResolution =
-            session.languageVersionSettings.supportsFeature(LanguageFeature.ContextSensitiveEnumResolutionInWhen)
-
-        if (withContextSensitiveResolution) {
-            val subjectClassSymbol = (subjectType?.lowerBoundIfFlexible() as? ConeClassLikeType)
-                ?.lookupTag?.toRegularClassSymbol(session)?.takeIf { it.fir.classKind == ClassKind.ENUM_CLASS }
-            val whenSubjectImportingScope = subjectClassSymbol?.let {
-                FirWhenSubjectImportingScope(it.classId, session, sessionHolder.scopeSession)
-            }
-            whenSubjectImportingScopes.add(whenSubjectImportingScope)
-        }
-
-        return try {
-            f()
-        } finally {
-            if (withContextSensitiveResolution) {
-                whenSubjectImportingScopes.removeLast()
-            }
-        }
-    }
-
-    @OptIn(PrivateForInline::class)
-    inline fun <T> withWhenSubjectImportingScope(f: () -> T): T {
-        val whenSubjectImportingScope = whenSubjectImportingScopes.lastOrNull() ?: return f()
-        val newTowerDataContext = towerDataContext.addNonLocalScope(whenSubjectImportingScope)
-        val newContexts = FirRegularTowerDataContexts(newTowerDataContext)
-        return withTowerDataContexts(newContexts) {
-            f()
         }
     }
 
@@ -821,6 +776,14 @@ class BodyResolveContext(
                 f()
             }
         }
+    }
+
+    @OptIn(PrivateForInline::class)
+    fun <T> withDanglingModifierList(
+        danglingModifierList: FirDanglingModifierList,
+        f: () -> T
+    ): T = withTowerDataCleanup {
+        withContainer(danglingModifierList, f)
     }
 
     @OptIn(PrivateForInline::class)

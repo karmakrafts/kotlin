@@ -2,12 +2,11 @@
  * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
+@file:OptIn(ExperimentalAnnotationsInMetadata::class)
 
 package org.jetbrains.kotlin.commonizer.metadata
 
 import kotlinx.metadata.klib.*
-import kotlin.metadata.*
-import kotlin.metadata.internal.common.KmModuleFragment
 import org.jetbrains.kotlin.commonizer.cir.*
 import org.jetbrains.kotlin.commonizer.metadata.TypeAliasExpansion.*
 import org.jetbrains.kotlin.commonizer.utils.DEFAULT_SETTER_VALUE_NAME
@@ -16,6 +15,8 @@ import org.jetbrains.kotlin.commonizer.utils.compactMap
 import org.jetbrains.kotlin.descriptors.CallableMemberDescriptor
 import org.jetbrains.kotlin.serialization.deserialization.DYNAMIC_TYPE_DESERIALIZER_ID
 import org.jetbrains.kotlin.types.Variance
+import kotlin.metadata.*
+import kotlin.metadata.internal.common.KmModuleFragment
 
 internal fun CirModule.serializeModule(
     fragments: Collection<KmModuleFragment>
@@ -78,7 +79,7 @@ internal fun CirClass.serializeClass(
     nestedProperties: Collection<KmProperty>
 ): KmClass = KmClass().also { clazz ->
     clazz.modifiersFrom(this, context.isCommon)
-    annotations.mapTo(clazz.klibAnnotations) { it.serializeAnnotation() }
+    annotations.mapTo(clazz.annotations) { it.serializeAnnotation() }
     typeParameters.serializeTypeParameters(context, output = clazz.typeParameters)
     clazz.name = className
 
@@ -90,8 +91,9 @@ internal fun CirClass.serializeClass(
         val shortClassName = directNestedClass.name.substringAfterLast('.')
 
         if (directNestedClass.kind == ClassKind.ENUM_ENTRY) {
-            clazz.enumEntries += shortClassName
-            clazz.klibEnumEntries += KlibEnumEntry(name = shortClassName, annotations = directNestedClass.klibAnnotations)
+            clazz.kmEnumEntries += KmEnumEntry(shortClassName).apply {
+                annotations.addAll(directNestedClass.annotations)
+            }
         } else {
             clazz.nestedClasses += shortClassName
         }
@@ -128,7 +130,7 @@ internal fun CirClassConstructor.serializeConstructor(
     context: CirTreeSerializationContext
 ): KmConstructor = KmConstructor().also { constructor ->
     constructor.modifiersFrom(this)
-    annotations.mapTo(constructor.klibAnnotations) { it.serializeAnnotation() }
+    annotations.mapTo(constructor.annotations) { it.serializeAnnotation() }
     // TODO: nowhere to write constructor type parameters
     valueParameters.mapTo(constructor.valueParameters) { it.serializeValueParameter(context) }
 }
@@ -151,9 +153,9 @@ internal fun CirProperty.serializeProperty(
     property.modifiersFrom(this, isExpect = context.isCommon && !isLiftedUp)
     this.getter?.let { property.getter.modifiersFrom(it, this, this) }
     property.setter = this.setter?.let { KmPropertyAccessorAttributes().apply { modifiersFrom(it, it, this@serializeProperty) } }
-    annotations.mapTo(property.klibAnnotations) { it.serializeAnnotation() }
-    getter?.annotations?.mapTo(property.klibGetterAnnotations) { it.serializeAnnotation() }
-    setter?.annotations?.mapTo(property.klibSetterAnnotations) { it.serializeAnnotation() }
+    annotations.mapTo(property.annotations) { it.serializeAnnotation() }
+    getter?.annotations?.mapTo(property.getter.annotations) { it.serializeAnnotation() }
+    setter?.annotations?.mapTo(property.setter!!.annotations) { it.serializeAnnotation() }
     // TODO unclear where to write backing/delegate field annotations, see KT-44625
     property.compileTimeValue = compileTimeInitializer.takeIf { it !is CirConstantValue.NullValue }?.serializeConstantValue()
     typeParameters.serializeTypeParameters(context, output = property.typeParameters)
@@ -181,7 +183,7 @@ internal fun CirFunction.serializeFunction(
     name = name.name
 ).also { function ->
     function.modifiersFrom(this, isExpect = context.isCommon && kind != CallableMemberDescriptor.Kind.SYNTHESIZED)
-    annotations.mapTo(function.klibAnnotations) { it.serializeAnnotation() }
+    annotations.mapTo(function.annotations) { it.serializeAnnotation() }
     typeParameters.serializeTypeParameters(context, output = function.typeParameters)
     valueParameters.mapTo(function.valueParameters) { it.serializeValueParameter(context) }
     extensionReceiver?.let { receiver ->
@@ -242,7 +244,7 @@ private fun CirValueParameter.serializeValueParameter(
     name = name.name
 ).also { parameter ->
     parameter.modifiersFrom(this)
-    annotations.mapTo(parameter.klibAnnotations) { it.serializeAnnotation() }
+    annotations.mapTo(parameter.annotations) { it.serializeAnnotation() }
     parameter.type = returnType.serializeType(context)
     varargElementType?.let { varargElementType ->
         parameter.varargElementType = varargElementType.serializeType(context)

@@ -1,3 +1,7 @@
+// WITH_STDLIB
+// LAMBDAS: INDY
+// LANGUAGE: +AnnotationsInMetadata
+
 import kotlin.annotation.AnnotationTarget.*
 
 @Target(
@@ -47,4 +51,13 @@ typealias Z = String
 fun topLevel() {
     @A("local-delegated-property-in-file")
     val ldp: Int by lazy { 2 }
+}
+
+fun @receiver:A("fun-receiver") Any.ff() {}
+
+@delegate:A("delegate")
+val @receiver:A("property-receiver") Any.pp: Int by lazy { 3 }
+
+enum class E {
+    @A("enum-entry") ENTRY,
 }

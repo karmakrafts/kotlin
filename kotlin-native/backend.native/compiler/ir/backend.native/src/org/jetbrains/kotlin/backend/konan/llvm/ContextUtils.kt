@@ -61,7 +61,7 @@ internal sealed class Lifetime(val slotType: SlotType) {
     }
 
     // If reference is frame-local (only obtained from some call and never leaves).
-    object LOCAL : Lifetime(SlotType.ANONYMOUS) {
+    object LOCAL : Lifetime(SlotType.ARENA) {
         override fun toString(): String {
             return "LOCAL"
         }
@@ -175,7 +175,7 @@ internal interface ContextUtils : RuntimeAware {
             return LLVMLinkage.LLVMExternalLinkage
         if (context.config.producePerFileCache) {
             val originalFunction = irFunction.originalConstructor ?: irFunction
-            if (originalFunction in generationState.calledFromExportedInlineFunctions)
+            if (originalFunction.isCalledFromExportedInlineFunction)
                 return LLVMLinkage.LLVMExternalLinkage
         }
 

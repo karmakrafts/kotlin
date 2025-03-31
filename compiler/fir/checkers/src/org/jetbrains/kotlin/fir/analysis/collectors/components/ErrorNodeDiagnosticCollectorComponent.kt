@@ -18,16 +18,13 @@ import org.jetbrains.kotlin.fir.declarations.FirAnonymousFunction
 import org.jetbrains.kotlin.fir.declarations.FirErrorFunction
 import org.jetbrains.kotlin.fir.declarations.FirErrorPrimaryConstructor
 import org.jetbrains.kotlin.fir.declarations.FirErrorProperty
+import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.impl.FirPrimaryConstructor
 import org.jetbrains.kotlin.fir.diagnostics.*
 import org.jetbrains.kotlin.fir.expressions.*
-import org.jetbrains.kotlin.fir.references.FirErrorNamedReference
-import org.jetbrains.kotlin.fir.references.FirNamedReference
-import org.jetbrains.kotlin.fir.references.FirResolvedErrorReference
-import org.jetbrains.kotlin.fir.references.FirThisReference
+import org.jetbrains.kotlin.fir.references.*
 import org.jetbrains.kotlin.fir.resolve.diagnostics.*
 import org.jetbrains.kotlin.fir.types.*
-import org.jetbrains.kotlin.fir.types.ConeErrorType
 
 class ErrorNodeDiagnosticCollectorComponent(
     session: FirSession,
@@ -95,7 +92,11 @@ class ErrorNodeDiagnosticCollectorComponent(
         processErrorReference(resolvedErrorReference, resolvedErrorReference.diagnostic, data)
     }
 
-    private fun processErrorReference(reference: FirNamedReference, diagnostic: ConeDiagnostic, context: CheckerContext) {
+    override fun visitErrorSuperReference(errorSuperReference: FirErrorSuperReference, data: CheckerContext) {
+        processErrorReference(errorSuperReference, errorSuperReference.diagnostic, data)
+    }
+
+    private fun processErrorReference(reference: FirReference, diagnostic: ConeDiagnostic, context: CheckerContext) {
         var source = reference.source
         val callOrAssignment = context.callsOrAssignments.lastOrNull()?.takeIf {
             // Use the source of the enclosing FirQualifiedAccess if it is exactly the call to the erroneous callee.
@@ -133,18 +134,16 @@ class ErrorNodeDiagnosticCollectorComponent(
     }
 
     override fun visitErrorExpression(errorExpression: FirErrorExpression, data: CheckerContext) {
-        val source = errorExpression.source
         val diagnostic = errorExpression.diagnostic
-        if (source == null) {
-            // ConeSyntaxDiagnostic and DiagnosticKind.ExpressionExpected with no source (see check above) are typically symptoms of some
-            // syntax error that was already reported during parsing.
-            if (diagnostic is ConeSyntaxDiagnostic) return
-            if (diagnostic is ConeSimpleDiagnostic && diagnostic.kind == DiagnosticKind.ExpressionExpected) return
-        }
+
+        // Syntax errors are reported separately, no need to report them again.
+        if (diagnostic is ConeSyntaxDiagnostic) return
+
         if (diagnostic == ConeContextParameterWithDefaultValue &&
             data.containingDeclarations.let { it.elementAtOrNull(it.lastIndex - 1) } is FirPrimaryConstructor
         ) return
-        reportFirDiagnostic(diagnostic, source, data)
+
+        reportFirDiagnostic(diagnostic, errorExpression.source, data)
     }
 
     override fun visitErrorFunction(errorFunction: FirErrorFunction, data: CheckerContext) {
@@ -218,6 +217,11 @@ class ErrorNodeDiagnosticCollectorComponent(
 
             // Prefix inc/dec on array access will have two calls to .get(...), don't report for the second one.
             if (source?.kind is KtFakeSourceElementKind.DesugaredPrefixSecondGetReference) {
+                return
+            }
+
+            // If something is wrong with the `when` subject access, then there's already an error on the `when` subject itself.
+            if (source?.kind is KtFakeSourceElementKind.UnresolvedWhenConditionSubject) {
                 return
             }
 

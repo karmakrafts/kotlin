@@ -161,6 +161,10 @@ fun Project.projectTest(
         project.dependencies {
             "testImplementation"(project(":compiler:tests-mutes:mutes-junit5"))
         }
+    } else {
+        project.dependencies {
+            "testImplementation"(project(":compiler:tests-mutes:mutes-junit4"))
+        }
     }
     val shouldInstrument = project.providers.gradleProperty("kotlin.test.instrumentation.disable")
         .orNull?.toBoolean() != true
@@ -172,6 +176,14 @@ fun Project.projectTest(
         inputs.dir(File(rootDir, "build/ideaHomeForTests")).withPathSensitivity(PathSensitivity.RELATIVE)
 
         muteWithDatabase()
+        if (jUnitMode == JUnitMode.JUnit4) {
+            jvmArgumentProviders.add {
+                listOf(
+                    "-javaagent:${classpath.find { it.name.contains("junit-foundation") }?.absolutePath ?:
+                    error("junit-foundation not found in ${classpath.joinToString("\n")}")}"
+                )
+            }
+        }
 
         doFirst {
             if (jUnitMode == JUnitMode.JUnit5) return@doFirst
@@ -221,13 +233,15 @@ fun Project.projectTest(
 
         if (shouldInstrument) {
             val instrumentationArgsProperty = project.providers.gradleProperty("kotlin.test.instrumentation.args")
-            val testInstrumenterOutputs = project.tasks.findByPath(":test-instrumenter:jar")!!.outputs.files
+            dependsOn(":test-instrumenter:jar")
+            val testInstrumenterOutput = project.rootProject.subprojects.single { it.path == ":test-instrumenter" }
+                .tasks.named("jar")
+                .map { it.outputs.files.singleFile }
             doFirst {
-                val agent = testInstrumenterOutputs.singleFile
+                val agent = testInstrumenterOutput.get()
                 val args = instrumentationArgsProperty.orNull?.let { "=$it" }.orEmpty()
                 jvmArgs("-javaagent:$agent$args")
             }
-            dependsOn(":test-instrumenter:jar")
         }
 
         // The glibc default number of memory pools on 64bit systems is 8 times the number of CPU cores
@@ -378,7 +392,7 @@ fun Project.confugureFirPluginAnnotationsDependency(testTask: TaskProvider<Test>
     }
 }
 
-private fun Project.optInTo(annotationFqName: String) {
+fun Project.optInTo(annotationFqName: String) {
     tasks.withType<KotlinCompilationTask<*>>().configureEach {
         compilerOptions.optIn.add(annotationFqName)
     }

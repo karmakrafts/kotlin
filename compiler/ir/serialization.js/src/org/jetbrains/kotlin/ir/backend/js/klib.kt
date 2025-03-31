@@ -16,8 +16,10 @@ import org.jetbrains.kotlin.backend.common.IrModuleInfo
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContextImpl
+import org.jetbrains.kotlin.backend.common.linkage.IrDeserializer
 import org.jetbrains.kotlin.backend.common.linkage.issues.checkNoUnboundSymbols
 import org.jetbrains.kotlin.backend.common.linkage.partial.createPartialLinkageSupportForLinker
+import org.jetbrains.kotlin.backend.common.linkage.partial.partialLinkageConfig
 import org.jetbrains.kotlin.backend.common.overrides.FakeOverrideChecker
 import org.jetbrains.kotlin.backend.common.serialization.*
 import org.jetbrains.kotlin.backend.common.serialization.metadata.DynamicTypeDeserializer
@@ -41,8 +43,6 @@ import org.jetbrains.kotlin.ir.backend.js.lower.serialization.ir.*
 import org.jetbrains.kotlin.ir.declarations.IrFactory
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.descriptors.IrDescriptorBasedFunctionFactory
-import org.jetbrains.kotlin.ir.linkage.IrDeserializer
-import org.jetbrains.kotlin.ir.linkage.partial.partialLinkageConfig
 import org.jetbrains.kotlin.ir.util.DeclarationStubGenerator
 import org.jetbrains.kotlin.ir.util.ExternalDependenciesGenerator
 import org.jetbrains.kotlin.ir.util.SymbolTable
@@ -67,6 +67,7 @@ import org.jetbrains.kotlin.psi2ir.generators.TypeTranslatorImpl
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.storage.LockBasedStorageManager
 import org.jetbrains.kotlin.storage.StorageManager
+import org.jetbrains.kotlin.util.klibMetadataVersionOrDefault
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 import org.jetbrains.kotlin.utils.memoryOptimizedFilter
 import org.jetbrains.kotlin.utils.toSmartList
@@ -121,7 +122,6 @@ fun generateKLib(
         irBuiltIns,
         icData,
         nopack,
-        perFile = false,
         depsDescriptors.jsFrontEndResult.hasErrors,
         abiVersion,
         jsOutputName,
@@ -477,7 +477,6 @@ class ModulesStructure(
                     project,
                     analysisResult.bindingContext,
                     analysisResult.moduleDescriptor,
-                    allowErrorTypes = false,
                 )
             }
             if (shouldGoToNextIcRound) {
@@ -567,7 +566,6 @@ fun serializeModuleIntoKlib(
     irBuiltIns: IrBuiltIns,
     cleanFiles: List<KotlinFileSerializedData>,
     nopack: Boolean,
-    perFile: Boolean,
     containsErrorCode: Boolean = false,
     abiVersion: KotlinAbiVersion,
     jsOutputName: String?,
@@ -580,38 +578,34 @@ fun serializeModuleIntoKlib(
     val serializerOutput = serializeModuleIntoKlib(
         moduleName = moduleFragment.name.asString(),
         irModuleFragment = moduleFragment,
-        irBuiltins = irBuiltIns,
         configuration = configuration,
         diagnosticReporter = diagnosticReporter,
-        compatibilityMode = CompatibilityMode(abiVersion),
         cleanFiles = cleanFiles,
         dependencies = dependencies,
-        createModuleSerializer = {
-                irDiagnosticReporter,
-                irBuiltins,
-                compatibilityMode,
-                normalizeAbsolutePaths,
-                sourceBaseDirs,
-                languageVersionSettings,
-                shouldCheckSignaturesOnUniqueness,
-            ->
+        createModuleSerializer = { irDiagnosticReporter ->
             JsIrModuleSerializer(
                 settings = IrSerializationSettings(
-                    languageVersionSettings = languageVersionSettings,
-                    compatibilityMode = compatibilityMode,
-                    normalizeAbsolutePaths = normalizeAbsolutePaths,
-                    sourceBaseDirs = sourceBaseDirs,
-                    shouldCheckSignaturesOnUniqueness = shouldCheckSignaturesOnUniqueness,
+                    configuration = configuration,
+                    compatibilityMode = CompatibilityMode(abiVersion),
                 ),
                 irDiagnosticReporter,
-                irBuiltins,
+                irBuiltIns,
             ) { JsIrFileMetadata(moduleExportedNames[it]?.values?.toSmartList() ?: emptyList()) }
         },
         metadataSerializer = metadataSerializer,
         platformKlibCheckers = listOfNotNull(
             { irDiagnosticReporter: IrDiagnosticReporter ->
                 val cleanFilesIrData = cleanFiles.map { it.irData ?: error("Metadata-only KLIBs are not supported in Kotlin/JS") }
-                JsKlibCheckers.makeChecker(cleanFilesIrData, moduleExportedNames, irDiagnosticReporter, configuration)
+                JsKlibCheckers.makeChecker(
+                    irDiagnosticReporter,
+                    configuration,
+                    // Should IrInlinerBeforeKlibSerialization be set, then calls should have already been checked during pre-serialization,
+                    // and there's no need to raise duplicates of those warnings here.
+                    doCheckCalls = !configuration.languageVersionSettings.supportsFeature(LanguageFeature.IrInlinerBeforeKlibSerialization),
+                    doCheckExportedDeclarations = true,
+                    cleanFilesIrData,
+                    moduleExportedNames,
+                )
             }.takeIf { builtInsPlatform == BuiltInsPlatform.JS  }
         ),
         processCompiledFileData = { ioFile, compiledFile ->
@@ -646,7 +640,7 @@ fun serializeModuleIntoKlib(
     val versions = KotlinLibraryVersioning(
         abiVersion = customAbiVersion ?: abiVersion,
         compilerVersion = KotlinCompilerVersion.VERSION,
-        metadataVersion = KLIB_LEGACY_METADATA_VERSION,
+        metadataVersion = configuration.klibMetadataVersionOrDefault()
     )
 
     val properties = Properties().also { p ->
@@ -664,6 +658,8 @@ fun serializeModuleIntoKlib(
         val fingerprints = fullSerializedIr.files.sortedBy { it.path }.map { SerializedIrFileFingerprint(it) }
         p.setProperty(KLIB_PROPERTY_SERIALIZED_IR_FILE_FINGERPRINTS, fingerprints.joinIrFileFingerprints())
         p.setProperty(KLIB_PROPERTY_SERIALIZED_KLIB_FINGERPRINT, SerializedKlibFingerprint(fingerprints).klibFingerprint.toString())
+
+        addLanguageFeaturesToManifest(p, configuration.languageVersionSettings)
     }
 
     buildKotlinLibrary(
@@ -673,7 +669,6 @@ fun serializeModuleIntoKlib(
         manifestProperties = properties,
         moduleName = moduleName,
         nopack = nopack,
-        perFile = perFile,
         output = klibPath,
         versions = versions,
         builtInsPlatform = builtInsPlatform

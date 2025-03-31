@@ -38,6 +38,15 @@ import org.jetbrains.kotlin.gradle.targets.wasm.nodejs.WasmNodeJsRootPlugin.Comp
 import org.jetbrains.kotlin.gradle.targets.wasm.nodejs.WasmNodeJsRootPlugin.Companion.kotlinNpmResolutionManager as wasmKotlinNpmResolutionManager
 
 /**
+ * _This is an internal KGP utility and should not be used in user buildscripts._
+ *
+ * Extracts transitive npm dependencies from dependencies used by a Kotlin Compilation.
+ *
+ * KGP JS uses these dependencies to manually extract transitive npm dependencies.
+ * The npm dependencies are not used directly, but instead
+ * to configure task inputs for Gradle's up-to-date checks
+ * and manually configuring task dependencies.
+ *
  * See [KotlinNpmResolutionManager] for details about resolution process.
  */
 class KotlinCompilationNpmResolver(
@@ -144,9 +153,9 @@ class KotlinCompilationNpmResolver(
         val all = project.configurations.createResolvable(compilation.npmAggregatedConfigurationName)
 
         all.usesPlatformOf(target)
-        all.attributes.setAttribute(Usage.USAGE_ATTRIBUTE, KotlinUsages.consumerRuntimeUsage(target))
-        all.attributes.setAttribute(Category.CATEGORY_ATTRIBUTE, project.categoryByName(Category.LIBRARY))
-        all.attributes.setAttribute(publicPackageJsonAttribute, PUBLIC_PACKAGE_JSON_ATTR_VALUE)
+        all.attributes.attribute(Usage.USAGE_ATTRIBUTE, KotlinUsages.consumerRuntimeUsage(target))
+        all.attributes.attribute(Category.CATEGORY_ATTRIBUTE, project.categoryByName(Category.LIBRARY))
+        all.attributes.attribute(publicPackageJsonAttribute, PUBLIC_PACKAGE_JSON_ATTR_VALUE)
         all.isVisible = false
         all.description = "NPM configuration for $compilation."
 
@@ -169,9 +178,9 @@ class KotlinCompilationNpmResolver(
         val all = project.configurations.createConsumable(compilation.publicPackageJsonConfigurationName)
 
         all.usesPlatformOf(target)
-        all.attributes.setAttribute(Usage.USAGE_ATTRIBUTE, KotlinUsages.consumerRuntimeUsage(target))
-        all.attributes.setAttribute(Category.CATEGORY_ATTRIBUTE, project.categoryByName(Category.LIBRARY))
-        all.attributes.setAttribute(publicPackageJsonAttribute, PUBLIC_PACKAGE_JSON_ATTR_VALUE)
+        all.attributes.attribute(Usage.USAGE_ATTRIBUTE, KotlinUsages.consumerRuntimeUsage(target))
+        all.attributes.attribute(Category.CATEGORY_ATTRIBUTE, project.categoryByName(Category.LIBRARY))
+        all.attributes.attribute(publicPackageJsonAttribute, PUBLIC_PACKAGE_JSON_ATTR_VALUE)
         all.isVisible = false
 
         return all

@@ -21,11 +21,6 @@ import kotlin.reflect.KProperty1
 import kotlin.reflect.jvm.javaField
 
 abstract class CommonToolArguments : Freezable(), Serializable {
-    companion object {
-        @JvmStatic
-        private val serialVersionUID = 0L
-    }
-
     var freeArgs: List<String> = emptyList()
         set(value) {
             checkFrozen()
@@ -111,22 +106,4 @@ abstract class CommonToolArguments : Freezable(), Serializable {
             checkFrozen()
             field = value
         }
-}
-
-/**
- * An argument which should be passed to Kotlin compiler to enable [this] compiler option
- */
-val KProperty1<out CommonCompilerArguments, *>.cliArgument: String
-    get() {
-        val javaField = javaField
-            ?: error("Java field should be present for $this")
-        val argumentAnnotation = javaField.getAnnotation<Argument>(Argument::class.java)
-        return argumentAnnotation.value
-    }
-
-/**
- * Returns a string of the form "argument=value" where "argument" is the [Argument.value] of this compiler argument.
- */
-fun KProperty1<out CommonCompilerArguments, *>.cliArgument(value: String): String {
-    return "$cliArgument=$value"
 }

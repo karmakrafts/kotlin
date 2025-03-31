@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.constant.AnnotationValue
+import org.jetbrains.kotlin.constant.ConstantValue
 import org.jetbrains.kotlin.constant.EnumValue
 import org.jetbrains.kotlin.constant.IntValue
 import org.jetbrains.kotlin.descriptors.*
@@ -53,6 +54,7 @@ import org.jetbrains.kotlin.fir.types.impl.ConeClassLikeTypeImpl
 import org.jetbrains.kotlin.fir.types.impl.FirImplicitNullableAnyTypeRef
 import org.jetbrains.kotlin.metadata.ProtoBuf
 import org.jetbrains.kotlin.metadata.ProtoBuf.MemberKind
+import org.jetbrains.kotlin.metadata.deserialization.BinaryVersion
 import org.jetbrains.kotlin.metadata.deserialization.Flags
 import org.jetbrains.kotlin.metadata.deserialization.VersionRequirement
 import org.jetbrains.kotlin.metadata.deserialization.isKotlin1Dot4OrLater
@@ -978,10 +980,21 @@ class FirElementSerializer private constructor(
             }
         }
 
+        if (shouldWriteAnnotationParameterDefaultValues(extension.metadataVersion) &&
+            parameter.containingDeclarationSymbol.isAnnotationConstructor(session)
+        ) {
+            parameter.defaultValue?.toConstantValue<ConstantValue<*>>(session, scopeSession, extension.constValueProvider)?.let { value ->
+                builder.setAnnotationParameterDefaultValue(extension.annotationSerializer.valueProto(value))
+            }
+        }
+
         extension.serializeValueParameter(parameter, builder)
 
         return builder
     }
+
+    private fun shouldWriteAnnotationParameterDefaultValues(version: BinaryVersion): Boolean =
+        version.major > 2 || (version.major == 2 && version.minor >= 2)
 
     private fun typeParameterProto(typeParameter: FirTypeParameter): ProtoBuf.TypeParameter.Builder =
         whileAnalysing(session, typeParameter) {
@@ -1306,24 +1319,31 @@ class FirElementSerializer private constructor(
     }
 
     private fun getAccessorFlags(accessor: FirPropertyAccessor, property: FirProperty): Int {
-        // [FirDefaultPropertyAccessor]---a property accessor without body---can still hold other information, such as annotations,
-        // user-contributed visibility, and modifiers, such as `external` or `inline`.
-        val hasAnnotations = accessor.nonSourceAnnotations(session).isNotEmpty() || extension.hasAdditionalAnnotations(accessor)
-        val isDefault = property.isLocal ||
-                (accessor is FirDefaultPropertyAccessor &&
-                        !hasAnnotations &&
-                        accessor.visibility == property.visibility &&
-                        !accessor.isExternal &&
-                        !accessor.isInline)
         return Flags.getAccessorFlags(
-            hasAnnotations,
+            accessor.nonSourceAnnotations(session).isNotEmpty() || extension.hasAdditionalAnnotations(accessor),
             ProtoEnumFlags.visibility(normalizeVisibility(accessor)),
             // non-default accessor modality is always final, so we check property.modality instead
             ProtoEnumFlags.modality(property.modality!!),
-            !isDefault,
+            !isDefaultAccessor(accessor, property),
             accessor.isExternal,
-            accessor.isInline
+            accessor.isInline,
         )
+    }
+
+    private fun isDefaultAccessor(accessor: FirPropertyAccessor, property: FirProperty): Boolean {
+        if (property.isLocalInFunction) return true
+
+        // [FirDefaultPropertyAccessor]---a property accessor without body---can still hold other information, such as annotations,
+        // user-contributed visibility, and modifiers, such as `external` or `inline`.
+        val hasAnnotations = accessor.nonSourceAnnotations(session).isNotEmpty() || extension.hasAdditionalAnnotations(accessor) ||
+                accessor.valueParameters.any { setterParameter ->
+                    setterParameter.nonSourceAnnotations(session).isNotEmpty() || extension.hasAdditionalAnnotations(setterParameter)
+                }
+        return accessor is FirDefaultPropertyAccessor &&
+                !hasAnnotations &&
+                accessor.visibility == property.visibility &&
+                !accessor.isExternal &&
+                !accessor.isInline
     }
 
     private fun createChildSerializer(declaration: FirDeclaration): FirElementSerializer =
@@ -1402,11 +1422,13 @@ class FirElementSerializer private constructor(
     }
 
     private fun normalizeVisibility(declaration: FirMemberDeclaration): Visibility {
-        return declaration.visibility.normalize()
+        // REPL snippet declarations are lowered to public ones, so we should save the metadata accordingly
+        return if (declaration.isReplSnippetDeclaration == true) Visibilities.Public else declaration.visibility.normalize()
     }
 
     private fun normalizeVisibility(declaration: FirPropertyAccessor): Visibility {
-        return declaration.visibility.normalize()
+        // REPL snippet declarations are lowered to public ones, so we should save the metadata accordingly
+        return if (declaration.isReplSnippetDeclaration == true) Visibilities.Public else declaration.visibility.normalize()
     }
 
     private fun getClassifierId(declaration: FirClassLikeDeclaration): Int {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -209,7 +209,6 @@ private fun ConeDiagnostic.toKtDiagnostic(
     is ConeForbiddenIntersection -> null // reported in FirDefinitelyNotNullableChecker
 
     is ConeUnderscoreIsReserved -> FirErrors.UNDERSCORE_IS_RESERVED.createOn(this.source, session)
-    is ConeUnderscoreUsageWithoutBackticks -> FirErrors.UNDERSCORE_USAGE_WITHOUT_BACKTICKS.createOn(this.source, session)
     is ConeAmbiguousSuper -> FirErrors.AMBIGUOUS_SUPER.createOn(source, this.candidateTypes, session)
     is ConeUnresolvedParentInImport -> null // reported in FirUnresolvedImportChecker
     is ConeAmbiguousAlteredAssign -> FirErrors.AMBIGUOUS_ALTERED_ASSIGN.createOn(source, this.altererNames, session)
@@ -226,6 +225,7 @@ private fun ConeDiagnostic.toKtDiagnostic(
     is ConeUnsupportedClassLiteralsWithEmptyLhs -> FirErrors.UNSUPPORTED_CLASS_LITERALS_WITH_EMPTY_LHS.createOn(source, session)
     is ConeMultipleLabelsAreForbidden -> FirErrors.MULTIPLE_LABELS_ARE_FORBIDDEN.createOn(this.source, session)
     is ConeNoInferTypeMismatch -> FirErrors.TYPE_MISMATCH.createOn(source, lowerType, upperType, false, session)
+    is ConeTypeMismatch -> FirErrors.TYPE_MISMATCH.createOn(source, lowerType, upperType, false, session)
     is ConeDynamicUnsupported -> FirErrors.UNSUPPORTED.createOn(source, FirDynamicUnsupportedChecker.MESSAGE, session)
     is ConeContextParameterWithDefaultValue -> FirErrors.CONTEXT_PARAMETER_WITH_DEFAULT.createOn(source, session)
     is ConeCyclicTypeBound -> null // reported in FirCyclicTypeBoundsChecker
@@ -683,7 +683,8 @@ private fun ConstraintSystemError.toDiagnostic(
                 when (position) {
                     is ConeArgumentConstraintPosition -> position.argument to null
                     is ConeLambdaArgumentConstraintPosition -> position.lambda to null
-                    is ConeReceiverConstraintPosition -> position.argument to position.source
+                    is ConeReceiverConstraintPosition -> position.argument to (position.argument.source.takeIf { it?.kind == KtRealSourceElementKind }
+                        ?: position.source)
                     // ConeExpectedTypeConstraintPosition is processed below,
                     // all others are reported as NEW_INFERENCE_ERROR instead (see mapSystemHasContradictionError);
                     // About calls from mapInapplicableCandidateError:
@@ -699,8 +700,8 @@ private fun ConstraintSystemError.toDiagnostic(
             argument?.let {
                 return diagnosticForArgumentTypeMismatch(
                     source = reportOn ?: it.source ?: source,
-                    expectedType = lowerConeType.substituteTypeVariableTypes(candidate, typeContext),
-                    actualType = upperConeType.substituteTypeVariableTypes(candidate, typeContext),
+                    expectedType = upperConeType.substituteTypeVariableTypes(candidate, typeContext),
+                    actualType = lowerConeType.substituteTypeVariableTypes(candidate, typeContext),
                     isMismatchDueToNullability = typeMismatchDueToNullability,
                     candidate = candidate,
                     anonymousFunctionIfReturnExpression = (position as? ConeLambdaArgumentConstraintPosition)?.lambda,
@@ -800,7 +801,7 @@ private fun ConeKotlinType.substituteTypeVariableTypes(
     val nonErrorSubstitutionMap = candidate.system.asReadOnlyStorage().fixedTypeVariables.filterValues { it !is ConeErrorType }
     val substitutor = typeContext.typeSubstitutorByTypeConstructor(nonErrorSubstitutionMap) as ConeSubstitutor
 
-    return substitutor.substituteOrSelf(this).removeTypeVariableTypes(typeContext)
+    return substitutor.substituteOrSelf(this).removeTypeVariableTypes(typeContext, TypeVariableReplacement.ErrorType)
 }
 
 private fun AbstractCallCandidate<*>.sourceOfCallToSymbolWith(

@@ -214,6 +214,17 @@ val IrFunction.nonDispatchParameters: List<IrValueParameter>
 val IrFunctionAccessExpression.nonDispatchArguments: List<IrExpression?>
     get() = if (symbol.owner.dispatchReceiverParameter != null) arguments.drop(1) else arguments.toList()
 
+/**
+ * The function that will be called on `KCallable.invoke()`.
+ *
+ * Note: in the future it may be possible that `getterFunction` would be nullable, at which point it won't be that easy.
+ */
+val IrRichCallableReference<*>.invokeFunction: IrSimpleFunction
+    get() = when (this) {
+        is IrRichFunctionReference -> invokeFunction
+        is IrRichPropertyReference -> getterFunction
+    }
+
 val IrBody.statements: List<IrStatement>
     get() = when (this) {
         is IrBlockBody -> statements
@@ -248,6 +259,7 @@ val IrClass.isClass get() = kind == ClassKind.CLASS
 val IrClass.isObject get() = kind == ClassKind.OBJECT
 val IrClass.isAnonymousObject get() = isClass && name == SpecialNames.NO_NAME_PROVIDED
 val IrClass.isNonCompanionObject: Boolean get() = isObject && !isCompanion
+val IrClass.isReplSnippet: Boolean get() = origin == IrDeclarationOrigin.REPL_SNIPPET_CLASS
 
 val IrDeclarationWithName.fqNameWhenAvailable: FqName?
     get() {
@@ -830,7 +842,11 @@ fun IrFunction.copyParametersFrom(from: IrFunction) {
 }
 
 fun IrFunction.copyParametersFrom(from: IrFunction, substitutionMap: Map<IrTypeParameterSymbol, IrType>) {
-    parameters = parameters memoryOptimizedPlus from.parameters.map {
+    copyParameters(from.parameters, substitutionMap)
+}
+
+fun IrFunction.copyParameters(source: List<IrValueParameter>, substitutionMap: Map<IrTypeParameterSymbol, IrType>) {
+    parameters = parameters memoryOptimizedPlus source.map {
         it.copyTo(
             this,
             type = it.type.substitute(substitutionMap),
@@ -1488,32 +1504,6 @@ fun IrBlockImpl.inlineStatement(statement: IrStatement) {
     }
 }
 
-// TODO: KT-75196: please make `startOffset` and `endOffset` mutable, and remove this method
-fun IrConst.copyWithOffsets(startOffset: Int, endOffset: Int) =
-    IrConstImpl(startOffset, endOffset, type, kind, value)
-
-// TODO: KT-75196: please make `startOffset` and `endOffset` mutable, and remove this method
-fun IrGetValue.copyWithOffsets(newStartOffset: Int, newEndOffset: Int): IrGetValue =
-    IrGetValueImpl(newStartOffset, newEndOffset, type, symbol, origin)
-
-// TODO: KT-75196: please make `startOffset` and `endOffset` mutable, and remove this method
-fun IrRichFunctionReference.copyWithOffsets(newStartOffset: Int, newEndOffset: Int): IrRichFunctionReference =
-    IrRichFunctionReferenceImpl(
-        newStartOffset, newEndOffset,
-        type,
-        reflectionTargetSymbol,
-        overriddenFunctionSymbol,
-        invokeFunction,
-        origin,
-        hasUnitConversion,
-        hasSuspendConversion,
-        hasVarargConversion,
-        isRestrictedSuspension
-    ).apply {
-        copyAttributes(this@copyWithOffsets)
-        boundValues.addAll(this@copyWithOffsets.boundValues)
-    }
-
 fun IrModuleFragment.addFile(file: IrFile) {
     files.add(file)
     file.module = this
@@ -1577,3 +1567,5 @@ fun IrMemberAccessExpression<IrFunctionSymbol>.copyValueArgumentsFrom(
 ) {
     arguments.assignFrom(src.arguments)
 }
+
+fun <S : IrBindableSymbol<*, O>, O : IrSymbolOwner> S.getOwnerIfBound(): O? = if (isBound) owner else null

@@ -23,7 +23,6 @@ import org.jetbrains.kotlin.psi.KtArrayAccessExpression
 import org.jetbrains.kotlin.psi.KtBackingField
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtBinaryExpressionWithTypeRHS
-import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassLikeDeclaration
@@ -738,6 +737,18 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
             token,
         )
     }
+    add(FirErrors.NULLABLE_SUPERTYPE_THROUGH_TYPEALIAS.errorFactory) { firDiagnostic ->
+        NullableSupertypeThroughTypealiasErrorImpl(
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
+    add(FirErrors.NULLABLE_SUPERTYPE_THROUGH_TYPEALIAS.warningFactory) { firDiagnostic ->
+        NullableSupertypeThroughTypealiasWarningImpl(
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
     add(FirErrors.MANY_CLASSES_IN_SUPERTYPE_LIST) { firDiagnostic ->
         ManyClassesInSupertypeListImpl(
             firDiagnostic as KtPsiDiagnostic,
@@ -1238,6 +1249,18 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
             token,
         )
     }
+    add(FirErrors.ANNOTATION_WITH_USE_SITE_TARGET_ON_EXPRESSION.errorFactory) { firDiagnostic ->
+        AnnotationWithUseSiteTargetOnExpressionErrorImpl(
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
+    add(FirErrors.ANNOTATION_WITH_USE_SITE_TARGET_ON_EXPRESSION.warningFactory) { firDiagnostic ->
+        AnnotationWithUseSiteTargetOnExpressionWarningImpl(
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
     add(FirErrors.INAPPLICABLE_TARGET_ON_PROPERTY) { firDiagnostic ->
         InapplicableTargetOnPropertyImpl(
             firDiagnostic.a,
@@ -1394,6 +1417,12 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
     }
     add(FirErrors.ANNOTATIONS_ON_BLOCK_LEVEL_EXPRESSION_ON_THE_SAME_LINE) { firDiagnostic ->
         AnnotationsOnBlockLevelExpressionOnTheSameLineImpl(
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
+    add(FirErrors.IGNORABILITY_ANNOTATIONS_WITH_CHECKER_DISABLED) { firDiagnostic ->
+        IgnorabilityAnnotationsWithCheckerDisabledImpl(
             firDiagnostic as KtPsiDiagnostic,
             token,
         )
@@ -2306,6 +2335,20 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
             token,
         )
     }
+    add(FirErrors.COMPARE_TO_TYPE_MISMATCH) { firDiagnostic ->
+        CompareToTypeMismatchImpl(
+            firSymbolBuilder.typeBuilder.buildKtType(firDiagnostic.a),
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
+    add(FirErrors.HAS_NEXT_FUNCTION_TYPE_MISMATCH) { firDiagnostic ->
+        HasNextFunctionTypeMismatchImpl(
+            firSymbolBuilder.typeBuilder.buildKtType(firDiagnostic.a),
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
     add(FirErrors.OVERLOAD_RESOLUTION_AMBIGUITY) { firDiagnostic ->
         OverloadResolutionAmbiguityImpl(
             firDiagnostic.a.map { firBasedSymbol ->
@@ -2773,6 +2816,9 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
     }
     add(FirErrors.CYCLIC_GENERIC_UPPER_BOUND) { firDiagnostic ->
         CyclicGenericUpperBoundImpl(
+            firDiagnostic.a.map { firTypeParameterSymbol ->
+                firSymbolBuilder.classifierBuilder.buildTypeParameterSymbol(firTypeParameterSymbol)
+            },
             firDiagnostic as KtPsiDiagnostic,
             token,
         )
@@ -4139,6 +4185,18 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
             token,
         )
     }
+    add(FirErrors.UNNAMED_VAR_PROPERTY) { firDiagnostic ->
+        UnnamedVarPropertyImpl(
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
+    add(FirErrors.UNNAMED_DELEGATED_PROPERTY) { firDiagnostic ->
+        UnnamedDelegatedPropertyImpl(
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
     add(FirErrors.EXPECTED_DECLARATION_WITH_BODY) { firDiagnostic ->
         ExpectedDeclarationWithBodyImpl(
             firDiagnostic as KtPsiDiagnostic,
@@ -4299,6 +4357,12 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
             token,
         )
     }
+    add(FirErrors.EXPECT_REFINEMENT_ANNOTATION_WRONG_TARGET) { firDiagnostic ->
+        ExpectRefinementAnnotationWrongTargetImpl(
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
     add(FirErrors.AMBIGUOUS_EXPECTS) { firDiagnostic ->
         AmbiguousExpectsImpl(
             firSymbolBuilder.buildSymbol(firDiagnostic.a),
@@ -4327,6 +4391,12 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
     }
     add(FirErrors.ACTUAL_MISSING) { firDiagnostic ->
         ActualMissingImpl(
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
+    add(FirErrors.EXPECT_REFINEMENT_ANNOTATION_MISSING) { firDiagnostic ->
+        ExpectRefinementAnnotationMissingImpl(
             firDiagnostic as KtPsiDiagnostic,
             token,
         )
@@ -4565,6 +4635,12 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
     }
     add(FirErrors.TYPECHECKER_HAS_RUN_INTO_RECURSIVE_PROBLEM) { firDiagnostic ->
         TypecheckerHasRunIntoRecursiveProblemImpl(
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
+    add(FirErrors.RETURN_VALUE_NOT_USED) { firDiagnostic ->
+        ReturnValueNotUsedImpl(
             firDiagnostic as KtPsiDiagnostic,
             token,
         )
@@ -6035,6 +6111,12 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
             token,
         )
     }
+    add(FirJvmErrors.ANNOTATION_TARGETS_ONLY_IN_JAVA) { firDiagnostic ->
+        AnnotationTargetsOnlyInJavaImpl(
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
     add(FirJvmErrors.LOCAL_JVM_RECORD) { firDiagnostic ->
         LocalJvmRecordImpl(
             firDiagnostic as KtPsiDiagnostic,
@@ -6129,21 +6211,14 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
             token,
         )
     }
-    add(FirJvmErrors.JVM_DEFAULT_IN_DECLARATION) { firDiagnostic ->
-        JvmDefaultInDeclarationImpl(
-            firDiagnostic.a,
+    add(FirJvmErrors.JVM_DEFAULT_WITHOUT_COMPATIBILITY_NOT_IN_ENABLE_MODE) { firDiagnostic ->
+        JvmDefaultWithoutCompatibilityNotInEnableModeImpl(
             firDiagnostic as KtPsiDiagnostic,
             token,
         )
     }
-    add(FirJvmErrors.JVM_DEFAULT_WITH_COMPATIBILITY_IN_DECLARATION) { firDiagnostic ->
-        JvmDefaultWithCompatibilityInDeclarationImpl(
-            firDiagnostic as KtPsiDiagnostic,
-            token,
-        )
-    }
-    add(FirJvmErrors.JVM_DEFAULT_WITH_COMPATIBILITY_NOT_ON_INTERFACE) { firDiagnostic ->
-        JvmDefaultWithCompatibilityNotOnInterfaceImpl(
+    add(FirJvmErrors.JVM_DEFAULT_WITH_COMPATIBILITY_NOT_IN_NO_COMPATIBILITY_MODE) { firDiagnostic ->
+        JvmDefaultWithCompatibilityNotInNoCompatibilityModeImpl(
             firDiagnostic as KtPsiDiagnostic,
             token,
         )
@@ -6283,6 +6358,20 @@ internal val KT_DIAGNOSTIC_CONVERTER = KaDiagnosticConverterBuilder.buildConvert
     add(FirJvmErrors.INAPPLICABLE_JVM_FIELD_WARNING) { firDiagnostic ->
         InapplicableJvmFieldWarningImpl(
             firDiagnostic.a,
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
+    add(FirJvmErrors.IDENTITY_SENSITIVE_OPERATIONS_WITH_VALUE_TYPE) { firDiagnostic ->
+        IdentitySensitiveOperationsWithValueTypeImpl(
+            firSymbolBuilder.typeBuilder.buildKtType(firDiagnostic.a),
+            firDiagnostic as KtPsiDiagnostic,
+            token,
+        )
+    }
+    add(FirJvmErrors.SYNCHRONIZED_BLOCK_ON_JAVA_VALUE_BASED_CLASS) { firDiagnostic ->
+        SynchronizedBlockOnJavaValueBasedClassImpl(
+            firSymbolBuilder.typeBuilder.buildKtType(firDiagnostic.a),
             firDiagnostic as KtPsiDiagnostic,
             token,
         )

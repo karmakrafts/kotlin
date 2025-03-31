@@ -15,7 +15,6 @@ import org.jetbrains.kotlin.build.report.metrics.GradleBuildPerformanceMetric
 import org.jetbrains.kotlin.build.report.metrics.GradleBuildTime
 import org.jetbrains.kotlin.build.report.metrics.endMeasureGc
 import org.jetbrains.kotlin.build.report.metrics.startMeasureGc
-import org.jetbrains.kotlin.build.report.warn
 import org.jetbrains.kotlin.buildtools.api.SourcesChanges
 import org.jetbrains.kotlin.cli.common.*
 import org.jetbrains.kotlin.cli.common.arguments.*
@@ -48,8 +47,10 @@ import org.jetbrains.kotlin.incremental.parsing.classesFqNames
 import org.jetbrains.kotlin.incremental.storage.FileLocations
 import org.jetbrains.kotlin.load.kotlin.incremental.components.IncrementalCompilationComponents
 import org.jetbrains.kotlin.progress.CompilationCanceledStatus
-import org.jetbrains.kotlin.util.CodeAnalysisMeasurement
-import org.jetbrains.kotlin.util.CompilerInitializationMeasurement
+import org.jetbrains.kotlin.util.PhaseType
+import org.jetbrains.kotlin.util.Time
+import org.jetbrains.kotlin.util.forEachPhaseMeasurement
+import org.jetbrains.kotlin.util.getLinesPerSecond
 import java.io.File
 import java.rmi.NoSuchObjectException
 import java.rmi.registry.Registry
@@ -278,42 +279,49 @@ abstract class CompileServiceImplBase(
     protected fun getPerformanceMetrics(compiler: CLICompiler<CommonCompilerArguments>): List<BuildMetricsValue> {
         val performanceMetrics = ArrayList<BuildMetricsValue>()
         val performanceManager = compiler.defaultPerformanceManager
-        val lines = performanceManager.lines.takeIf { it > 0 }
-        if (lines != null) {
-            performanceMetrics.add(BuildMetricsValue(CompilationPerformanceMetrics.SOURCE_LINES_NUMBER, lines.toLong()))
+        val moduleStats = performanceManager.unitStats
+        if (moduleStats.linesCount > 0) {
+            performanceMetrics.add(BuildMetricsValue(CompilationPerformanceMetrics.SOURCE_LINES_NUMBER, moduleStats.linesCount.toLong()))
         }
-        performanceManager.measurements.forEach {
-            when (it) {
-                is CompilerInitializationMeasurement -> {
-                    performanceMetrics.add(BuildMetricsValue(CompilationPerformanceMetrics.COMPILER_INITIALIZATION, it.milliseconds))
+
+        var codegenTime = Time.ZERO
+
+        fun reportLps(lpsMetrics: CompilationPerformanceMetrics, time: Time) {
+            if (time != Time.ZERO) {
+                performanceMetrics.add(BuildMetricsValue(lpsMetrics, moduleStats.getLinesPerSecond(time).toLong()))
+            }
+        }
+
+        moduleStats.forEachPhaseMeasurement { phaseType, time ->
+            if (time == null) return@forEachPhaseMeasurement
+
+            val metrics = when (phaseType) {
+                PhaseType.Initialization -> CompilationPerformanceMetrics.COMPILER_INITIALIZATION
+                PhaseType.Analysis -> CompilationPerformanceMetrics.CODE_ANALYSIS
+                // TODO: Report `IrGeneration` (FIR2IR) time
+                PhaseType.IrLowering -> {
+                    codegenTime += time
+                    null
                 }
-                is CodeAnalysisMeasurement -> {
-                    performanceMetrics.add(BuildMetricsValue(CompilationPerformanceMetrics.CODE_ANALYSIS, it.milliseconds))
-                    if (lines != null && it.milliseconds > 0) {
-                        performanceMetrics.add(
-                            BuildMetricsValue(
-                                CompilationPerformanceMetrics.ANALYSIS_LPS,
-                                lines * 1000 / it.milliseconds
-                            )
-                        )
-                    }
+                PhaseType.Backend -> {
+                    codegenTime += time
+                    null
+                }
+                else -> null
+            }
+            if (metrics != null) {
+                performanceMetrics.add(BuildMetricsValue(metrics, time.millis))
+                if (phaseType == PhaseType.Analysis) {
+                    reportLps(CompilationPerformanceMetrics.ANALYSIS_LPS, time)
                 }
             }
         }
-        val loweringAndBackendTimeMs = performanceManager.getLoweringAndBackendTimeMs()
-        if (loweringAndBackendTimeMs > 0) {
-            performanceMetrics.add(
-                BuildMetricsValue(CompilationPerformanceMetrics.CODE_GENERATION, loweringAndBackendTimeMs)
-            )
-            if (lines != null) {
-                performanceMetrics.add(
-                    BuildMetricsValue(
-                        CompilationPerformanceMetrics.CODE_GENERATION_LPS,
-                        lines * 1000 / loweringAndBackendTimeMs
-                    )
-                )
-            }
+
+        if (codegenTime != Time.ZERO) {
+            performanceMetrics.add(BuildMetricsValue(CompilationPerformanceMetrics.CODE_GENERATION, codegenTime.millis))
+            reportLps(CompilationPerformanceMetrics.CODE_GENERATION_LPS, codegenTime)
         }
+
         return performanceMetrics
     }
 

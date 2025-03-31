@@ -15,7 +15,6 @@ import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.work.DisableCachingByDefault
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompileTool
 import org.jetbrains.kotlin.gradle.tasks.withType
-import org.jetbrains.kotlin.gradle.utils.onlyIfCompat
 
 @DisableCachingByDefault(
     because = "This task renders reported diagnostics; caching this task will hide diagnostics and obscure issues in the build"
@@ -27,10 +26,16 @@ internal abstract class CheckKotlinGradlePluginConfigurationErrors : DefaultTask
     @get:Internal
     abstract val renderingOptions: Property<ToolingDiagnosticRenderingOptions>
 
+    @get:Internal
+    abstract val problemsReporter: Property<ProblemsReporter>
+
     @TaskAction
     fun checkNoErrors() {
-        if (errorDiagnostics.get().isNotEmpty()) {
-            renderReportedDiagnostics(errorDiagnostics.get(), logger, renderingOptions.get())
+        val diagnostics = errorDiagnostics.get()
+        val reporter = problemsReporter.get()
+        val options = renderingOptions.get()
+        if (diagnostics.isNotEmpty()) {
+            diagnostics.reportProblems(reporter, options)
             throw InvalidUserCodeException("Kotlin Gradle Plugin reported errors. Check the log for details")
         }
     }
@@ -57,11 +62,12 @@ internal fun Project.locateOrRegisterCheckKotlinGradlePluginErrorsTask(): TaskPr
             }
         )
         task.usesService(kotlinToolingDiagnosticsCollectorProvider)
+        task.problemsReporter.set(kotlinToolingDiagnosticsCollectorProvider.map { it.problemsReporter })
         task.renderingOptions.set(ToolingDiagnosticRenderingOptions.forProject(this))
         task.description = DESCRIPTION
         task.group = LifecycleBasePlugin.VERIFICATION_GROUP
 
-        task.onlyIfCompat("errorDiagnostics are present") {
+        task.onlyIf("errorDiagnostics are present") {
             require(it is CheckKotlinGradlePluginConfigurationErrors)
             !it.errorDiagnostics.orNull.isNullOrEmpty()
         }

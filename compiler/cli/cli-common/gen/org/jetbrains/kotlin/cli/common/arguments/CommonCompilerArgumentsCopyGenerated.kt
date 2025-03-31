@@ -22,6 +22,7 @@ fun copyCommonCompilerArguments(from: CommonCompilerArguments, to: CommonCompile
     to.consistentDataClassCopyVisibility = from.consistentDataClassCopyVisibility
     to.contextParameters = from.contextParameters
     to.contextReceivers = from.contextReceivers
+    to.contextSensitiveResolution = from.contextSensitiveResolution
     to.debugLevelCompilerChecks = from.debugLevelCompilerChecks
     to.directJavaActualization = from.directJavaActualization
     to.disableDefaultScriptingPlugin = from.disableDefaultScriptingPlugin
@@ -32,7 +33,6 @@ fun copyCommonCompilerArguments(from: CommonCompilerArguments, to: CommonCompile
     to.dumpPerf = from.dumpPerf
     to.enableBuilderInference = from.enableBuilderInference
     to.expectActualClasses = from.expectActualClasses
-    to.experimental = from.experimental?.copyOf()
     to.explicitApi = from.explicitApi
     to.explicitReturnTypes = from.explicitReturnTypes
     to.fragmentRefines = from.fragmentRefines?.copyOf()
@@ -72,6 +72,7 @@ fun copyCommonCompilerArguments(from: CommonCompilerArguments, to: CommonCompile
     to.reportAllWarnings = from.reportAllWarnings
     to.reportOutputFiles = from.reportOutputFiles
     to.reportPerf = from.reportPerf
+    to.returnValueChecker = from.returnValueChecker
     to.script = from.script
     to.selfUpperBoundInference = from.selfUpperBoundInference
     to.skipMetadataVersionCheck = from.skipMetadataVersionCheck
@@ -81,7 +82,6 @@ fun copyCommonCompilerArguments(from: CommonCompilerArguments, to: CommonCompile
     to.suppressVersionWarnings = from.suppressVersionWarnings
     to.suppressedDiagnostics = from.suppressedDiagnostics?.copyOf()
     to.unrestrictedBuilderInference = from.unrestrictedBuilderInference
-    to.useExperimental = from.useExperimental?.copyOf()
     to.useFirExperimentalCheckers = from.useFirExperimentalCheckers
     to.useFirIC = from.useFirIC
     to.useFirLT = from.useFirLT

@@ -44,7 +44,6 @@ import org.jetbrains.kotlin.psi.KtArrayAccessExpression
 import org.jetbrains.kotlin.psi.KtBackingField
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtBinaryExpressionWithTypeRHS
-import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassLikeDeclaration
@@ -660,6 +659,16 @@ internal class NullableSupertypeImpl(
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.NullableSupertype
 
+internal class NullableSupertypeThroughTypealiasErrorImpl(
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.NullableSupertypeThroughTypealiasError
+
+internal class NullableSupertypeThroughTypealiasWarningImpl(
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.NullableSupertypeThroughTypealiasWarning
+
 internal class ManyClassesInSupertypeListImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
@@ -942,12 +951,12 @@ internal class CycleInAnnotationParameterWarningImpl(
 internal class AnnotationClassConstructorCallImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
-) : KaAbstractFirDiagnostic<KtCallExpression>(firDiagnostic, token), KaFirDiagnostic.AnnotationClassConstructorCall
+) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.AnnotationClassConstructorCall
 
 internal class EnumClassConstructorCallImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
-) : KaAbstractFirDiagnostic<KtCallExpression>(firDiagnostic, token), KaFirDiagnostic.EnumClassConstructorCall
+) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.EnumClassConstructorCall
 
 internal class NotAnAnnotationClassImpl(
     override val annotationName: String,
@@ -1070,6 +1079,16 @@ internal class WrongAnnotationTargetWithUseSiteTargetImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<KtAnnotationEntry>(firDiagnostic, token), KaFirDiagnostic.WrongAnnotationTargetWithUseSiteTarget
+
+internal class AnnotationWithUseSiteTargetOnExpressionErrorImpl(
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtAnnotationEntry>(firDiagnostic, token), KaFirDiagnostic.AnnotationWithUseSiteTargetOnExpressionError
+
+internal class AnnotationWithUseSiteTargetOnExpressionWarningImpl(
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtAnnotationEntry>(firDiagnostic, token), KaFirDiagnostic.AnnotationWithUseSiteTargetOnExpressionWarning
 
 internal class InapplicableTargetOnPropertyImpl(
     override val useSiteDescription: String,
@@ -1203,6 +1222,11 @@ internal class AnnotationsOnBlockLevelExpressionOnTheSameLineImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.AnnotationsOnBlockLevelExpressionOnTheSameLine
+
+internal class IgnorabilityAnnotationsWithCheckerDisabledImpl(
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtAnnotationEntry>(firDiagnostic, token), KaFirDiagnostic.IgnorabilityAnnotationsWithCheckerDisabled
 
 internal class JsModuleProhibitedOnVarImpl(
     firDiagnostic: KtPsiDiagnostic,
@@ -1978,6 +2002,18 @@ internal class NestedClassAccessedViaInstanceReferenceImpl(
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.NestedClassAccessedViaInstanceReference
 
+internal class CompareToTypeMismatchImpl(
+    override val actualType: KaType,
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtExpression>(firDiagnostic, token), KaFirDiagnostic.CompareToTypeMismatch
+
+internal class HasNextFunctionTypeMismatchImpl(
+    override val actualType: KaType,
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtExpression>(firDiagnostic, token), KaFirDiagnostic.HasNextFunctionTypeMismatch
+
 internal class OverloadResolutionAmbiguityImpl(
     override val candidates: List<KaSymbol>,
     firDiagnostic: KtPsiDiagnostic,
@@ -2360,6 +2396,7 @@ internal class AbbreviatedNothingPropertyTypeImpl(
 ) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.AbbreviatedNothingPropertyType
 
 internal class CyclicGenericUpperBoundImpl(
+    override val typeParameters: List<KaTypeParameterSymbol>,
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.CyclicGenericUpperBound
@@ -3491,6 +3528,16 @@ internal class LocalExtensionPropertyImpl(
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.LocalExtensionProperty
 
+internal class UnnamedVarPropertyImpl(
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.UnnamedVarProperty
+
+internal class UnnamedDelegatedPropertyImpl(
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.UnnamedDelegatedProperty
+
 internal class ExpectedDeclarationWithBodyImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
@@ -3617,6 +3664,11 @@ internal class ActualWithoutExpectImpl(
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<KtNamedDeclaration>(firDiagnostic, token), KaFirDiagnostic.ActualWithoutExpect
 
+internal class ExpectRefinementAnnotationWrongTargetImpl(
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtNamedDeclaration>(firDiagnostic, token), KaFirDiagnostic.ExpectRefinementAnnotationWrongTarget
+
 internal class AmbiguousExpectsImpl(
     override val declaration: KaSymbol,
     override val modules: List<FirModuleData>,
@@ -3635,6 +3687,11 @@ internal class ActualMissingImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<KtNamedDeclaration>(firDiagnostic, token), KaFirDiagnostic.ActualMissing
+
+internal class ExpectRefinementAnnotationMissingImpl(
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtNamedDeclaration>(firDiagnostic, token), KaFirDiagnostic.ExpectRefinementAnnotationMissing
 
 internal class ExpectActualClassifiersAreInBetaWarningImpl(
     firDiagnostic: KtPsiDiagnostic,
@@ -3834,6 +3891,11 @@ internal class TypecheckerHasRunIntoRecursiveProblemImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<KtExpression>(firDiagnostic, token), KaFirDiagnostic.TypecheckerHasRunIntoRecursiveProblem
+
+internal class ReturnValueNotUsedImpl(
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.ReturnValueNotUsed
 
 internal class UnsafeCallImpl(
     override val receiverType: KaType,
@@ -5064,6 +5126,11 @@ internal class IncompatibleAnnotationTargetsImpl(
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<KtAnnotationEntry>(firDiagnostic, token), KaFirDiagnostic.IncompatibleAnnotationTargets
 
+internal class AnnotationTargetsOnlyInJavaImpl(
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtAnnotationEntry>(firDiagnostic, token), KaFirDiagnostic.AnnotationTargetsOnlyInJava
+
 internal class LocalJvmRecordImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
@@ -5143,21 +5210,15 @@ internal class JavaModuleDoesNotExportPackageImpl(
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<PsiElement>(firDiagnostic, token), KaFirDiagnostic.JavaModuleDoesNotExportPackage
 
-internal class JvmDefaultInDeclarationImpl(
-    override val annotation: String,
+internal class JvmDefaultWithoutCompatibilityNotInEnableModeImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
-) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.JvmDefaultInDeclaration
+) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.JvmDefaultWithoutCompatibilityNotInEnableMode
 
-internal class JvmDefaultWithCompatibilityInDeclarationImpl(
+internal class JvmDefaultWithCompatibilityNotInNoCompatibilityModeImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
-) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.JvmDefaultWithCompatibilityInDeclaration
-
-internal class JvmDefaultWithCompatibilityNotOnInterfaceImpl(
-    firDiagnostic: KtPsiDiagnostic,
-    token: KaLifetimeToken,
-) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.JvmDefaultWithCompatibilityNotOnInterface
+) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.JvmDefaultWithCompatibilityNotInNoCompatibilityMode
 
 internal class ExternalDeclarationCannotBeAbstractImpl(
     firDiagnostic: KtPsiDiagnostic,
@@ -5278,6 +5339,18 @@ internal class InapplicableJvmFieldWarningImpl(
     firDiagnostic: KtPsiDiagnostic,
     token: KaLifetimeToken,
 ) : KaAbstractFirDiagnostic<KtAnnotationEntry>(firDiagnostic, token), KaFirDiagnostic.InapplicableJvmFieldWarning
+
+internal class IdentitySensitiveOperationsWithValueTypeImpl(
+    override val type: KaType,
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.IdentitySensitiveOperationsWithValueType
+
+internal class SynchronizedBlockOnJavaValueBasedClassImpl(
+    override val type: KaType,
+    firDiagnostic: KtPsiDiagnostic,
+    token: KaLifetimeToken,
+) : KaAbstractFirDiagnostic<KtElement>(firDiagnostic, token), KaFirDiagnostic.SynchronizedBlockOnJavaValueBasedClass
 
 internal class SynchronizedBlockOnValueClassOrPrimitiveErrorImpl(
     override val valueClassOrPrimitive: KaType,

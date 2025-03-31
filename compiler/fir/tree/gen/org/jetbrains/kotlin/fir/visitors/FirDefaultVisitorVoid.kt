@@ -236,7 +236,7 @@ abstract class FirDefaultVisitorVoid : FirVisitorVoid() {
     }
 
     override fun visitWhenSubjectExpression(whenSubjectExpression: FirWhenSubjectExpression) {
-        visitExpression(whenSubjectExpression)
+        visitPropertyAccessExpression(whenSubjectExpression)
     }
 
     override fun visitDesugaredAssignmentValueReferenceExpression(desugaredAssignmentValueReferenceExpression: FirDesugaredAssignmentValueReferenceExpression) {
@@ -329,6 +329,10 @@ abstract class FirDefaultVisitorVoid : FirVisitorVoid() {
 
     override fun visitThisReceiverExpression(thisReceiverExpression: FirThisReceiverExpression) {
         visitQualifiedAccessExpression(thisReceiverExpression)
+    }
+
+    override fun visitSuperReceiverExpression(superReceiverExpression: FirSuperReceiverExpression) {
+        visitQualifiedAccessExpression(superReceiverExpression)
     }
 
     override fun visitTypeProjectionWithVariance(typeProjectionWithVariance: FirTypeProjectionWithVariance) {

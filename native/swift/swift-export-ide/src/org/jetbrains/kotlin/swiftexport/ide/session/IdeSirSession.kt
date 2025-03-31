@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.swiftexport.ide.session
 
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaLibraryModule
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.sir.SirModule
@@ -12,19 +13,28 @@ import org.jetbrains.kotlin.sir.providers.*
 import org.jetbrains.kotlin.sir.providers.impl.*
 import org.jetbrains.kotlin.sir.providers.utils.UnsupportedDeclarationReporter
 import org.jetbrains.sir.lightclasses.SirDeclarationFromKtSymbolProvider
+import org.jetbrains.sir.lightclasses.StubbingSirDeclarationProvider
 
 public class IdeSirSession(
     kaModule: KaModule,
     moduleForPackageEnums: SirModule,
+    platformLibs: Collection<KaLibraryModule>,
     unsupportedDeclarationReporter: UnsupportedDeclarationReporter,
     targetPackageFqName: FqName?,
 ) : SirSession {
+    override val useSiteModule: KaModule = kaModule
+
     override val declarationNamer: SirDeclarationNamer = SirDeclarationNamerImpl()
-    override val moduleProvider: SirModuleProvider = SirOneToOneModuleProvider()
+    override val moduleProvider: SirModuleProvider = SirOneToOneModuleProvider(
+        platformLibs = platformLibs,
+    )
     override val declarationProvider: SirDeclarationProvider = CachingSirDeclarationProvider(
-        declarationsProvider = SirDeclarationFromKtSymbolProvider(
-            ktModule = kaModule,
+        declarationsProvider = StubbingSirDeclarationProvider(
             sirSession = sirSession,
+            declarationsProvider = SirDeclarationFromKtSymbolProvider(
+                ktModule = kaModule,
+                sirSession = sirSession,
+            )
         )
     )
     override val enumGenerator: SirEnumGenerator = SirEnumGeneratorImpl(moduleForPackageEnums)
@@ -37,7 +47,10 @@ public class IdeSirSession(
         unsupportedTypeStrategy = SirTypeProvider.ErrorTypeStrategy.ErrorType,
         sirSession = sirSession,
     )
-    override val visibilityChecker: SirVisibilityChecker = SirVisibilityCheckerImpl(unsupportedDeclarationReporter)
+    override val visibilityChecker: SirVisibilityChecker = SirVisibilityCheckerImpl(
+        sirSession = sirSession,
+        unsupportedDeclarationReporter = unsupportedDeclarationReporter,
+    )
     override val childrenProvider: SirChildrenProvider = SirDeclarationChildrenProviderImpl(
         sirSession = sirSession,
     )

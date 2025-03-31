@@ -8,7 +8,6 @@ package org.jetbrains.kotlin.swiftexport.standalone.test
 import com.intellij.testFramework.TestDataPath
 import org.jetbrains.kotlin.konan.test.blackbox.support.TestModule
 import org.jetbrains.kotlin.konan.test.blackbox.support.compilation.TestCompilationResult.Companion.assertSuccess
-import org.jetbrains.kotlin.konan.test.blackbox.support.group.FirPipeline
 import org.jetbrains.kotlin.konan.test.blackbox.support.group.UseStandardTestCaseGroupProvider
 import org.jetbrains.kotlin.konan.test.blackbox.support.settings.BinaryLibraryKind
 import org.jetbrains.kotlin.konan.test.blackbox.support.util.flatMapToSet
@@ -24,7 +23,6 @@ import java.io.File
 
 @TestMetadata("native/swift/swift-export-standalone-integration-tests/external/testData/execution")
 @TestDataPath("\$PROJECT_ROOT")
-@FirPipeline
 @UseStandardTestCaseGroupProvider
 class ExternalProjectExecutionTests : AbstractSwiftExportExecutionTest() {
 
@@ -33,6 +31,7 @@ class ExternalProjectExecutionTests : AbstractSwiftExportExecutionTest() {
         val testPath = testDataDir.resolve("testLibraryA_smoke").absoluteFile
         val klibSettings = KlibExportSettings(
             path = testLibraryAKlibFile,
+            konanTarget = targets.testTarget,
             swiftModuleName = "LibraryA",
             rootPackage = "org.jetbrains.a",
         )
@@ -44,11 +43,13 @@ class ExternalProjectExecutionTests : AbstractSwiftExportExecutionTest() {
         val testPath = testDataDir.resolve("testLibraryA_testLibraryB_combined").absoluteFile
         val klibSettingsA = KlibExportSettings(
             path = testLibraryAKlibFile,
+            konanTarget = targets.testTarget,
             swiftModuleName = "LibraryA",
             rootPackage = "org.jetbrains.a",
         )
         val klibSettingsB = KlibExportSettings(
             path = testLibraryBKlibFile,
+            konanTarget = targets.testTarget,
             swiftModuleName = "LibraryB",
             rootPackage = "org.jetbrains.b",
         )
@@ -58,11 +59,12 @@ class ExternalProjectExecutionTests : AbstractSwiftExportExecutionTest() {
     private fun runTestsAgainstKlib(klibSettings: Set<KlibExportSettings>, testPath: File) {
         val testModules = klibSettings.map { TestModule.Given(it.path.toFile()) }.toSet()
         val inputModules = klibSettings.map {
-            it.createInputModule(SwiftModuleConfig(rootPackage = it.rootPackage))
+            it.createInputModule(SwiftModuleConfig(rootPackage = it.rootPackage, shouldBeFullyExported = true))
         }.toSet()
 
         val swiftConfig = SwiftExportConfig(
-            outputPath = buildDir(testPath.name).toPath().resolve("swift_export_results")
+            outputPath = buildDir(testPath.name).toPath().resolve("swift_export_results"),
+            konanTarget = targets.testTarget
         )
 
         val swiftExportResult = runSwiftExport(inputModules, swiftConfig).getOrThrow()

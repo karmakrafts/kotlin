@@ -51,6 +51,7 @@ sealed class ResolutionMode(
          * but it's ok if it's not applicable
          */
         val shouldBeStrictlyEnforced: Boolean = true,
+        val hintForContextSensitiveResolution: ConeKotlinType? = null,
         /** Currently the only case for expected type when we don't force completion are when's branches */
         forceFullCompletion: Boolean = true,
     ) : ResolutionMode(forceFullCompletion) {
@@ -101,6 +102,14 @@ sealed class ResolutionMode(
     }
 
     /**
+     * Should be used only for type refs transformations, it forces to replace implicit type refs.
+     * For other cases, it works just like [ContextIndependent], i.e., resolves yet unresolved explicit type references.
+     *
+     * See [org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.FirAbstractBodyResolveTransformerDispatcher.transformImplicitTypeRef]
+     */
+    class UpdateImplicitTypeRef(val newTypeRef: FirResolvedTypeRef) : ResolutionMode(forceFullCompletion = false)
+
+    /**
      * This resolution mode is used for resolving the LHS of assignments.
      *
      * It is generally treated like [ContextIndependent], however it carries the containing assignment which is needed for
@@ -134,11 +143,13 @@ fun withExpectedType(
     expectedTypeRef: FirTypeRef,
     expectedTypeMismatchIsReportedInChecker: Boolean = false,
     arrayLiteralPosition: ArrayLiteralPosition? = null,
+    hintForContextSensitiveResolution: ConeKotlinType? = null,
 ): ResolutionMode = when {
     expectedTypeRef is FirResolvedTypeRef -> ResolutionMode.WithExpectedType(
         expectedTypeRef,
         expectedTypeMismatchIsReportedInChecker = expectedTypeMismatchIsReportedInChecker,
         arrayLiteralPosition = arrayLiteralPosition,
+        hintForContextSensitiveResolution = hintForContextSensitiveResolution,
     )
     else -> ResolutionMode.ContextIndependent
 }

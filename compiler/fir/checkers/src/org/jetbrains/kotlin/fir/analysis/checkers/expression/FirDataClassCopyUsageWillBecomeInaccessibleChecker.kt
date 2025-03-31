@@ -11,10 +11,10 @@ import org.jetbrains.kotlin.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
-import org.jetbrains.kotlin.fir.analysis.checkers.declaration.primaryConstructorSymbol
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.containingClassLookupTag
 import org.jetbrains.kotlin.fir.declarations.FirMemberDeclaration
+import org.jetbrains.kotlin.fir.declarations.primaryConstructorIfAny
 import org.jetbrains.kotlin.fir.declarations.utils.isData
 import org.jetbrains.kotlin.fir.expressions.FirCallableReferenceAccess
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.hasContextParameters
 import org.jetbrains.kotlin.fir.types.classId
 import org.jetbrains.kotlin.fir.unwrapSubstitutionOverrides
 import org.jetbrains.kotlin.fir.visibilityChecker
@@ -36,7 +37,7 @@ object FirDataClassCopyUsageWillBecomeInaccessibleChecker : FirQualifiedAccessEx
         val copyFunction = expression.calleeReference.symbol as? FirCallableSymbol ?: return
         val dataClass = copyFunction.containingClassLookupTag()?.toRegularClassSymbol(context.session) ?: return
         if (copyFunction.isDataClassCopy(dataClass, context.session)) {
-            val dataClassConstructor = dataClass.primaryConstructorSymbol(context.session) ?: return
+            val dataClassConstructor = dataClass.primaryConstructorIfAny(context.session) ?: return
 
             @OptIn(SymbolInternals::class)
             val hasCopyAlreadyBecameInaccessible = !context.session.visibilityChecker.isVisible(
@@ -69,7 +70,7 @@ object FirDataClassCopyUsageWillBecomeInaccessibleChecker : FirQualifiedAccessEx
 
 internal fun FirCallableSymbol<*>.isDataClassCopy(containingClass: FirClassSymbol<*>?, session: FirSession): Boolean {
     with(unwrapSubstitutionOverrides()) { // Shadow "non-normalized" this
-        val constructor = containingClass?.primaryConstructorSymbol(session)
+        val constructor = containingClass?.primaryConstructorIfAny(session)
         return this is FirNamedFunctionSymbol &&
                 DataClassResolver.isCopy(name) &&
                 containingClass != null &&
@@ -78,9 +79,9 @@ internal fun FirCallableSymbol<*>.isDataClassCopy(containingClass: FirClassSymbo
                 dispatchReceiverType?.classId == containingClass.classId &&
                 resolvedReturnType.classId == containingClass.classId &&
                 constructor != null &&
-                resolvedContextParameters.isEmpty() &&
+                !hasContextParameters &&
                 typeParameterSymbols.isEmpty() &&
-                receiverParameter == null &&
+                receiverParameterSymbol == null &&
                 valueParameterSymbols.map { it.isVararg to it.resolvedReturnType } == constructor.valueParameterSymbols.map { it.isVararg to it.resolvedReturnType }
     }
 }

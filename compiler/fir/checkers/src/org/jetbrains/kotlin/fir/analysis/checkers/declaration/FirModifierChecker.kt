@@ -66,7 +66,7 @@ object FirModifierChecker : FirBasicDeclarationChecker(MppCheckerKind.Common) {
                 parent.classKind,
                 isInnerClass = (parent as? FirMemberDeclaration)?.isInner ?: false,
                 isCompanionObject = (parent as? FirRegularClass)?.isCompanion ?: false,
-                isLocalClass = parent.isLocal
+                isLocalClass = parent.isLocalInFunction
             )
             is FirPropertyAccessor -> if (parent.isSetter) KotlinTarget.PROPERTY_SETTER_LIST else KotlinTarget.PROPERTY_GETTER_LIST
             is FirFunction -> KotlinTarget.FUNCTION_LIST

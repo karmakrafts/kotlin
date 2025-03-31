@@ -11,8 +11,6 @@ import com.intellij.psi.PsiElementFinder
 import com.intellij.psi.search.ProjectScope.getLibrariesScope
 import org.jetbrains.kotlin.asJava.finder.JavaElementFinder
 import org.jetbrains.kotlin.cli.jvm.compiler.*
-import org.jetbrains.kotlin.config.JVMConfigurationKeys
-import org.jetbrains.kotlin.config.JvmTarget
 import org.jetbrains.kotlin.fir.*
 import org.jetbrains.kotlin.fir.checkers.registerExperimentalCheckers
 import org.jetbrains.kotlin.fir.checkers.registerExtraCommonCheckers
@@ -24,18 +22,15 @@ import org.jetbrains.kotlin.fir.session.firCachesFactoryForCliMode
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.platform.TargetPlatform
 import org.jetbrains.kotlin.platform.jvm.isJvm
-import org.jetbrains.kotlin.scripting.compiler.plugin.services.replCompilationConfigurationProviderService
 import org.jetbrains.kotlin.test.FirParser
 import org.jetbrains.kotlin.test.directives.FirDiagnosticsDirectives
 import org.jetbrains.kotlin.test.directives.model.DirectivesContainer
 import org.jetbrains.kotlin.test.directives.model.singleValue
 import org.jetbrains.kotlin.test.frontend.fir.handlers.FirDiagnosticCollectorService
-import org.jetbrains.kotlin.test.frontend.fir.handlers.firDiagnosticCollectorService
 import org.jetbrains.kotlin.test.model.FrontendFacade
 import org.jetbrains.kotlin.test.model.FrontendKinds
 import org.jetbrains.kotlin.test.model.TestModule
 import org.jetbrains.kotlin.test.services.*
-import kotlin.script.experimental.api.ScriptCompilationConfiguration
 
 open class FirReplFrontendFacade(testServices: TestServices) : FrontendFacade<FirOutputArtifact>(testServices, FrontendKinds.FIR) {
 
@@ -82,9 +77,20 @@ open class FirReplFrontendFacade(testServices: TestServices) : FrontendFacade<Fi
                 packagePartProviderFactory.invoke(it)
             }
 
-        FirJvmSessionFactory.createLibrarySession(
+        val sharedLibrarySession = FirJvmSessionFactory.createSharedLibrarySession(
             Name.special("<${testModule.name}>"),
             testServices.firModuleInfoProvider.firSessionProvider,
+            projectEnvironment,
+            extensionRegistrars,
+            librariesSearchScope,
+            projectEnvironment.getPackagePartProvider(librariesSearchScope),
+            testModule.languageVersionSettings,
+            predefinedJavaComponents,
+        )
+
+        FirJvmSessionFactory.createLibrarySession(
+            testServices.firModuleInfoProvider.firSessionProvider,
+            sharedLibrarySession,
             libraryList.moduleDataProvider,
             projectEnvironment,
             extensionRegistrars,
@@ -117,10 +123,10 @@ open class FirReplFrontendFacade(testServices: TestServices) : FrontendFacade<Fi
 
         val regularModules = libraryList.regularDependencies + moduleInfoProvider.getRegularDependentSourceModules(module)
         // TODO: collect instead of recursive traversal on each new snippet
-        val friendModules = libraryList.friendsDependencies + moduleInfoProvider.getDependentFriendSourceModulesRecursively(module)
+        val friendModules = libraryList.friendDependencies + moduleInfoProvider.getDependentFriendSourceModulesRecursively(module)
         val dependsOnModules = libraryList.dependsOnDependencies + moduleInfoProvider.getDependentDependsOnSourceModules(module)
 
-        return FirModuleDataImpl(
+        return FirSourceModuleData(
             Name.special("<${module.name}>"),
             regularModules,
             dependsOnModules,
@@ -145,19 +151,14 @@ open class FirReplFrontendFacade(testServices: TestServices) : FrontendFacade<Fi
 
         val ktFiles = testServices.sourceFileProvider.getKtFilesForSourceFiles(module.files, project)
 
-        val moduleBasedSession = FirJvmSessionFactory.createModuleBasedSession(
+        val moduleBasedSession = FirJvmSessionFactory.createSourceSession(
             moduleData = moduleData,
             sessionProvider = testServices.firModuleInfoProvider.firSessionProvider,
             javaSourcesScope = PsiBasedProjectFileSearchScope(TopDownAnalyzerFacadeForJVM.newModuleSearchScope(project, ktFiles.values)),
             projectEnvironment = replCompilationEnvironment.projectEnvironment,
             createIncrementalCompilationSymbolProviders = { null },
             extensionRegistrars = replCompilationEnvironment.extensionRegistrars,
-            languageVersionSettings = module.languageVersionSettings,
-            useExtraCheckers = FirDiagnosticsDirectives.WITH_EXTRA_CHECKERS in module.directives,
-            jvmTarget = compilerConfiguration.get(JVMConfigurationKeys.JVM_TARGET, JvmTarget.DEFAULT),
-            lookupTracker = null,
-            enumWhenTracker = null,
-            importTracker = null,
+            configuration = compilerConfiguration,
             predefinedJavaComponents = replCompilationEnvironment.predefinedJavaComponents,
             needRegisterJavaElementFinder = true,
         ) {
@@ -168,8 +169,6 @@ open class FirReplFrontendFacade(testServices: TestServices) : FrontendFacade<Fi
                 registerExperimentalCheckers()
             }
         }.also(::registerExtraComponents)
-        @OptIn(FirImplementationDetail::class)
-        moduleBasedSession.replCompilationConfigurationProviderService.scriptConfiguration = ScriptCompilationConfiguration.Default
 
         val firAnalyzerFacade = FirAnalyzerFacade(moduleBasedSession, ktFiles.values, parser = firParser)
         val firFiles = firAnalyzerFacade.runResolution()

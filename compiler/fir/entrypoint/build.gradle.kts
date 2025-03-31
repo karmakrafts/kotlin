@@ -6,8 +6,8 @@ plugins {
 dependencies {
     api(project(":core:descriptors.jvm"))
     api(project(":compiler:frontend.java"))
-    api(project(":compiler:fir:java"))
-    api(project(":compiler:fir:native"))
+    api(project(":compiler:fir:fir-jvm"))
+    api(project(":compiler:fir:fir-native"))
     api(project(":compiler:fir:raw-fir:psi2fir"))
     api(project(":compiler:fir:raw-fir:light-tree2fir"))
     api(project(":compiler:fir:fir2ir"))
@@ -22,6 +22,7 @@ dependencies {
 
     implementation(project(":core:compiler.common.native"))
     implementation(project(":compiler:fir:resolve"))
+    implementation(project(":compiler:fir:fir-js"))
     implementation(project(":compiler:fir:fir-serialization"))
     implementation(project(":compiler:fir:fir2ir:jvm-backend"))
     implementation(project(":compiler:ir.backend.common"))

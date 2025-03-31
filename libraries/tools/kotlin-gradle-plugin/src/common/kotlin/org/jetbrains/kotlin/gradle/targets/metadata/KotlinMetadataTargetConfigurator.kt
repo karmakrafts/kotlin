@@ -26,7 +26,7 @@ import org.jetbrains.kotlin.gradle.utils.*
 import org.jetbrains.kotlin.tooling.core.extrasLazyProperty
 
 class KotlinMetadataTargetConfigurator :
-    KotlinOnlyTargetConfigurator<KotlinCompilation<*>, KotlinMetadataTarget>(createTestCompilation = false) {
+    KotlinOnlyTargetConfigurator<KotlinCompilation<Any>, KotlinMetadataTarget>(createTestCompilation = false) {
     companion object {
         internal const val ALL_METADATA_JAR_NAME = "allMetadataJar"
     }
@@ -163,7 +163,7 @@ class KotlinMetadataTargetConfigurator :
         val platformCompilations = sourceSet.internal.awaitPlatformCompilations()
         val isNativeSourceSet = sourceSet.isNativeSourceSet.await()
 
-        val compilationFactory: KotlinCompilationFactory<out KotlinCompilation<*>> = when {
+        val compilationFactory: KotlinCompilationFactory<out KotlinCompilation<Any>> = when {
             isNativeSourceSet -> KotlinSharedNativeCompilationFactory(
                 target = target,
                 konanTargets = platformCompilations.map { (it as AbstractKotlinNativeCompilation).konanTarget }.toSet(),
@@ -208,7 +208,7 @@ class KotlinMetadataTargetConfigurator :
         compilation.compileDependencyFiles += sourceSet.dependsOnClosureCompilePath
 
         // Requested dependencies that are not Multiplatform Libraries. for example stdlib-common
-        val artifacts = sourceSet.internal.resolvableMetadataConfiguration.incoming.artifacts.getResolvedArtifactsCompat(project)
+        val artifacts = sourceSet.internal.resolvableMetadataConfiguration.incoming.artifacts.resolvedArtifacts
         compilation.compileDependencyFiles += project.files(artifacts.map { it.filterNot { it.isMpp }.map { it.file } })
 
         // Transformed Multiplatform Libraries based on source set visibility
@@ -297,7 +297,7 @@ private val KotlinMetadataTarget.metadataCompilationsCreated: CompletableFuture<
     CompletableFuture()
 }
 
-internal suspend fun KotlinMetadataTarget.awaitMetadataCompilationsCreated(): NamedDomainObjectContainer<KotlinCompilation<*>> {
+internal suspend fun KotlinMetadataTarget.awaitMetadataCompilationsCreated(): NamedDomainObjectContainer<KotlinCompilation<Any>> {
     metadataCompilationsCreated.await()
     return compilations
 }

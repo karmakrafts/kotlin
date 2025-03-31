@@ -7,7 +7,6 @@ package org.jetbrains.kotlin.swiftexport.standalone.test;
 
 import com.intellij.testFramework.TestDataPath;
 import org.jetbrains.kotlin.test.util.KtTestUtil;
-import org.jetbrains.kotlin.konan.test.blackbox.support.group.FirPipeline;
 import org.jetbrains.kotlin.konan.test.blackbox.support.group.UseStandardTestCaseGroupProvider;
 import org.jetbrains.kotlin.test.TestMetadata;
 import org.junit.jupiter.api.Test;
@@ -19,7 +18,6 @@ import java.util.regex.Pattern;
 @SuppressWarnings("all")
 @TestMetadata("native/swift/swift-export-standalone-integration-tests/simple/testData/execution")
 @TestDataPath("$PROJECT_ROOT")
-@FirPipeline()
 @UseStandardTestCaseGroupProvider()
 public class SwiftExportExecutionTestGenerated extends AbstractSwiftExportExecutionTest {
   @Test
@@ -52,9 +50,21 @@ public class SwiftExportExecutionTestGenerated extends AbstractSwiftExportExecut
   }
 
   @Test
+  @TestMetadata("external_types")
+  public void testExternal_types() {
+    runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/execution/external_types/");
+  }
+
+  @Test
   @TestMetadata("functional_type")
   public void testFunctional_type() {
     runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/execution/functional_type/");
+  }
+
+  @Test
+  @TestMetadata("generics")
+  public void testGenerics() {
+    runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/execution/generics/");
   }
 
   @Test
@@ -133,5 +143,11 @@ public class SwiftExportExecutionTestGenerated extends AbstractSwiftExportExecut
   @TestMetadata("specialTypes")
   public void testSpecialTypes() {
     runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/execution/specialTypes/");
+  }
+
+  @Test
+  @TestMetadata("stdlibTypes")
+  public void testStdlibTypes() {
+    runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/execution/stdlibTypes/");
   }
 }

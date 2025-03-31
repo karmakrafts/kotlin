@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.analysis.api.utils.errors.withPsiEntry
 import org.jetbrains.kotlin.analysis.low.level.api.fir.LLFirModuleResolveComponents
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.LLFirResolveSession
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.getModule
-import org.jetbrains.kotlin.analysis.low.level.api.fir.element.builder.getNonLocalContainingDeclaration
+import org.jetbrains.kotlin.analysis.low.level.api.fir.element.builder.getNonLocalContainingOrThisElement
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.FirDeclarationForCompiledElementSearcher
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.errorWithFirSpecificEntries
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.findSourceNonLocalFirDeclaration
@@ -67,11 +67,11 @@ internal class LLFirResolvableResolveSession(
 
         return when (getModuleResolutionStrategy(module)) {
             LLModuleResolutionStrategy.LAZY -> findSourceFirSymbol(ktDeclaration).also { resolveFirToPhase(it.fir, phase) }
-            LLModuleResolutionStrategy.STATIC -> findFirCompiledSymbol(ktDeclaration, module)
+            LLModuleResolutionStrategy.STATIC -> findCompiledFirSymbol(ktDeclaration, module)
         }
     }
 
-    private fun findFirCompiledSymbol(ktDeclaration: KtDeclaration, module: KaModule): FirBasedSymbol<*> {
+    private fun findCompiledFirSymbol(ktDeclaration: KtDeclaration, module: KaModule): FirBasedSymbol<*> {
         requireWithAttachment(
             ktDeclaration.containingKtFile.isCompiled,
             { "`findFirCompiledSymbol` only works on compiled declarations, but the given declaration is not compiled." },
@@ -88,37 +88,36 @@ internal class LLFirResolvableResolveSession(
     private fun findSourceFirSymbol(ktDeclaration: KtDeclaration): FirBasedSymbol<*> {
         val targetDeclaration = ktDeclaration.originalDeclaration ?: ktDeclaration
         val targetModule = getModule(targetDeclaration)
-        return findSourceFirDeclarationByDeclaration(targetDeclaration, targetModule)
-    }
 
-    private fun findSourceFirDeclarationByDeclaration(ktDeclaration: KtDeclaration, module: KaModule): FirBasedSymbol<*> {
-        require(getModuleResolutionStrategy(module) == LLModuleResolutionStrategy.LAZY) {
-            "Declaration should be resolvable module, instead it had ${module::class}"
+        require(getModuleResolutionStrategy(targetModule) == LLModuleResolutionStrategy.LAZY) {
+            "Declaration should be resolvable module, instead it had ${targetModule::class}"
         }
 
-        val nonLocalDeclaration = getNonLocalContainingDeclaration(ktDeclaration, codeFragmentAware = true)
+        val nonLocalContainer = targetDeclaration.getNonLocalContainingOrThisElement(codeFragmentAware = true)
             ?: errorWithAttachment("Declaration should have non-local container") {
-                withPsiEntry("ktDeclaration", ktDeclaration, ::getModule)
-                withEntry("module", module) { it.moduleDescription }
+                withPsiEntry("ktDeclaration", targetDeclaration, ::getModule)
+                withEntry("module", targetModule) { it.moduleDescription }
             }
 
-        if (ktDeclaration == nonLocalDeclaration) {
-            val session = sessionProvider.getResolvableSession(module)
-            return nonLocalDeclaration.findSourceNonLocalFirDeclaration(
+        val firDeclaration = if ((nonLocalContainer as? KtDeclaration) == targetDeclaration) {
+            val session = sessionProvider.getResolvableSession(targetModule)
+            nonLocalContainer.findSourceNonLocalFirDeclaration(
                 firFileBuilder = session.moduleComponents.firFileBuilder,
                 provider = session.firProvider,
-            ).symbol
+            )
+        } else {
+            findSourceFirDeclarationViaResolve(targetDeclaration)
         }
 
-        return findDeclarationInSourceViaResolve(ktDeclaration)
+        return firDeclaration.symbol
     }
 
     private fun getModuleResolutionStrategy(module: KaModule): LLModuleResolutionStrategy {
         return resolutionStrategyProvider.getKind(module)
     }
 
-    private fun findDeclarationInSourceViaResolve(ktDeclaration: KtExpression): FirBasedSymbol<*> {
-        val firDeclaration = when (val fir = getOrBuildFirFor(ktDeclaration)) {
+    private fun findSourceFirDeclarationViaResolve(ktDeclaration: KtExpression): FirDeclaration {
+        return when (val fir = getOrBuildFirFor(ktDeclaration)) {
             is FirDeclaration -> fir
             is FirAnonymousFunctionExpression -> fir.anonymousFunction
             is FirAnonymousObjectExpression -> fir.anonymousObject
@@ -128,7 +127,6 @@ internal class LLFirResolvableResolveSession(
                 psi = ktDeclaration,
             )
         }
-        return firDeclaration.symbol
     }
 
     override fun resolveFirToPhase(declaration: FirDeclaration, toPhase: FirResolvePhase) {

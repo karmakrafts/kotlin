@@ -29,65 +29,65 @@ class ICKotlinLibrary(private val icData: List<SerializedIrFile>) : IrLibrary {
     override val hasIr get() = true
     override val hasFileEntriesTable get() = true
 
-    private inline fun <K, R : IrTableReader<K>> Array<R?>.itemBytes(fileIndex: Int, key: K, factory: () -> R): ByteArray {
+    private inline fun Array<DeclarationIdTableReader?>.itemBytes(fileIndex: Int, key: DeclarationId, factory: () -> DeclarationIdTableReader): ByteArray {
         val reader = this[fileIndex] ?: factory().also { this[fileIndex] = it }
 
         return reader.tableItemBytes(key)
     }
 
-    private inline fun <R : IrArrayReader> Array<R?>.itemBytes(fileIndex: Int, index: Int, factory: () -> R): ByteArray {
+    private inline fun Array<IrArrayReader?>.itemBytes(fileIndex: Int, index: Int, factory: () -> IrArrayReader): ByteArray {
         val reader = this[fileIndex] ?: factory().also { this[fileIndex] = it }
 
         return reader.tableItemBytes(index)
     }
 
-    private inline fun <R : IrArrayReader?> Array<R?>.itemNullableBytes(fileIndex: Int, index: Int, factory: () -> R): ByteArray? {
+    private inline fun Array<IrArrayReader?>.itemNullableBytes(fileIndex: Int, index: Int, factory: () -> IrArrayReader?): ByteArray? {
         val reader = this[fileIndex] ?: factory().also { this[fileIndex] = it }
 
         return reader?.tableItemBytes(index)
     }
 
-    private val indexedDeclarations = arrayOfNulls<DeclarationIrTableMemoryReader>(icData.size)
-    private val indexedTypes = arrayOfNulls<IrArrayMemoryReader>(icData.size)
-    private val indexedSignatures = arrayOfNulls<IrArrayMemoryReader>(icData.size)
-    private val indexedStrings = arrayOfNulls<IrArrayMemoryReader>(icData.size)
-    private val indexedDebugInfos = arrayOfNulls<IrArrayMemoryReader?>(icData.size)
-    private val indexedBodies = arrayOfNulls<IrArrayMemoryReader>(icData.size)
-    private val indexedFileEntries = arrayOfNulls<IrArrayMemoryReader>(icData.size)
+    private val indexedDeclarations = arrayOfNulls<DeclarationIdTableReader>(icData.size)
+    private val indexedTypes = arrayOfNulls<IrArrayReader>(icData.size)
+    private val indexedSignatures = arrayOfNulls<IrArrayReader>(icData.size)
+    private val indexedStrings = arrayOfNulls<IrArrayReader>(icData.size)
+    private val indexedDebugInfos = arrayOfNulls<IrArrayReader?>(icData.size)
+    private val indexedBodies = arrayOfNulls<IrArrayReader>(icData.size)
+    private val indexedFileEntries = arrayOfNulls<IrArrayReader>(icData.size)
 
     override fun irDeclaration(index: Int, fileIndex: Int): ByteArray =
         indexedDeclarations.itemBytes(fileIndex, DeclarationId(index)) {
-            DeclarationIrTableMemoryReader(icData[fileIndex].declarations)
+            DeclarationIdTableReader(icData[fileIndex].declarations)
         }
 
     override fun type(index: Int, fileIndex: Int): ByteArray =
         indexedTypes.itemBytes(fileIndex, index) {
-            IrArrayMemoryReader(icData[fileIndex].types)
+            IrArrayReader(icData[fileIndex].types)
         }
 
     override fun signature(index: Int, fileIndex: Int): ByteArray =
         indexedSignatures.itemBytes(fileIndex, index) {
-            IrArrayMemoryReader(icData[fileIndex].signatures)
+            IrArrayReader(icData[fileIndex].signatures)
         }
 
     override fun string(index: Int, fileIndex: Int): ByteArray =
         indexedStrings.itemBytes(fileIndex, index) {
-            IrArrayMemoryReader(icData[fileIndex].strings)
+            IrArrayReader(icData[fileIndex].strings)
         }
 
     override fun body(index: Int, fileIndex: Int): ByteArray =
         indexedBodies.itemBytes(fileIndex, index) {
-            IrArrayMemoryReader(icData[fileIndex].bodies)
+            IrArrayReader(icData[fileIndex].bodies)
         }
 
     override fun debugInfo(index: Int, fileIndex: Int): ByteArray? =
         indexedDebugInfos.itemNullableBytes(fileIndex, index) {
-            icData[fileIndex].debugInfo?.let { IrArrayMemoryReader(it) }
+            icData[fileIndex].debugInfo?.let { IrArrayReader(it) }
         }
 
     override fun fileEntry(index: Int, fileIndex: Int): ByteArray? =
         indexedFileEntries.itemNullableBytes(fileIndex, index) {
-            IrArrayMemoryReader(icData[fileIndex].fileEntries)
+            icData[fileIndex].fileEntries?.let { IrArrayReader(it) }
         }
 
     override fun file(index: Int): ByteArray = icData[index].fileData

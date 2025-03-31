@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -10,7 +10,7 @@ import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.FirDesignation
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.withFirDesignationEntry
 import org.jetbrains.kotlin.analysis.low.level.api.fir.element.builder.getNonLocalContainingOrThisDeclaration
-import org.jetbrains.kotlin.analysis.low.level.api.fir.element.builder.isAutonomousDeclaration
+import org.jetbrains.kotlin.analysis.low.level.api.fir.element.builder.isAutonomousElement
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.ContextCollector.Context
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.ContextCollector.ContextKind
 import org.jetbrains.kotlin.analysis.low.level.api.fir.util.ContextCollector.FilterResponse
@@ -136,7 +136,7 @@ object ContextCollector {
     }
 
     private fun isValidTarget(declaration: KtDeclaration): Boolean {
-        if (declaration.isAutonomousDeclaration) {
+        if (declaration.isAutonomousElement) {
             return true
         }
 
@@ -437,10 +437,10 @@ private class ContextCollectorVisitor(
     }
 
     override fun visitAnnotationCall(annotationCall: FirAnnotationCall) {
-        dumpContext(annotationCall, ContextKind.SELF)
+        context.forAnnotation {
+            dumpContext(annotationCall, ContextKind.SELF)
 
-        onActiveBody {
-            context.forAnnotation {
+            onActiveBody {
                 dumpContext(annotationCall, ContextKind.BODY)
 
                 // Technically, annotation arguments might contain arbitrary expressions.
@@ -505,7 +505,9 @@ private class ContextCollectorVisitor(
     override fun visitRegularClass(regularClass: FirRegularClass) = withProcessor(regularClass) {
         dumpContext(regularClass, ContextKind.SELF)
 
-        processSignatureAnnotations(regularClass)
+        context.withClassHeader(regularClass) {
+            processSignatureAnnotations(regularClass)
+        }
 
         onActiveBody {
             regularClass.lazyResolveToPhase(FirResolvePhase.STATUS)
@@ -541,10 +543,12 @@ private class ContextCollectorVisitor(
      */
     @OptIn(PrivateForInline::class)
     private fun Processor.processClassHeader(regularClass: FirRegularClass) {
-        context.withTypeParametersOf(regularClass) {
-            processList(regularClass.contextParameters)
-            processList(regularClass.typeParameters)
-            processList(regularClass.superTypeRefs)
+        context.withClassHeader(regularClass) {
+            context.withTypeParametersOf(regularClass) {
+                processList(regularClass.contextParameters)
+                processList(regularClass.typeParameters)
+                processList(regularClass.superTypeRefs)
+            }
         }
     }
 
@@ -607,17 +611,39 @@ private class ContextCollectorVisitor(
         }
     }
 
-    override fun visitEnumEntry(enumEntry: FirEnumEntry) {
+    override fun visitEnumEntry(enumEntry: FirEnumEntry) = withProcessor(enumEntry) {
         dumpContext(enumEntry, ContextKind.SELF)
 
         onActiveBody {
-            enumEntry.lazyResolveToPhase(FirResolvePhase.BODY_RESOLVE)
-
+            // We have to wrap annotation processing into withEnumEntry as well as it provides the correct context
+            // Otherwise there will be the enum entry as an implicit receiver
             context.withEnumEntry(enumEntry) {
-                dumpContext(enumEntry, ContextKind.BODY)
+                processSignatureAnnotations(enumEntry)
 
+                onActiveBody {
+                    enumEntry.lazyResolveToPhase(FirResolvePhase.BODY_RESOLVE)
+                    dumpContext(enumEntry, ContextKind.BODY)
+
+                    onActive {
+                        processChildren(enumEntry)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun visitDanglingModifierList(danglingModifierList: FirDanglingModifierList) = withProcessor(danglingModifierList) {
+        dumpContext(danglingModifierList, ContextKind.SELF)
+
+        processSignatureAnnotations(danglingModifierList)
+
+        onActiveBody {
+            danglingModifierList.lazyResolveToPhase(FirResolvePhase.BODY_RESOLVE)
+
+            context.withDanglingModifierList(danglingModifierList) {
+                dumpContext(danglingModifierList, ContextKind.BODY)
                 onActive {
-                    super.visitEnumEntry(enumEntry)
+                    processChildren(danglingModifierList)
                 }
             }
         }

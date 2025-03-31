@@ -64,7 +64,7 @@ val SirType.swiftName
         is SirFunctionalType -> "(${parameterTypes.joinToString { it.swiftName }}) -> ${returnType.swiftName}"
     }
 
-private val SirDeclaration.swiftParentNamePrefix: String?
+val SirDeclaration.swiftParentNamePrefix: String?
     get() = this.parent.swiftFqNameOrNull
 
 val SirDeclarationParent.swiftFqNameOrNull: String?
@@ -73,7 +73,7 @@ val SirDeclarationParent.swiftFqNameOrNull: String?
         ?: ((this as? SirExtension)?.extendedType?.swiftName)
 
 val SirNamedDeclaration.swiftFqName: String
-    get() = swiftParentNamePrefix?.let { "$it.${name.swiftSanitizedName}" } ?: name.swiftSanitizedName
+    get() = swiftParentNamePrefix?.let { "$it.${name.swiftSanitizedName.swiftIdentifier}" } ?: name.swiftSanitizedName.swiftIdentifier
 
 val SirFunction.swiftFqName: String
     get() = swiftParentNamePrefix?.let { "$it.${name.swiftSanitizedName}" } ?: name.swiftSanitizedName

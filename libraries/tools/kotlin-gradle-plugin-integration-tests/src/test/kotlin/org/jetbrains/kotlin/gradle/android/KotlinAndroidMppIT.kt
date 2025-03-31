@@ -6,16 +6,16 @@
 package org.jetbrains.kotlin.gradle.android
 
 import org.gradle.api.publish.maven.MavenPublication
-import org.gradle.testkit.runner.BuildResult
 import org.gradle.util.GradleVersion
-import org.jetbrains.kotlin.gradle.BrokenOnMacosTest
+import org.jetbrains.kotlin.gradle.dsl.multiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
+import org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile
+import org.jetbrains.kotlin.gradle.tasks.CompilerPluginOptions
 import org.jetbrains.kotlin.gradle.testbase.*
 import org.jetbrains.kotlin.gradle.testbase.TestVersions.AgpCompatibilityMatrix
 import org.jetbrains.kotlin.gradle.tooling.BuildKotlinToolingMetadataTask
 import org.jetbrains.kotlin.gradle.util.replaceText
 import org.jetbrains.kotlin.gradle.util.testResolveAllConfigurations
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
@@ -23,7 +23,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.zip.ZipFile
 import kotlin.io.path.*
-import kotlin.streams.toList
 import kotlin.test.*
 
 @DisplayName("kotlin-android with mpp")
@@ -67,7 +66,6 @@ class KotlinAndroidMppIT : KGPBaseTest() {
 
     @DisplayName("mpp source sets are registered in AGP")
     @GradleAndroidTest
-    @BrokenOnMacosTest
     fun testAndroidMppSourceSets(
         gradleVersion: GradleVersion,
         agpVersion: String,
@@ -76,7 +74,12 @@ class KotlinAndroidMppIT : KGPBaseTest() {
         project(
             "new-mpp-android-source-sets",
             gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion),
+            buildOptions = defaultBuildOptions.copy(
+                androidVersion = agpVersion,
+                // AGP's SourceSetsTask is not CC compatible
+                // see https://issuetracker.google.com/issues/242872035
+                configurationCache = BuildOptions.ConfigurationCacheValue.DISABLED,
+            ),
             buildJdk = jdkVersion.location
         ) {
             build("sourceSets") {
@@ -125,7 +128,6 @@ class KotlinAndroidMppIT : KGPBaseTest() {
 
     @DisplayName("android mpp lib flavors publication can be configured")
     @GradleAndroidTest
-    @BrokenOnMacosTest
     fun testMppAndroidLibFlavorsPublication(
         gradleVersion: GradleVersion,
         agpVersion: String,
@@ -347,7 +349,6 @@ class KotlinAndroidMppIT : KGPBaseTest() {
 
     @DisplayName("Sources publication can be disabled")
     @GradleAndroidTest
-    @BrokenOnMacosTest
     fun testDisableSourcesPublication(
         gradleVersion: GradleVersion,
         agpVersion: String,
@@ -392,8 +393,7 @@ class KotlinAndroidMppIT : KGPBaseTest() {
         project(
             "new-mpp-android",
             gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion)
-                .disableConfigurationCache_KT70416(),
+            buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion),
             buildJdk = jdkVersion.location
         ) {
             // Convert the 'app' project to a library, publish two flavors without metadata,
@@ -537,19 +537,52 @@ class KotlinAndroidMppIT : KGPBaseTest() {
 
     @DisplayName("android app can depend on mpp lib")
     @GradleAndroidTest
-    @BrokenOnMacosTest
     fun testAndroidWithNewMppApp(
         gradleVersion: GradleVersion,
         agpVersion: String,
         jdkVersion: JdkVersions.ProvidedJdk,
     ) {
+        val printOptionsTaskName = "printCompilerPluginOptions"
+
         project(
             "new-mpp-android",
             gradleVersion,
             buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion),
             buildJdk = jdkVersion.location
         ) {
-            build("assemble", "compileDebugUnitTestJavaWithJavac", "printCompilerPluginOptions") {
+            subProject("app").buildScriptInjection {
+                project.tasks.register(printOptionsTaskName) { task ->
+                    val compilations = project.provider {
+                        kotlinMultiplatform.targets
+                            .flatMap { it.compilations }
+                            .mapNotNull { compilation ->
+                                val sourceSetName = compilation.defaultSourceSet.name
+                                val compileTask = compilation.compileTaskProvider.get()
+                                when (compileTask) {
+                                    is AbstractKotlinCompile<*> -> sourceSetName to compileTask
+                                    else -> null
+                                }
+                            }
+                            .associate { (sourceSetName, compileTask) ->
+                                val args = compileTask
+                                    .pluginOptions
+                                    .get()
+                                    .fold(CompilerPluginOptions()) { options, option -> options.plus(option) }
+                                    .arguments
+                                val cp = compileTask.pluginClasspath.files
+                                sourceSetName to (args to cp)
+                            }
+                    }
+                    task.doFirst {
+                        compilations.get().forEach { sourceSetName, (args, cp) ->
+                            println("$sourceSetName=args=>$args")
+                            println("$sourceSetName=cp=>$cp")
+                        }
+                    }
+                }
+            }
+
+            build("assemble", "compileDebugUnitTestJavaWithJavac", printOptionsTaskName) {
                 // KT-30784
                 assertOutputDoesNotContain("API 'variant.getPackageLibrary()' is obsolete and has been replaced")
 
@@ -640,7 +673,6 @@ class KotlinAndroidMppIT : KGPBaseTest() {
 
     @DisplayName("KT-27714: custom attributes are copied to android compilation configurations")
     @GradleAndroidTest
-    @BrokenOnMacosTest
     fun testCustomAttributesInAndroidTargets(
         gradleVersion: GradleVersion,
         agpVersion: String,
@@ -780,7 +812,6 @@ class KotlinAndroidMppIT : KGPBaseTest() {
 
     @DisplayName("MPP allTests task depending on Android unit tests")
     @GradleAndroidTest
-    @BrokenOnMacosTest
     fun testMppAllTests(
         gradleVersion: GradleVersion,
         agpVersion: String,
@@ -805,7 +836,6 @@ class KotlinAndroidMppIT : KGPBaseTest() {
      */
     @DisplayName("KT-49798: com.android.build.api.attributes.AgpVersionAttr is not published")
     @GradleAndroidTest
-    @BrokenOnMacosTest
     fun testKT49798AgpVersionAttrNotPublished(
         gradleVersion: GradleVersion,
         agpVersion: String,
@@ -930,7 +960,6 @@ class KotlinAndroidMppIT : KGPBaseTest() {
 
     // https://youtrack.jetbrains.com/issue/KT-48436
     @GradleAndroidTest
-    @BrokenOnMacosTest
     fun testUnusedSourceSetsReportAndroid(
         gradleVersion: GradleVersion,
         agpVersion: String,
@@ -949,7 +978,6 @@ class KotlinAndroidMppIT : KGPBaseTest() {
 
     @DisplayName("KT-63753: K2 File \"does not belong to any module\" when it is generated by `registerJavaGeneratingTask` in AGP")
     @GradleAndroidTest
-    @BrokenOnMacosTest
     fun sourceGenerationTaskAddedToAndroidVariant(
         gradleVersion: GradleVersion,
         agpVersion: String,

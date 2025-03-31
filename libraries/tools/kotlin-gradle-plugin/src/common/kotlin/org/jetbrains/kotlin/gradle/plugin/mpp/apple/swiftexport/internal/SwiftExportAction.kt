@@ -59,7 +59,8 @@ internal abstract class SwiftExportAction : WorkAction<SwiftExportAction.SwiftEx
         return SwiftModuleConfig(
             bridgeModuleName = parameters.bridgeModuleName.getOrElse(SwiftModuleConfig.DEFAULT_BRIDGE_MODULE_NAME),
             rootPackage = flattenPackage,
-            experimentalFeatures = settings
+            experimentalFeatures = settings,
+            shouldBeFullyExported = true,
         )
     }
 
@@ -70,6 +71,7 @@ internal abstract class SwiftExportAction : WorkAction<SwiftExportAction.SwiftEx
             distribution = parameters.konanDistribution.get(),
             renderDocComments = parameters.renderDocComments.getOrElse(false),
             logger = swiftExportLogger,
+            konanTarget = parameters.konanTarget.get(),
         )
     }
 }

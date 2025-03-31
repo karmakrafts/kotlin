@@ -18,17 +18,11 @@ import org.jetbrains.kotlin.fir.scopes.ProcessorAction
 import org.jetbrains.kotlin.modules.KotlinModuleXmlBuilder
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 import org.jetbrains.kotlin.test.kotlinPathsForDistDirectoryForTests
-import org.jetbrains.kotlin.util.CodeAnalysisMeasurement
 import org.jetbrains.kotlin.util.PerformanceManager
-import org.jetbrains.kotlin.util.CompilerInitializationMeasurement
-import org.jetbrains.kotlin.util.GarbageCollectionMeasurement
-import org.jetbrains.kotlin.util.TranslationToIrMeasurement
-import org.jetbrains.kotlin.util.IrLoweringMeasurement
-import org.jetbrains.kotlin.util.BackendMeasurement
 import org.jetbrains.kotlin.util.PerformanceCounter
+import org.jetbrains.kotlin.util.Time
 import org.jetbrains.kotlin.utils.KotlinPaths
 import org.jetbrains.kotlin.utils.PathUtil
-import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import java.io.File
 import java.io.FileOutputStream
 import java.io.PrintStream
@@ -334,25 +328,20 @@ abstract class AbstractFullPipelineModularizedTest : AbstractModularizedTest() {
     private inner class CompilerPerformanceManager : PerformanceManager(JvmPlatforms.defaultJvmPlatform, "Modularized test performance manager") {
 
         fun reportCumulativeTime(): CumulativeTime {
-            val gcInfo = measurements.filterIsInstance<GarbageCollectionMeasurement>()
-                .associate { it.garbageCollectionKind to GCInfo(it.garbageCollectionKind, it.milliseconds, it.count) }
+            val gcInfo = unitStats.gcStats.associate { it.kind to GCInfo(it.kind, it.millis, it.count) }
 
-            val analysisMeasurement = measurements.filterIsInstance<CodeAnalysisMeasurement>().firstOrNull()
-            val initMeasurement = measurements.filterIsInstance<CompilerInitializationMeasurement>().firstOrNull()
+            val initTime = unitStats.let {
+                (it.initStats ?: Time.ZERO) +
+                        (it.findJavaClassStats?.time ?: Time.ZERO) +
+                        (it.findKotlinClassStats?.time ?: Time.ZERO)
+            }
 
             val components = buildMap {
-                put("Init", initMeasurement?.milliseconds ?: 0)
-                put("Analysis", analysisMeasurement?.milliseconds ?: 0)
-
-                measurements.firstIsInstanceOrNull<TranslationToIrMeasurement>()?.milliseconds?.let { put("IrGeneration", it) }
-                measurements.firstIsInstanceOrNull<IrLoweringMeasurement>()?.milliseconds?.let { put("Lowering", it) }
-
-                val generationTime =
-                    measurements.firstIsInstanceOrNull<BackendMeasurement>()?.milliseconds
-
-                if (generationTime != null) {
-                    put("Backend", generationTime)
-                }
+                put("Init", initTime.millis)
+                put("Analysis", unitStats.analysisStats?.millis ?: 0)
+                unitStats.translationToIrStats?.millis?.let { put("Translation", it) }
+                unitStats.irLoweringStats?.millis?.let { put("Lowering", it) }
+                unitStats.backendStats?.millis?.let { put("Generation", it) }
             }
 
             return CumulativeTime(

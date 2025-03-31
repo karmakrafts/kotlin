@@ -15,6 +15,8 @@ import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.hasContextParameters
+import org.jetbrains.kotlin.fir.symbols.impl.isExtension
 import org.jetbrains.kotlin.fir.symbols.lazyResolveToPhase
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType
 import org.jetbrains.kotlin.fir.types.coneTypeSafe
@@ -30,9 +32,11 @@ val FirClassLikeDeclaration.classId: ClassId
 
 val FirClass.superConeTypes: List<ConeClassLikeType> get() = superTypeRefs.mapNotNull { it.coneTypeSafe() }
 
+@OptIn(DirectDeclarationsAccess::class)
 val FirClass.anonymousInitializers: List<FirAnonymousInitializer>
     get() = declarations.filterIsInstance<FirAnonymousInitializer>()
 
+@DirectDeclarationsAccess
 val FirClass.delegateFields: List<FirField>
     get() = declarations.filterIsInstance<FirField>().filter { it.isSynthetic }
 
@@ -79,8 +83,7 @@ fun FirBasedSymbol<*>.asMemberDeclarationResolvedTo(phase: FirResolvePhase): Fir
 
 val FirNamedFunctionSymbol.isMethodOfAny: Boolean
     get() {
-        if (receiverParameter != null) return false
-        if (resolvedContextParameters.isNotEmpty()) return false
+        if (isExtension || hasContextParameters) return false
         return when (name) {
             OperatorNameConventions.EQUALS -> valueParameterSymbols.singleOrNull()?.resolvedReturnType?.isNullableAny == true
             OperatorNameConventions.HASH_CODE, OperatorNameConventions.TO_STRING -> fir.valueParameters.isEmpty()

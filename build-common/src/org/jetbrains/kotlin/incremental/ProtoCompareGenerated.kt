@@ -496,6 +496,8 @@ open class ProtoCompareGenerated(
 
         if (!checkEqualsFunctionAnnotation(old, new)) return false
 
+        if (!checkEqualsFunctionExtensionReceiverAnnotation(old, new)) return false
+
         if (old.hasExtension(JvmProtoBuf.methodSignature) != new.hasExtension(JvmProtoBuf.methodSignature)) return false
         if (old.hasExtension(JvmProtoBuf.methodSignature)) {
             if (!checkEquals(old.getExtension(JvmProtoBuf.methodSignature), new.getExtension(JvmProtoBuf.methodSignature))) return false
@@ -625,6 +627,12 @@ open class ProtoCompareGenerated(
         if (!checkEqualsPropertyGetterAnnotation(old, new)) return false
 
         if (!checkEqualsPropertySetterAnnotation(old, new)) return false
+
+        if (!checkEqualsPropertyExtensionReceiverAnnotation(old, new)) return false
+
+        if (!checkEqualsPropertyBackingFieldAnnotation(old, new)) return false
+
+        if (!checkEqualsPropertyDelegateFieldAnnotation(old, new)) return false
 
         if (old.hasExtension(JvmProtoBuf.propertySignature) != new.hasExtension(JvmProtoBuf.propertySignature)) return false
         if (old.hasExtension(JvmProtoBuf.propertySignature)) {
@@ -1052,6 +1060,8 @@ open class ProtoCompareGenerated(
             if (!checkStringEquals(old.name, new.name)) return false
         }
 
+        if (!checkEqualsEnumEntryAnnotation(old, new)) return false
+
         if (old.getExtensionCount(JsProtoBuf.enumEntryAnnotation) != new.getExtensionCount(JsProtoBuf.enumEntryAnnotation)) {
             return false
         }
@@ -1132,6 +1142,11 @@ open class ProtoCompareGenerated(
         }
 
         if (!checkEqualsValueParameterAnnotation(old, new)) return false
+
+        if (old.hasAnnotationParameterDefaultValue() != new.hasAnnotationParameterDefaultValue()) return false
+        if (old.hasAnnotationParameterDefaultValue()) {
+            if (!checkEquals(old.annotationParameterDefaultValue, new.annotationParameterDefaultValue)) return false
+        }
 
         if (old.getExtensionCount(JsProtoBuf.parameterAnnotation) != new.getExtensionCount(JsProtoBuf.parameterAnnotation)) {
             return false
@@ -1687,6 +1702,16 @@ open class ProtoCompareGenerated(
         return true
     }
 
+    open fun checkEqualsFunctionExtensionReceiverAnnotation(old: ProtoBuf.Function, new: ProtoBuf.Function): Boolean {
+        if (old.extensionReceiverAnnotationCount != new.extensionReceiverAnnotationCount) return false
+
+        for(i in 0..old.extensionReceiverAnnotationCount - 1) {
+            if (!checkEquals(old.getExtensionReceiverAnnotation(i), new.getExtensionReceiverAnnotation(i))) return false
+        }
+
+        return true
+    }
+
     open fun checkEqualsPropertyTypeParameter(old: ProtoBuf.Property, new: ProtoBuf.Property): Boolean {
         if (old.typeParameterCount != new.typeParameterCount) return false
 
@@ -1772,6 +1797,36 @@ open class ProtoCompareGenerated(
 
         for(i in 0..old.setterAnnotationCount - 1) {
             if (!checkEquals(old.getSetterAnnotation(i), new.getSetterAnnotation(i))) return false
+        }
+
+        return true
+    }
+
+    open fun checkEqualsPropertyExtensionReceiverAnnotation(old: ProtoBuf.Property, new: ProtoBuf.Property): Boolean {
+        if (old.extensionReceiverAnnotationCount != new.extensionReceiverAnnotationCount) return false
+
+        for(i in 0..old.extensionReceiverAnnotationCount - 1) {
+            if (!checkEquals(old.getExtensionReceiverAnnotation(i), new.getExtensionReceiverAnnotation(i))) return false
+        }
+
+        return true
+    }
+
+    open fun checkEqualsPropertyBackingFieldAnnotation(old: ProtoBuf.Property, new: ProtoBuf.Property): Boolean {
+        if (old.backingFieldAnnotationCount != new.backingFieldAnnotationCount) return false
+
+        for(i in 0..old.backingFieldAnnotationCount - 1) {
+            if (!checkEquals(old.getBackingFieldAnnotation(i), new.getBackingFieldAnnotation(i))) return false
+        }
+
+        return true
+    }
+
+    open fun checkEqualsPropertyDelegateFieldAnnotation(old: ProtoBuf.Property, new: ProtoBuf.Property): Boolean {
+        if (old.delegateFieldAnnotationCount != new.delegateFieldAnnotationCount) return false
+
+        for(i in 0..old.delegateFieldAnnotationCount - 1) {
+            if (!checkEquals(old.getDelegateFieldAnnotation(i), new.getDelegateFieldAnnotation(i))) return false
         }
 
         return true
@@ -1888,6 +1943,16 @@ open class ProtoCompareGenerated(
     }
 
     open fun checkEqualsConstructorAnnotation(old: ProtoBuf.Constructor, new: ProtoBuf.Constructor): Boolean {
+        if (old.annotationCount != new.annotationCount) return false
+
+        for(i in 0..old.annotationCount - 1) {
+            if (!checkEquals(old.getAnnotation(i), new.getAnnotation(i))) return false
+        }
+
+        return true
+    }
+
+    open fun checkEqualsEnumEntryAnnotation(old: ProtoBuf.EnumEntry, new: ProtoBuf.EnumEntry): Boolean {
         if (old.annotationCount != new.annotationCount) return false
 
         for(i in 0..old.annotationCount - 1) {
@@ -2248,6 +2313,10 @@ fun ProtoBuf.Function.hashCode(stringIndexes: (Int) -> Int, fqNameIndexes: (Int)
         hashCode = 31 * hashCode + getAnnotation(i).hashCode(stringIndexes, fqNameIndexes, typeById)
     }
 
+    for(i in 0..extensionReceiverAnnotationCount - 1) {
+        hashCode = 31 * hashCode + getExtensionReceiverAnnotation(i).hashCode(stringIndexes, fqNameIndexes, typeById)
+    }
+
     if (hasExtension(JvmProtoBuf.methodSignature)) {
         hashCode = 31 * hashCode + getExtension(JvmProtoBuf.methodSignature).hashCode(stringIndexes, fqNameIndexes, typeById)
     }
@@ -2362,6 +2431,18 @@ fun ProtoBuf.Property.hashCode(stringIndexes: (Int) -> Int, fqNameIndexes: (Int)
 
     for(i in 0..setterAnnotationCount - 1) {
         hashCode = 31 * hashCode + getSetterAnnotation(i).hashCode(stringIndexes, fqNameIndexes, typeById)
+    }
+
+    for(i in 0..extensionReceiverAnnotationCount - 1) {
+        hashCode = 31 * hashCode + getExtensionReceiverAnnotation(i).hashCode(stringIndexes, fqNameIndexes, typeById)
+    }
+
+    for(i in 0..backingFieldAnnotationCount - 1) {
+        hashCode = 31 * hashCode + getBackingFieldAnnotation(i).hashCode(stringIndexes, fqNameIndexes, typeById)
+    }
+
+    for(i in 0..delegateFieldAnnotationCount - 1) {
+        hashCode = 31 * hashCode + getDelegateFieldAnnotation(i).hashCode(stringIndexes, fqNameIndexes, typeById)
     }
 
     if (hasExtension(JvmProtoBuf.propertySignature)) {
@@ -2678,6 +2759,10 @@ fun ProtoBuf.EnumEntry.hashCode(stringIndexes: (Int) -> Int, fqNameIndexes: (Int
         hashCode = 31 * hashCode + stringIndexes(name)
     }
 
+    for(i in 0..annotationCount - 1) {
+        hashCode = 31 * hashCode + getAnnotation(i).hashCode(stringIndexes, fqNameIndexes, typeById)
+    }
+
     for(i in 0..getExtensionCount(JsProtoBuf.enumEntryAnnotation) - 1) {
         hashCode = 31 * hashCode + getExtension(JsProtoBuf.enumEntryAnnotation, i).hashCode(stringIndexes, fqNameIndexes, typeById)
     }
@@ -2746,6 +2831,10 @@ fun ProtoBuf.ValueParameter.hashCode(stringIndexes: (Int) -> Int, fqNameIndexes:
 
     for(i in 0..annotationCount - 1) {
         hashCode = 31 * hashCode + getAnnotation(i).hashCode(stringIndexes, fqNameIndexes, typeById)
+    }
+
+    if (hasAnnotationParameterDefaultValue()) {
+        hashCode = 31 * hashCode + annotationParameterDefaultValue.hashCode(stringIndexes, fqNameIndexes, typeById)
     }
 
     for(i in 0..getExtensionCount(JsProtoBuf.parameterAnnotation) - 1) {

@@ -157,6 +157,12 @@ public class SerializationIrBoxTestGenerated extends AbstractSerializationIrBoxT
   }
 
   @Test
+  @TestMetadata("instantSerializer.kt")
+  public void testInstantSerializer() {
+    runTest("plugins/kotlinx-serialization/testData/boxIr/instantSerializer.kt");
+  }
+
+  @Test
   @TestMetadata("interfaces.kt")
   public void testInterfaces() {
     runTest("plugins/kotlinx-serialization/testData/boxIr/interfaces.kt");
@@ -256,6 +262,12 @@ public class SerializationIrBoxTestGenerated extends AbstractSerializationIrBoxT
   @TestMetadata("polymorphic.kt")
   public void testPolymorphic() {
     runTest("plugins/kotlinx-serialization/testData/boxIr/polymorphic.kt");
+  }
+
+  @Test
+  @TestMetadata("polymorphicTypeParameter.kt")
+  public void testPolymorphicTypeParameter() {
+    runTest("plugins/kotlinx-serialization/testData/boxIr/polymorphicTypeParameter.kt");
   }
 
   @Test

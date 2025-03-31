@@ -44,10 +44,6 @@ import java.io.File
 
 object GenerationUtils {
     @JvmStatic
-    fun compileFileTo(ktFile: KtFile, environment: KotlinCoreEnvironment, output: File): ClassFileFactory =
-        compileFilesTo(listOf(ktFile), environment, output)
-
-    @JvmStatic
     fun compileFilesTo(files: List<KtFile>, environment: KotlinCoreEnvironment, output: File): ClassFileFactory =
         compileFiles(files, environment).factory.apply {
             writeAllTo(output)
@@ -98,11 +94,7 @@ object GenerationUtils {
             .uniteWith(TopDownAnalyzerFacadeForJVM.AllJavaSourcesInProjectScope(project))
         val librariesScope = ProjectScope.getLibrariesScope(project)
         val session = FirTestSessionFactoryHelper.createSessionForTests(
-            project,
-            scope,
-            librariesScope,
-            "main",
-            getPackagePartProvider = packagePartProvider
+            project, scope, librariesScope, configuration, "main", getPackagePartProvider = packagePartProvider,
         )
 
         // TODO: add running checkers and check that it's safe to compile

@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.backend.konan
 import com.google.common.base.StandardSystemProperty
 import com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.backend.common.linkage.issues.UserVisibleIrModulesSupport
+import org.jetbrains.kotlin.backend.common.linkage.partial.partialLinkageConfig
 import org.jetbrains.kotlin.backend.konan.ir.BridgesPolicy
 import org.jetbrains.kotlin.backend.konan.objcexport.ObjCEntryPoints
 import org.jetbrains.kotlin.backend.konan.objcexport.readObjCEntryPoints
@@ -19,7 +20,6 @@ import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.KlibConfigurationKeys.CUSTOM_KLIB_ABI_VERSION
 import org.jetbrains.kotlin.config.KotlinCompilerVersion
 import org.jetbrains.kotlin.config.phaseConfig
-import org.jetbrains.kotlin.ir.linkage.partial.partialLinkageConfig
 import org.jetbrains.kotlin.konan.file.File
 import org.jetbrains.kotlin.konan.library.KonanLibrary
 import org.jetbrains.kotlin.konan.properties.loadProperties
@@ -231,16 +231,6 @@ class KonanConfig(val project: Project, val configuration: CompilerConfiguration
         configuration.get(BinaryOptions.appStateTracking) ?: AppStateTracking.DISABLED
     }
 
-
-    val mimallocUseDefaultOptions: Boolean by lazy {
-        configuration.get(BinaryOptions.mimallocUseDefaultOptions) ?: false
-    }
-
-    val mimallocUseCompaction: Boolean by lazy {
-        // Turned off by default, because it slows down allocation.
-        configuration.get(BinaryOptions.mimallocUseCompaction) ?: false
-    }
-
     val objcDisposeOnMain: Boolean by lazy {
         configuration.get(BinaryOptions.objcDisposeOnMain) ?: true
     }
@@ -380,18 +370,6 @@ class KonanConfig(val project: Project, val configuration: CompilerConfiguration
         when (configuration.get(KonanConfigKeys.ALLOCATION_MODE)) {
             null -> defaultAllocationMode
             AllocationMode.STD -> AllocationMode.STD
-            AllocationMode.MIMALLOC -> {
-                if (sanitizer != null) {
-                    configuration.report(CompilerMessageSeverity.STRONG_WARNING, "Sanitizers are useful only with the std allocator")
-                }
-                if (target.supportsMimallocAllocator()) {
-                    AllocationMode.MIMALLOC
-                } else {
-                    configuration.report(CompilerMessageSeverity.STRONG_WARNING,
-                            "Mimalloc allocator isn't supported on target ${target.name}. Used standard mode.")
-                    AllocationMode.STD
-                }
-            }
             AllocationMode.CUSTOM -> {
                 if (sanitizer != null) {
                     configuration.report(CompilerMessageSeverity.STRONG_WARNING, "Sanitizers are useful only with the std allocator")
@@ -445,11 +423,6 @@ class KonanConfig(val project: Project, val configuration: CompilerConfiguration
             add("libbacktrace.bc")
         }
         when (allocationMode) {
-            AllocationMode.MIMALLOC -> {
-                add("legacy_alloc.bc")
-                add("mimalloc_alloc.bc")
-                add("mimalloc.bc")
-            }
             AllocationMode.STD -> {
                 add("legacy_alloc.bc")
                 add("std_alloc.bc")
@@ -553,6 +526,7 @@ class KonanConfig(val project: Project, val configuration: CompilerConfiguration
 
     private val systemCacheFlavorString = buildString {
         appendCommonCacheFlavor()
+        append("-system")
 
         if (useDebugInfoInNativeLibs)
             append("-runtime_debug")
@@ -576,6 +550,7 @@ class KonanConfig(val project: Project, val configuration: CompilerConfiguration
 
     private val userCacheFlavorString = buildString {
         appendCommonCacheFlavor()
+        append("-user")
         if (partialLinkageConfig.isEnabled) append("-pl")
     }
 

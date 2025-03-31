@@ -314,6 +314,7 @@ private class FirShorteningContext(val analysisSession: KaFirSession) {
         val classLikeSymbol = scope.findFirstClassifierByName(targetClassName) as? FirClassLikeSymbol
             ?: return emptyList()
 
+        @OptIn(DirectDeclarationsAccess::class)
         val constructors = (classLikeSymbol as? FirClassSymbol)?.declarationSymbols?.filterIsInstance<FirConstructorSymbol>().orEmpty()
         val samConstructor = classLikeSymbol.getSamConstructor()
 
@@ -466,6 +467,7 @@ private class CollectingVisitor(private val collector: ElementsToShortenCollecto
     }
 
     override fun visitScript(script: FirScript) {
+        @OptIn(DirectDeclarationsAccess::class)
         script.declarations.forEach {
             it.accept(this)
         }
@@ -1329,11 +1331,18 @@ private class ElementsToShortenCollector(
         val candidates = coneAmbiguityError.candidates.map { it.symbol as FirCallableSymbol<*> }
         require(candidates.isNotEmpty()) { "Cannot have zero candidates" }
 
-        val distinctCandidates = candidates.distinctBy { it.callableId }
-        return distinctCandidates.singleOrNull()
-            ?: errorWithAttachment("Expected all candidates to have same callableId but some of them but was different") {
-                withEntry("callableIds", distinctCandidates.map { it.callableId.asSingleFqName() }.joinToString())
+        val distinctCandidates = candidates.distinctBy { candidate ->
+            // A workaround to squash functions and constructors with the same name together.
+            when (candidate) {
+                is FirConstructorSymbol -> {
+                    val classId = candidate.typeAliasConstructorInfo?.typeAliasSymbol?.classId ?: candidate.classIdIfExists
+                    classId?.asSingleFqName()
+                }
+                else -> candidate.callableId.asSingleFqName()
             }
+        }
+
+        return distinctCandidates.singleOrNull()
     }
 
     private fun findFakePackageToShorten(wholeQualifiedExpression: KtDotQualifiedExpression): ElementToShorten? {

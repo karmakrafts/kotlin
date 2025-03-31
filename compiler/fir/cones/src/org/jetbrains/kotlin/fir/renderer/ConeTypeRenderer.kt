@@ -66,7 +66,7 @@ open class ConeTypeRenderer(
 
     fun render(
         type: ConeKotlinType,
-        nullabilityMarker: String = if (type !is ConeFlexibleType && type !is ConeErrorType && type.isMarkedNullable) "?" else "",
+        nullabilityMarker: String = if (type !is ConeFlexibleType && type.isMarkedNullable) "?" else "",
     ) {
         if (type !is ConeFlexibleType && type !is ConeDefinitelyNotNullType) {
             // We don't render attributes for flexible/definitely not null types here,
@@ -89,8 +89,6 @@ open class ConeTypeRenderer(
             is ConeFlexibleType -> {
                 render(type)
             }
-
-            is ConeErrorType -> builder.append("ERROR CLASS: ${type.diagnostic.reason}")
 
             is ConeSimpleKotlinType -> {
                 val hasTypeArguments = type is ConeClassLikeType && type.typeArguments.isNotEmpty()
@@ -119,6 +117,8 @@ open class ConeTypeRenderer(
                 constructor.projection.render()
                 builder.append(")")
             }
+
+            is ConeClassLikeErrorLookupTag -> builder.append("ERROR CLASS: ${constructor.diagnostic?.reason}")
 
             is ConeClassLikeLookupTag -> idRenderer.renderClassId(constructor.classId)
             is ConeClassifierLookupTag -> builder.append(constructor.name.asString())

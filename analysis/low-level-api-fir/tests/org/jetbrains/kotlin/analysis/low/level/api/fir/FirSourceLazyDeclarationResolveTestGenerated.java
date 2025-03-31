@@ -403,6 +403,12 @@ public class FirSourceLazyDeclarationResolveTestGenerated extends AbstractFirSou
   }
 
   @Test
+  @TestMetadata("functionInsideFileAnnotation.kt")
+  public void testFunctionInsideFileAnnotation() {
+    runTest("analysis/low-level-api-fir/testData/lazyResolve/functionInsideFileAnnotation.kt");
+  }
+
+  @Test
   @TestMetadata("functionWithAnnotatedJavaClass.kt")
   public void testFunctionWithAnnotatedJavaClass() {
     runTest("analysis/low-level-api-fir/testData/lazyResolve/functionWithAnnotatedJavaClass.kt");
@@ -1254,6 +1260,54 @@ public class FirSourceLazyDeclarationResolveTestGenerated extends AbstractFirSou
     }
 
     @Test
+    @TestMetadata("constructorDuplicatedContextParameter.kt")
+    public void testConstructorDuplicatedContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/constructorDuplicatedContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("constructorDuplicatedContextParameter2.kt")
+    public void testConstructorDuplicatedContextParameter2() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/constructorDuplicatedContextParameter2.kt");
+    }
+
+    @Test
+    @TestMetadata("danglingAnnotationMemberFunction.kt")
+    public void testDanglingAnnotationMemberFunction() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/danglingAnnotationMemberFunction.kt");
+    }
+
+    @Test
+    @TestMetadata("danglingAnnotationMemberFunction2.kt")
+    public void testDanglingAnnotationMemberFunction2() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/danglingAnnotationMemberFunction2.kt");
+    }
+
+    @Test
+    @TestMetadata("danglingAnnotationMemberFunction3.kt")
+    public void testDanglingAnnotationMemberFunction3() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/danglingAnnotationMemberFunction3.kt");
+    }
+
+    @Test
+    @TestMetadata("danglingAnnotationTopLevelFunction.kt")
+    public void testDanglingAnnotationTopLevelFunction() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/danglingAnnotationTopLevelFunction.kt");
+    }
+
+    @Test
+    @TestMetadata("danglingAnnotationTopLevelFunction2.kt")
+    public void testDanglingAnnotationTopLevelFunction2() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/danglingAnnotationTopLevelFunction2.kt");
+    }
+
+    @Test
+    @TestMetadata("danglingAnnotationTopLevelFunction3.kt")
+    public void testDanglingAnnotationTopLevelFunction3() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/danglingAnnotationTopLevelFunction3.kt");
+    }
+
+    @Test
     @TestMetadata("danglingAnnotationWithNestedDeclarations.kt")
     public void testDanglingAnnotationWithNestedDeclarations() {
       runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/danglingAnnotationWithNestedDeclarations.kt");
@@ -1266,9 +1320,33 @@ public class FirSourceLazyDeclarationResolveTestGenerated extends AbstractFirSou
     }
 
     @Test
+    @TestMetadata("functionDuplicatedContextParameter.kt")
+    public void testFunctionDuplicatedContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/functionDuplicatedContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("functionDuplicatedContextParameter2.kt")
+    public void testFunctionDuplicatedContextParameter2() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/functionDuplicatedContextParameter2.kt");
+    }
+
+    @Test
     @TestMetadata("parameterNoType.kt")
     public void testParameterNoType() {
       runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/parameterNoType.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyDuplicatedContextParameter.kt")
+    public void testPropertyDuplicatedContextParameter() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/propertyDuplicatedContextParameter.kt");
+    }
+
+    @Test
+    @TestMetadata("propertyDuplicatedContextParameter2.kt")
+    public void testPropertyDuplicatedContextParameter2() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/errors/propertyDuplicatedContextParameter2.kt");
     }
   }
 
@@ -1967,8 +2045,26 @@ public class FirSourceLazyDeclarationResolveTestGenerated extends AbstractFirSou
   @TestDataPath("$PROJECT_ROOT")
   public class WithTestCompilerPluginEnabled {
     @Test
+    @TestMetadata("aliasedAnnotation.kt")
+    public void testAliasedAnnotation() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/withTestCompilerPluginEnabled/aliasedAnnotation.kt");
+    }
+
+    @Test
+    @TestMetadata("aliasedMetaAnnotation.kt")
+    public void testAliasedMetaAnnotation() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/withTestCompilerPluginEnabled/aliasedMetaAnnotation.kt");
+    }
+
+    @Test
     public void testAllFilesPresentInWithTestCompilerPluginEnabled() {
       KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("analysis/low-level-api-fir/testData/lazyResolve/withTestCompilerPluginEnabled"), Pattern.compile("^(.+)\\.(kt)$"), null, true);
+    }
+
+    @Test
+    @TestMetadata("annotation.kt")
+    public void testAnnotation() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/withTestCompilerPluginEnabled/annotation.kt");
     }
 
     @Test
@@ -1999,6 +2095,18 @@ public class FirSourceLazyDeclarationResolveTestGenerated extends AbstractFirSou
     @TestMetadata("dataClassProperty.kt")
     public void testDataClassProperty() {
       runTest("analysis/low-level-api-fir/testData/lazyResolve/withTestCompilerPluginEnabled/dataClassProperty.kt");
+    }
+
+    @Test
+    @TestMetadata("preresolvedAliasedAnnotation.kt")
+    public void testPreresolvedAliasedAnnotation() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/withTestCompilerPluginEnabled/preresolvedAliasedAnnotation.kt");
+    }
+
+    @Test
+    @TestMetadata("preresolvedAliasedMetaAnnotation.kt")
+    public void testPreresolvedAliasedMetaAnnotation() {
+      runTest("analysis/low-level-api-fir/testData/lazyResolve/withTestCompilerPluginEnabled/preresolvedAliasedMetaAnnotation.kt");
     }
 
     @Test

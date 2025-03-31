@@ -17,19 +17,16 @@ import org.jetbrains.kotlin.fir.analysis.js.checkers.FirJsStableName
 import org.jetbrains.kotlin.fir.analysis.js.checkers.collectNameClashesWith
 import org.jetbrains.kotlin.fir.analysis.js.checkers.isPresentInGeneratedCode
 import org.jetbrains.kotlin.fir.declarations.FirClass
-import org.jetbrains.kotlin.fir.declarations.FirClassLikeDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
 import org.jetbrains.kotlin.fir.declarations.getNonSubsumedOverriddenSymbols
+import org.jetbrains.kotlin.fir.declarations.processAllClassifiers
 import org.jetbrains.kotlin.fir.declarations.utils.isExpect
 import org.jetbrains.kotlin.fir.declarations.utils.isFinal
 import org.jetbrains.kotlin.fir.originalForSubstitutionOverride
 import org.jetbrains.kotlin.fir.resolve.SessionHolder
 import org.jetbrains.kotlin.fir.scopes.*
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirIntersectionCallableSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
+import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.fir.unwrapFakeOverridesOrDelegated
 import org.jetbrains.kotlin.utils.addIfNotNull
 import org.jetbrains.kotlin.utils.addToStdlib.popLast
@@ -62,7 +59,7 @@ sealed class FirJsNameClashClassMembersChecker(mppKind: MppCheckerKind) : FirCla
             val leaves = mutableSetOf<FirCallableSymbol<*>>()
             while (symbolsToProcess.isNotEmpty()) {
                 val (processingSymbol, scope) = symbolsToProcess.popLast()
-                val overriddenMembers = scope.getDirectOverriddenMembersWithBaseScope(processingSymbol)
+                val overriddenMembers = scope.getDirectOverriddenMembersWithBaseScopeSafe(processingSymbol)
                 for (overriddenMemberWithScope in overriddenMembers) {
                     if (visitedSymbols.add(overriddenMemberWithScope)) {
                         symbolsToProcess.add(overriddenMemberWithScope)
@@ -119,6 +116,7 @@ sealed class FirJsNameClashClassMembersChecker(mppKind: MppCheckerKind) : FirCla
             for (symbol in symbols) {
                 when (symbol) {
                     is FirIntersectionCallableSymbol -> {
+                        @OptIn(ScopeFunctionRequiresPrewarm::class) // the symbols come from calling process*ByName
                         val nonSubsumedOverriddenSymbols = symbol.getNonSubsumedOverriddenSymbols(
                             sessionHolder.session,
                             sessionHolder.scopeSession
@@ -135,9 +133,9 @@ sealed class FirJsNameClashClassMembersChecker(mppKind: MppCheckerKind) : FirCla
         }
 
         fun processStableJavaScriptNamesForMembers(declaration: FirClass, context: CheckerContext) {
-            for (classMember in declaration.declarations) {
-                if (classMember is FirClassLikeDeclaration) {
-                    jsStableNames.addIfNotNull(FirJsStableName.createStableNameOrNull(classMember.symbol, context.session))
+            declaration.symbol.processAllClassifiers(context.session) { classMemberSymbol ->
+                if (classMemberSymbol is FirClassLikeSymbol) {
+                    jsStableNames.addIfNotNull(FirJsStableName.createStableNameOrNull(classMemberSymbol, context.session))
                 }
             }
 

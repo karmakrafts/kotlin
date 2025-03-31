@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
@@ -9,6 +9,7 @@ import com.intellij.ide.highlighter.JavaFileType
 import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.CommonToolArguments
 import org.jetbrains.kotlin.cli.common.arguments.ManualLanguageFeatureSetting
+import org.jetbrains.kotlin.cli.common.arguments.toLanguageVersionSettings
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.config.*
@@ -56,17 +57,7 @@ fun CompilerConfiguration.setupCommonArguments(
         }
     }
 
-    val metadataVersionString = arguments.metadataVersion
-    if (metadataVersionString != null) {
-        val versionArray = BinaryVersion.parseVersionArray(metadataVersionString)
-        when {
-            versionArray == null -> messageCollector.report(
-                CompilerMessageSeverity.ERROR, "Invalid metadata version: $metadataVersionString", null
-            )
-            createMetadataVersion == null -> throw IllegalStateException("Unable to create metadata version: missing argument")
-            else -> put(CommonConfigurationKeys.METADATA_VERSION, createMetadataVersion(versionArray))
-        }
-    }
+    setupMetadataVersion(arguments, createMetadataVersion)
 
     setupLanguageVersionSettings(arguments)
 
@@ -78,6 +69,23 @@ fun CompilerConfiguration.setupCommonArguments(
     if (arguments.debugLevelCompilerChecks) {
         FlexibleTypeImpl.RUN_SLOW_ASSERTIONS = true
         AbstractTypeChecker.RUN_SLOW_ASSERTIONS = true
+    }
+}
+
+fun CompilerConfiguration.setupMetadataVersion(
+    arguments: CommonCompilerArguments,
+    createMetadataVersion: ((IntArray) -> BinaryVersion)?,
+) {
+    val metadataVersionString = arguments.metadataVersion
+    if (metadataVersionString != null) {
+        val versionArray = BinaryVersion.parseVersionArray(metadataVersionString)
+        when {
+            versionArray == null -> messageCollector.report(
+                CompilerMessageSeverity.ERROR, "Invalid metadata version: $metadataVersionString", null
+            )
+            createMetadataVersion == null -> throw IllegalStateException("Unable to create metadata version: missing argument")
+            else -> put(CommonConfigurationKeys.METADATA_VERSION, createMetadataVersion(versionArray))
+        }
     }
 }
 

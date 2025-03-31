@@ -2,6 +2,7 @@ package samples.text
 
 import samples.*
 import java.util.Locale
+import java.util.regex.Pattern
 import kotlin.test.*
 
 class Strings {
@@ -445,6 +446,43 @@ class Strings {
     }
 
     @Sample
+    fun lastIndexOf() {
+        fun matchDetails(inputString: String, whatToFind: String, startIndex: Int = inputString.length - 1): String {
+            val matchIndex = inputString.lastIndexOf(whatToFind, startIndex)
+            return "Searching for the last '$whatToFind' in '$inputString' starting at position $startIndex: " +
+                    if (matchIndex >= 0) "Found at $matchIndex" else "Not found"
+        }
+
+        val inputString = "Never ever give up"
+        val toFind = "ever"
+
+        assertPrints(matchDetails(inputString, toFind), "Searching for the last 'ever' in 'Never ever give up' starting at position 17: Found at 6")
+        assertPrints(matchDetails(inputString, toFind, 0), "Searching for the last 'ever' in 'Never ever give up' starting at position 0: Not found")
+        assertPrints(matchDetails(inputString, toFind, 5), "Searching for the last 'ever' in 'Never ever give up' starting at position 5: Found at 1")
+    }
+
+    @Sample
+    fun contains() {
+        val string = "Kotlin 2.2.0"
+        assertTrue("K" in string)
+
+        // The string only contains capital K
+        assertFalse("k" in string)
+        // However, it will be located if the case is ignored
+        assertTrue(string.contains("k", ignoreCase = true))
+
+        // Every string contains an empty string
+        assertTrue("" in string)
+        // The string contains itself ...
+        assertTrue(string in string)
+        // ... even if it is empty
+        assertTrue("" in "")
+
+        // String's prefix is shorter than a string, so it can't contain it
+        assertFalse(string in "Kotlin")
+    }
+
+    @Sample
     fun last() {
         val string = "Kotlin 1.4.0"
         assertPrints(string.last(), "0")
@@ -515,6 +553,129 @@ class Strings {
             .firstOrNull { it.contains('&') }
 
         assertPrints(mixedColor, "brown&blue")
+    }
+
+    @Sample
+    fun splitWithStringDelimiters() {
+        val multiCharDelimiter = "apple--banana--cherry".split("--")
+        assertPrints(multiCharDelimiter, "[apple, banana, cherry]")
+
+        val multipleSplit = "apple->banana;;cherry:::orange".split("->", ";;", ":::")
+        assertPrints(multipleSplit, "[apple, banana, cherry, orange]")
+
+        val longerDelimiterFirst = "apple<-banana<--cherry".split("<--", "<-")
+        assertPrints(longerDelimiterFirst, "[apple, banana, cherry]")
+
+        val shorterDelimiterFirst = "apple<-banana<--cherry".split("<-", "<--")
+        assertPrints(shorterDelimiterFirst, "[apple, banana, -cherry]")
+
+        val limitSplit = "a->b->c->d->e".split("->", limit = 3)
+        assertPrints(limitSplit, "[a, b, c->d->e]")
+
+        val emptyInputResult = "".split("sep")
+        assertTrue(emptyInputResult == listOf(""))
+
+        val emptyDelimiterSplit = "abc".split("")
+        assertPrints(emptyDelimiterSplit, "[, a, b, c, ]")
+
+        val mixedCase = "abcXYZdef".split("xyz")
+        assertPrints(mixedCase, "[abcXYZdef]")  // No match with case sensitivity
+
+        val mixedCaseIgnored = "abcXYZdef".split("xyz", ignoreCase = true)
+        assertPrints(mixedCaseIgnored, "[abc, def]")  // Matches with case insensitivity
+
+        val emptyResults = "##a##b##c##".split("##")
+        assertPrints(emptyResults, "[, a, b, c, ]")
+
+        val consecutiveSeparators = "a--b------c".split("--")
+        assertPrints(consecutiveSeparators, "[a, b, , , c]")
+    }
+
+    @Sample
+    fun splitWithCharDelimiters() {
+        val commaSplit = "apple,banana,cherry".split(',')
+        assertPrints(commaSplit, "[apple, banana, cherry]")
+
+        val charSplit = "apple,banana;cherry".split(',', ';')
+        assertPrints(charSplit, "[apple, banana, cherry]")
+
+        val limitSplit = "a,b,c,d,e".split(',', limit = 3)
+        assertPrints(limitSplit, "[a, b, c,d,e]")
+
+        val emptyInputResult = "".split('|')
+        assertTrue(emptyInputResult == listOf(""))
+
+        val mixedCase = "abcXdef".split('x')
+        assertPrints(mixedCase, "[abcXdef]")  // No match with case sensitivity
+
+        val mixedCaseIgnored = "abcXdef".split('x', ignoreCase = true)
+        assertPrints(mixedCaseIgnored, "[abc, def]")  // Matches with case insensitivity
+
+        val emptyResults = ",a,b,c,".split(',')
+        assertPrints(emptyResults, "[, a, b, c, ]")
+
+        val consecutiveSeparators = "a,,b,,,c".split(',')
+        assertPrints(consecutiveSeparators, "[a, , b, , , c]")
+    }
+
+    @Sample
+    fun splitWithRegex() {
+        val digitSplit = "apple123banana456cherry".split(Regex("\\d+"))
+        assertPrints(digitSplit, "[apple, banana, cherry]")
+
+        val wordBoundarySplit = "The quick brown fox".split(Regex("\\s+"))
+        assertPrints(wordBoundarySplit, "[The, quick, brown, fox]")
+
+        val limitSplit = "a,b,c,d,e".split(Regex(","), limit = 3)
+        assertPrints(limitSplit, "[a, b, c,d,e]")
+
+        val patternGroups = "abc-123def_456ghi".split(Regex("[\\-_]\\d+"))
+        assertPrints(patternGroups, "[abc, def, ghi]")
+
+        val caseInsensitiveSplit = "Apple123Banana45CHERRY".split(Regex("[a-z]+", RegexOption.IGNORE_CASE))
+        assertPrints(caseInsensitiveSplit, "[, 123, 45, ]")
+
+        val emptyInputResult = "".split(Regex("sep"))
+        assertTrue(emptyInputResult == listOf(""))
+
+        val emptyDelimiterSplit = "abc".split(Regex(""))
+        assertPrints(emptyDelimiterSplit, "[, a, b, c, ]")
+
+        val splitByMultipleSpaces = "a  b    c".split(Regex("\\s+"))
+        assertPrints(splitByMultipleSpaces, "[a, b, c]")
+
+        val splitBySingleSpace = "a  b    c".split(Regex("\\s"))
+        assertPrints(splitBySingleSpace, "[a, , b, , , , c]")
+    }
+
+    @Sample
+    fun splitWithPattern() {
+        val digitSplit = "apple123banana456cherry".split(Pattern.compile("\\d+"))
+        assertPrints(digitSplit, "[apple, banana, cherry]")
+
+        val wordBoundarySplit = "The quick brown fox".split(Pattern.compile("\\s+"))
+        assertPrints(wordBoundarySplit, "[The, quick, brown, fox]")
+
+        val limitSplit = "a,b,c,d,e".split(Pattern.compile(","), limit = 3)
+        assertPrints(limitSplit, "[a, b, c,d,e]")
+
+        val patternGroups = "abc-123def_456ghi".split(Pattern.compile("[\\-_]\\d+"))
+        assertPrints(patternGroups, "[abc, def, ghi]")
+
+        val caseInsensitiveSplit = "Apple123Banana45CHERRY".split(Pattern.compile("[a-z]+", Pattern.CASE_INSENSITIVE))
+        assertPrints(caseInsensitiveSplit, "[, 123, 45, ]")
+
+        val emptyInputResult = "".split(Pattern.compile("sep"))
+        assertTrue(emptyInputResult == listOf(""))
+
+        val emptyDelimiterSplit = "abc".split(Pattern.compile(""))
+        assertPrints(emptyDelimiterSplit, "[a, b, c, ]")
+
+        val splitByMultipleSpaces = "a  b    c".split(Pattern.compile("\\s+"))
+        assertPrints(splitByMultipleSpaces, "[a, b, c]")
+
+        val splitBySingleSpace = "a  b    c".split(Pattern.compile("\\s"))
+        assertPrints(splitBySingleSpace, "[a, , b, , , , c]")
     }
 
     @Sample
@@ -626,5 +787,31 @@ class Strings {
         assertFails { text.removeRange(startIndex = 7, endIndex = 4) }
         // Throws if startIndex or endIndex is out of range of the char sequence indices
         assertFails { text.removeRange(startIndex = 7, endIndex = 20) }
+    }
+
+    @Suppress("KotlinConstantConditions")
+    @Sample
+    fun stringEquals() {
+        assertTrue("" == "")
+        assertTrue("abc" == "abc")
+
+        assertFalse("abc" == "abcd")
+        assertFalse("abc" == "Abc")
+        // If a character's case doesn't matter, strings could be compared in a case-insensitive manner
+        assertTrue("abc".equals("Abc", ignoreCase = true))
+
+        val builder = StringBuilder("abc")
+        assertPrints(builder, "abc")
+        // Although the builder holds the same character sequence, it is not a String
+        assertFalse("abc".equals(builder))
+    }
+
+    @Sample
+    fun stringPlus() {
+        assertEquals("Kodee", "Ko" + "dee")
+        // 2 is not a string, but plus concatenates its string representation with the "Kotlin " string
+        assertEquals("Kotlin 2", "Kotlin " + 2)
+        // list is converted to a String first and then concatenated with the "Numbers: " string
+        assertEquals("Numbers: [1, 2, 3]", "Numbers: " + listOf(1, 2, 3))
     }
 }

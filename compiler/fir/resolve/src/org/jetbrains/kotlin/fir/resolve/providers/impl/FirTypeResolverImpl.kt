@@ -212,13 +212,14 @@ class FirTypeResolverImpl(private val session: FirSession) : FirTypeResolver() {
                     ConeAmbiguityError(typeRef.qualifier.last().name, result.typeCandidates.first().applicability, result.typeCandidates)
                 }
                 else -> {
-                    ConeUnresolvedTypeQualifierError(typeRef.qualifier, isNullable = typeRef.isMarkedNullable)
+                    ConeUnresolvedTypeQualifierError(typeRef.qualifier)
                 }
             }
             return ConeErrorType(
                 diagnostic,
                 typeArguments = resultingArguments,
-                attributes = typeRef.annotations.computeTypeAttributes(session, shouldExpandTypeAliases = true)
+                attributes = typeRef.annotations.computeTypeAttributes(session, shouldExpandTypeAliases = true),
+                nullable = typeRef.isMarkedNullable,
             )
         }
 
@@ -400,8 +401,11 @@ class FirTypeResolverImpl(private val session: FirSession) : FirTypeResolver() {
                 val isFromLibraryDependency = resolvedTypeSymbol?.moduleData?.session?.kind == FirSession.Kind.Library
                 val resolvedExpandedType = when {
                     aliasedTypeExpansionGloballyDisabled -> resolvedType
-                    (expandTypeAliases || isFromLibraryDependency) && resolvedTypeSymbol is FirTypeAliasSymbol -> {
+                    isFromLibraryDependency && resolvedTypeSymbol is FirTypeAliasSymbol -> {
                         resolvedType.fullyExpandedType(resolvedTypeSymbol.moduleData.session)
+                    }
+                    expandTypeAliases && resolvedTypeSymbol is FirTypeAliasSymbol -> {
+                        resolvedType.fullyExpandedType(session)
                     }
                     else -> resolvedType
                 }

@@ -7,7 +7,6 @@ package org.jetbrains.kotlin.swiftexport.standalone.test;
 
 import com.intellij.testFramework.TestDataPath;
 import org.jetbrains.kotlin.test.util.KtTestUtil;
-import org.jetbrains.kotlin.konan.test.blackbox.support.group.FirPipeline;
 import org.jetbrains.kotlin.konan.test.blackbox.support.group.UseStandardTestCaseGroupProvider;
 import org.jetbrains.kotlin.test.TestMetadata;
 import org.junit.jupiter.api.Test;
@@ -19,7 +18,6 @@ import java.util.regex.Pattern;
 @SuppressWarnings("all")
 @TestMetadata("native/swift/swift-export-standalone-integration-tests/simple/testData/generation")
 @TestDataPath("$PROJECT_ROOT")
-@FirPipeline()
 @UseStandardTestCaseGroupProvider()
 public class KlibBasedSwiftExportRunnerTest extends AbstractKlibBasedSwiftRunnerTest {
   @Test
@@ -52,6 +50,12 @@ public class KlibBasedSwiftExportRunnerTest extends AbstractKlibBasedSwiftRunner
   }
 
   @Test
+  @TestMetadata("containing_not_exported_classifiers")
+  public void testContaining_not_exported_classifiers() {
+    runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/generation/containing_not_exported_classifiers/");
+  }
+
+  @Test
   @TestMetadata("contextParameters")
   public void testContextParameters() {
     runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/generation/contextParameters/");
@@ -70,6 +74,18 @@ public class KlibBasedSwiftExportRunnerTest extends AbstractKlibBasedSwiftRunner
   }
 
   @Test
+  @TestMetadata("extension_package_keyword")
+  public void testExtension_package_keyword() {
+    runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/generation/extension_package_keyword/");
+  }
+
+  @Test
+  @TestMetadata("external_types")
+  public void testExternal_types() {
+    runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/generation/external_types/");
+  }
+
+  @Test
   @TestMetadata("functionAndClassWithSameName")
   public void testFunctionAndClassWithSameName() {
     runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/generation/functionAndClassWithSameName/");
@@ -85,6 +101,18 @@ public class KlibBasedSwiftExportRunnerTest extends AbstractKlibBasedSwiftRunner
   @TestMetadata("functions")
   public void testFunctions() {
     runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/generation/functions/");
+  }
+
+  @Test
+  @TestMetadata("generics")
+  public void testGenerics() {
+    runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/generation/generics/");
+  }
+
+  @Test
+  @TestMetadata("hiddenFromObjectiveC")
+  public void testHiddenFromObjectiveC() {
+    runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/generation/hiddenFromObjectiveC/");
   }
 
   @Test
@@ -172,9 +200,21 @@ public class KlibBasedSwiftExportRunnerTest extends AbstractKlibBasedSwiftRunner
   }
 
   @Test
+  @TestMetadata("stdlibTypes")
+  public void testStdlibTypes() {
+    runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/generation/stdlibTypes/");
+  }
+
+  @Test
   @TestMetadata("strings")
   public void testStrings() {
     runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/generation/strings/");
+  }
+
+  @Test
+  @TestMetadata("transitiveExport")
+  public void testTransitiveExport() {
+    runTest("native/swift/swift-export-standalone-integration-tests/simple/testData/generation/transitiveExport/");
   }
 
   @Test

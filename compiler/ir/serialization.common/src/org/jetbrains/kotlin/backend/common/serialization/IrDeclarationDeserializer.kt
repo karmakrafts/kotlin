@@ -42,7 +42,6 @@ import org.jetbrains.kotlin.backend.common.serialization.proto.IrDeclarationBase
 import org.jetbrains.kotlin.backend.common.serialization.proto.IrDefinitelyNotNullType as ProtoDefinitelyNotNullType
 import org.jetbrains.kotlin.backend.common.serialization.proto.IrDynamicType as ProtoDynamicType
 import org.jetbrains.kotlin.backend.common.serialization.proto.IrEnumEntry as ProtoEnumEntry
-import org.jetbrains.kotlin.backend.common.serialization.proto.IrErrorType as ProtoErrorType
 import org.jetbrains.kotlin.backend.common.serialization.proto.IrExpression as ProtoExpression
 import org.jetbrains.kotlin.backend.common.serialization.proto.IrField as ProtoField
 import org.jetbrains.kotlin.backend.common.serialization.proto.IrFunction as ProtoFunction
@@ -165,12 +164,6 @@ class IrDeclarationDeserializer(
         }
     }
 
-    private fun deserializeErrorType(proto: ProtoErrorType): IrErrorType {
-        if (!settings.allowErrorNodes) throw IrDisallowedErrorNode(IrErrorType::class.java)
-        val annotations = deserializeAnnotations(proto.annotationList)
-        return IrErrorTypeImpl(null, annotations, Variance.INVARIANT)
-    }
-
     private fun deserializeDefinitelyNotNullType(proto: ProtoDefinitelyNotNullType): IrSimpleType {
         assert(proto.typesCount == 1) { "Only DefinitelyNotNull type is now supported" }
         // TODO support general case of intersection type
@@ -183,7 +176,6 @@ class IrDeclarationDeserializer(
             SIMPLE -> deserializeSimpleType(proto.simple)
             LEGACYSIMPLE -> deserializeLegacySimpleType(proto.legacySimple)
             DYNAMIC -> deserializeDynamicType(proto.dynamic)
-            ERROR -> deserializeErrorType(proto.error)
             else -> error("Unexpected IrType kind: ${proto.kindCase}")
         }
     }
@@ -776,13 +768,14 @@ class IrDeclarationDeserializer(
                 .mapNotNull { it.get(IrDeclarationOrigin.Companion) as? IrDeclarationOriginImpl }
                 .associateBy { it.name }
         }
+        private val unknownDeclarationOriginCache = mutableMapOf<String, IrDeclarationOrigin>()
     }
 
     private fun deserializeIrDeclarationOrigin(protoName: Int): IrDeclarationOrigin {
         val originName = libraryFile.string(protoName)
         return IrDeclarationOrigin.GeneratedByPlugin.fromSerializedString(originName)
             ?: declarationOriginIndex[originName]
-            ?: IrDeclarationOriginImpl(originName)
+            ?: unknownDeclarationOriginCache.getOrPut(originName) { IrDeclarationOriginImpl(originName) }
     }
 
     fun deserializeDeclaration(proto: ProtoDeclaration, setParent: Boolean = true): IrDeclaration {

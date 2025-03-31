@@ -65,6 +65,13 @@ class WasmExpressionBuilder(val expression: MutableList<WasmInstr>, val skipComm
     }
 
     @Suppress("UNUSED_PARAMETER")
+    inline fun buildFunctionTypedBlock(label: String?, resultType: WasmSymbolReadOnly<WasmFunctionType>, body: (Int) -> Unit) {
+        buildInstr(WasmOp.BLOCK, SourceLocation.NoLocation("BLOCK"), WasmImmediate.BlockType.Function(resultType))
+        body(numberOfNestedBlocks)
+        buildEnd()
+    }
+
+    @Suppress("UNUSED_PARAMETER")
     inline fun buildBlock(label: String?, resultType: WasmType? = null, body: (Int) -> Unit) {
         buildInstr(WasmOp.BLOCK, SourceLocation.NoLocation("BLOCK"), WasmImmediate.BlockType.Value(resultType))
         body(numberOfNestedBlocks)
@@ -232,6 +239,10 @@ class WasmExpressionBuilder(val expression: MutableList<WasmInstr>, val skipComm
 
     fun buildSetLocal(local: WasmLocal, location: SourceLocation) {
         buildInstr(WasmOp.LOCAL_SET, location, WasmImmediate.LocalIdx(local))
+    }
+
+    fun buildTeeLocal(local: WasmLocal, location: SourceLocation) {
+        buildInstr(WasmOp.LOCAL_TEE, location, WasmImmediate.LocalIdx(local))
     }
 
     fun buildGetGlobal(global: WasmSymbol<WasmGlobal>, location: SourceLocation) {

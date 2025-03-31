@@ -61,7 +61,9 @@ internal class FunctionReferenceLowering(private val context: JvmBackendContext)
                 crossinlineLambdas.add(argument.symbol.owner as IrSimpleFunction)
             }
         }
-        irFile.transformChildrenVoid(this)
+        withinScope(irFile) {
+            irFile.transformChildrenVoid(this)
+        }
         crossinlineLambdas.clear()
     }
 
@@ -730,10 +732,10 @@ internal class FunctionReferenceLowering(private val context: JvmBackendContext)
             }.apply {
                 metadata = functionReferenceClass.metadata
                 overriddenSymbols += superMethod.symbol
-                dispatchReceiverParameter = buildReceiverParameter {
+                parameters = listOf(buildReceiverParameter {
                     origin = IrDeclarationOrigin.INSTANCE_RECEIVER
                     type = functionReferenceClass.symbol.defaultType
-                }
+                })
 
                 when {
                     isLambda ->

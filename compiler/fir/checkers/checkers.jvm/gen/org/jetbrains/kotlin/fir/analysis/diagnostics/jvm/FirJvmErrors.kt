@@ -105,6 +105,7 @@ object FirJvmErrors {
     val THROWS_IN_ANNOTATION: KtDiagnosticFactoryForDeprecation0 = KtDiagnosticFactoryForDeprecation0("THROWS_IN_ANNOTATION", ForbidJvmAnnotationsOnAnnotationParameters, SourceElementPositioningStrategies.DEFAULT, KtAnnotationEntry::class)
     val JVM_SERIALIZABLE_LAMBDA_ON_INLINED_FUNCTION_LITERALS: KtDiagnosticFactoryForDeprecation0 = KtDiagnosticFactoryForDeprecation0("JVM_SERIALIZABLE_LAMBDA_ON_INLINED_FUNCTION_LITERALS", ForbidJvmSerializableLambdaOnInlinedFunctionLiterals, SourceElementPositioningStrategies.DEFAULT, KtAnnotationEntry::class)
     val INCOMPATIBLE_ANNOTATION_TARGETS: KtDiagnosticFactory2<Collection<String>, Collection<String>> = KtDiagnosticFactory2("INCOMPATIBLE_ANNOTATION_TARGETS", WARNING, SourceElementPositioningStrategies.DEFAULT, KtAnnotationEntry::class)
+    val ANNOTATION_TARGETS_ONLY_IN_JAVA: KtDiagnosticFactory0 = KtDiagnosticFactory0("ANNOTATION_TARGETS_ONLY_IN_JAVA", WARNING, SourceElementPositioningStrategies.DEFAULT, KtAnnotationEntry::class)
 
     // Super
     val INTERFACE_CANT_CALL_DEFAULT_METHOD_VIA_SUPER: KtDiagnosticFactory0 = KtDiagnosticFactory0("INTERFACE_CANT_CALL_DEFAULT_METHOD_VIA_SUPER", ERROR, SourceElementPositioningStrategies.REFERENCE_BY_QUALIFIED, PsiElement::class)
@@ -130,9 +131,8 @@ object FirJvmErrors {
     val JAVA_MODULE_DOES_NOT_EXPORT_PACKAGE: KtDiagnosticFactory2<String, String> = KtDiagnosticFactory2("JAVA_MODULE_DOES_NOT_EXPORT_PACKAGE", ERROR, SourceElementPositioningStrategies.DEFAULT, PsiElement::class)
 
     // JVM Default
-    val JVM_DEFAULT_IN_DECLARATION: KtDiagnosticFactory1<String> = KtDiagnosticFactory1("JVM_DEFAULT_IN_DECLARATION", ERROR, SourceElementPositioningStrategies.DECLARATION_SIGNATURE_OR_DEFAULT, KtElement::class)
-    val JVM_DEFAULT_WITH_COMPATIBILITY_IN_DECLARATION: KtDiagnosticFactory0 = KtDiagnosticFactory0("JVM_DEFAULT_WITH_COMPATIBILITY_IN_DECLARATION", ERROR, SourceElementPositioningStrategies.DEFAULT, KtElement::class)
-    val JVM_DEFAULT_WITH_COMPATIBILITY_NOT_ON_INTERFACE: KtDiagnosticFactory0 = KtDiagnosticFactory0("JVM_DEFAULT_WITH_COMPATIBILITY_NOT_ON_INTERFACE", ERROR, SourceElementPositioningStrategies.DEFAULT, KtElement::class)
+    val JVM_DEFAULT_WITHOUT_COMPATIBILITY_NOT_IN_ENABLE_MODE: KtDiagnosticFactory0 = KtDiagnosticFactory0("JVM_DEFAULT_WITHOUT_COMPATIBILITY_NOT_IN_ENABLE_MODE", ERROR, SourceElementPositioningStrategies.DECLARATION_SIGNATURE_OR_DEFAULT, KtElement::class)
+    val JVM_DEFAULT_WITH_COMPATIBILITY_NOT_IN_NO_COMPATIBILITY_MODE: KtDiagnosticFactory0 = KtDiagnosticFactory0("JVM_DEFAULT_WITH_COMPATIBILITY_NOT_IN_NO_COMPATIBILITY_MODE", ERROR, SourceElementPositioningStrategies.DEFAULT, KtElement::class)
 
     // External Declaration
     val EXTERNAL_DECLARATION_CANNOT_BE_ABSTRACT: KtDiagnosticFactory0 = KtDiagnosticFactory0("EXTERNAL_DECLARATION_CANNOT_BE_ABSTRACT", ERROR, SourceElementPositioningStrategies.ABSTRACT_MODIFIER, KtDeclaration::class)
@@ -158,6 +158,8 @@ object FirJvmErrors {
     // Misc
     val INAPPLICABLE_JVM_FIELD: KtDiagnosticFactory1<String> = KtDiagnosticFactory1("INAPPLICABLE_JVM_FIELD", ERROR, SourceElementPositioningStrategies.DEFAULT, KtAnnotationEntry::class)
     val INAPPLICABLE_JVM_FIELD_WARNING: KtDiagnosticFactory1<String> = KtDiagnosticFactory1("INAPPLICABLE_JVM_FIELD_WARNING", WARNING, SourceElementPositioningStrategies.DEFAULT, KtAnnotationEntry::class)
+    val IDENTITY_SENSITIVE_OPERATIONS_WITH_VALUE_TYPE: KtDiagnosticFactory1<ConeKotlinType> = KtDiagnosticFactory1("IDENTITY_SENSITIVE_OPERATIONS_WITH_VALUE_TYPE", WARNING, SourceElementPositioningStrategies.DEFAULT, KtElement::class)
+    val SYNCHRONIZED_BLOCK_ON_JAVA_VALUE_BASED_CLASS: KtDiagnosticFactory1<ConeKotlinType> = KtDiagnosticFactory1("SYNCHRONIZED_BLOCK_ON_JAVA_VALUE_BASED_CLASS", WARNING, SourceElementPositioningStrategies.DEFAULT, KtElement::class)
     val SYNCHRONIZED_BLOCK_ON_VALUE_CLASS_OR_PRIMITIVE: KtDiagnosticFactoryForDeprecation1<ConeKotlinType> = KtDiagnosticFactoryForDeprecation1("SYNCHRONIZED_BLOCK_ON_VALUE_CLASS_OR_PRIMITIVE", ProhibitSynchronizationByValueClassesAndPrimitives, SourceElementPositioningStrategies.DEFAULT, PsiElement::class)
     val JVM_SYNTHETIC_ON_DELEGATE: KtDiagnosticFactory0 = KtDiagnosticFactory0("JVM_SYNTHETIC_ON_DELEGATE", ERROR, SourceElementPositioningStrategies.DEFAULT, KtAnnotationEntry::class)
     val SUBCLASS_CANT_CALL_COMPANION_PROTECTED_NON_STATIC: KtDiagnosticFactory0 = KtDiagnosticFactory0("SUBCLASS_CANT_CALL_COMPANION_PROTECTED_NON_STATIC", ERROR, SourceElementPositioningStrategies.REFERENCED_NAME_BY_QUALIFIED, PsiElement::class)

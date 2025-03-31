@@ -254,13 +254,10 @@ class CallAndReferenceGenerator(
     }
 
     private fun FirExpression.superQualifierSymbolForFunctionAndPropertyAccess(): IrClassSymbol? {
-        if (this !is FirQualifiedAccessExpression) {
+        if (this !is FirSuperReceiverExpression) {
             return null
         }
         val dispatchReceiverReference = calleeReference
-        if (dispatchReceiverReference !is FirSuperReference) {
-            return null
-        }
         val superTypeRef = dispatchReceiverReference.superTypeRef
         val coneSuperType = superTypeRef.coneType
         val firClassSymbol = coneSuperType.fullyExpandedType(session).toClassSymbol(session)
@@ -507,7 +504,7 @@ class CallAndReferenceGenerator(
         val dispatchReceiver = qualifiedAccess.dispatchReceiver
         val calleeReference = qualifiedAccess.calleeReference
 
-        if (calleeReference is FirSuperReference && dispatchReceiver != null) {
+        if (qualifiedAccess is FirSuperReceiverExpression && dispatchReceiver != null) {
             return visitor.convertToIrExpression(dispatchReceiver)
         }
 
@@ -864,7 +861,7 @@ class CallAndReferenceGenerator(
             }
         }
             .applyTypeArguments(lValue)
-            .applyReceiversAndArguments(lValue, firSymbol, explicitReceiverExpression, irAssignmentRhs = irRhs)
+            .applyReceiversAndArguments(lValue, firSymbol, explicitReceiverExpression, irAssignmentRhs = irRhsWithCast)
     }
 
     /** Wrap an assignment - as needed - with an implicit cast to the left-hand side type. */
@@ -964,7 +961,7 @@ class CallAndReferenceGenerator(
                         // `irConstructor.owner.valueParameters.size`.
                         // See KT-58294
                         valueArgumentsCount = firConstructorSymbol.valueParameterSymbols.size,
-                        contextParameterCount = firConstructorSymbol.resolvedContextParameters.size,
+                        contextParameterCount = firConstructorSymbol.contextParameterSymbols.size,
                         hasDispatchReceiver = firConstructorSymbol.dispatchReceiverType != null,
                         hasExtensionReceiver = firConstructorSymbol.isExtension,
                         typeArgumentsCount = fullyExpandedConstructorSymbol.typeParameterSymbols.size,
@@ -1090,9 +1087,6 @@ class CallAndReferenceGenerator(
                         // here we should use a substituted parameter type to properly choose the component of an intersection type
                         //  to provide a proper cast to the smartcasted type
                         irArgument.insertCastForSmartcastWithIntersection(argumentType, substitutedParameterType)
-                    }
-                    is FirWhenSubjectExpression -> {
-                        insertCastToArgument(argument.whenRef.value.subjectVariable?.initializer!!)
                     }
                     else -> irArgument
                 }
@@ -1399,7 +1393,7 @@ class CallAndReferenceGenerator(
                     // They should work as real constructors with initialized `dispatchReceiver` instead of `extensionReceiver` on IR level.
                     val isConstructorOnTypealiasWithInnerRhs =
                         (statement.calleeReference.symbol as? FirConstructorSymbol)?.let {
-                            it.origin == FirDeclarationOrigin.Synthetic.TypeAliasConstructor && it.receiverParameter != null
+                            it.origin == FirDeclarationOrigin.Synthetic.TypeAliasConstructor && it.receiverParameterSymbol != null
                         } == true
                     val baseDispatchReceiver = if (!isConstructorOnTypealiasWithInnerRhs) {
                         statement.findIrDispatchReceiver(explicitReceiverExpression)
@@ -1407,7 +1401,7 @@ class CallAndReferenceGenerator(
                         statement.findIrExtensionReceiver(explicitReceiverExpression)
                     }
                     var firDispatchReceiver = statement.dispatchReceiver
-                    if (firDispatchReceiver is FirPropertyAccessExpression && firDispatchReceiver.calleeReference is FirSuperReference) {
+                    if (firDispatchReceiver is FirSuperReceiverExpression) {
                         firDispatchReceiver = firDispatchReceiver.dispatchReceiver
                     }
                     val notFromAny = !declarationSiteSymbol.isFunctionFromAny()
@@ -1430,7 +1424,7 @@ class CallAndReferenceGenerator(
                 }
                 // constructors don't have extension receiver (except a case with type alias and inner RHS that is handled above),
                 // but may have receiver parameter in case of inner classes
-                if (declarationSiteSymbol?.receiverParameter != null && declarationSiteSymbol !is FirConstructorSymbol) {
+                if (declarationSiteSymbol?.receiverParameterSymbol != null && declarationSiteSymbol !is FirConstructorSymbol) {
                     val contextArgumentCount = (statement as? FirContextArgumentListOwner)?.contextArguments?.size ?: 0
                     val extensionReceiverIndex = (if (hasDispatchReceiver) 1 else 0) + contextArgumentCount
                     arguments[extensionReceiverIndex] =

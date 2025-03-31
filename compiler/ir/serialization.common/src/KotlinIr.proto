@@ -47,7 +47,9 @@ message AccessorIdSignature {
 message FileLocalIdSignature {
   required int32 container = 1;
   required int64 local_id = 2;
-  optional int32 debug_info = 3;
+
+  // WARNING: Don't occupy index 3 which was previously used for storing local signature description.
+  //optional int32 debug_info = 3;
 }
 
 message CompositeSignature {
@@ -58,7 +60,9 @@ message CompositeSignature {
 message LocalSignature {
   repeated int32 local_fq_name = 1 [packed=true];
   optional int64 local_hash = 2;
-  optional int32 debug_info = 3;
+
+  // WARNING: Don't occupy index 3 which was previously used for storing local signature description.
+  //optional int32 debug_info = 3;
 }
 
 message FileSignature {}
@@ -118,17 +122,15 @@ message IrDefinitelyNotNullType {
   repeated int32 types = 1 [packed=true];
 }
 
-message IrErrorType {
-  repeated IrConstructorCall annotation = 1;
-}
-
 message IrType {
   oneof kind {
     IrSimpleTypeLegacy legacySimple = 1;
     IrDynamicType dynamic = 2;
-    IrErrorType error = 3;
     IrDefinitelyNotNullType dnn = 4;
     IrSimpleType simple = 5;
+
+    // WARNING: Don't occupy index 3 which was previously used for storing IrErrorType.
+    // IrErrorType error = 3;
   }
 }
 

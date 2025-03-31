@@ -160,6 +160,12 @@ public class SerializationFirLightTreeBlackBoxTestGenerated extends AbstractSeri
     }
 
     @Test
+    @TestMetadata("instantSerializer.kt")
+    public void testInstantSerializer() {
+      runTest("plugins/kotlinx-serialization/testData/boxIr/instantSerializer.kt");
+    }
+
+    @Test
     @TestMetadata("interfaces.kt")
     public void testInterfaces() {
       runTest("plugins/kotlinx-serialization/testData/boxIr/interfaces.kt");
@@ -259,6 +265,12 @@ public class SerializationFirLightTreeBlackBoxTestGenerated extends AbstractSeri
     @TestMetadata("polymorphic.kt")
     public void testPolymorphic() {
       runTest("plugins/kotlinx-serialization/testData/boxIr/polymorphic.kt");
+    }
+
+    @Test
+    @TestMetadata("polymorphicTypeParameter.kt")
+    public void testPolymorphicTypeParameter() {
+      runTest("plugins/kotlinx-serialization/testData/boxIr/polymorphicTypeParameter.kt");
     }
 
     @Test

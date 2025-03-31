@@ -167,6 +167,42 @@ public class FirStandaloneNormalAnalysisSourceModuleSingleSymbolByPsiTestGenerat
   }
 
   @Test
+  @TestMetadata("inlineDefaultGetter.kt")
+  public void testInlineDefaultGetter() {
+    runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/inlineDefaultGetter.kt");
+  }
+
+  @Test
+  @TestMetadata("inlineDefaultSetter.kt")
+  public void testInlineDefaultSetter() {
+    runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/inlineDefaultSetter.kt");
+  }
+
+  @Test
+  @TestMetadata("inlineGetter.kt")
+  public void testInlineGetter() {
+    runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/inlineGetter.kt");
+  }
+
+  @Test
+  @TestMetadata("inlineSetter.kt")
+  public void testInlineSetter() {
+    runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/inlineSetter.kt");
+  }
+
+  @Test
+  @TestMetadata("inlineValProperty.kt")
+  public void testInlineValProperty() {
+    runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/inlineValProperty.kt");
+  }
+
+  @Test
+  @TestMetadata("inlineVariable.kt")
+  public void testInlineVariable() {
+    runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/inlineVariable.kt");
+  }
+
+  @Test
   @TestMetadata("innerTypeAlias.kt")
   public void testInnerTypeAlias() {
     runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/innerTypeAlias.kt");
@@ -284,6 +320,18 @@ public class FirStandaloneNormalAnalysisSourceModuleSingleSymbolByPsiTestGenerat
   @TestMetadata("propertyWithDelegateAndAnnotations.kt")
   public void testPropertyWithDelegateAndAnnotations() {
     runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/propertyWithDelegateAndAnnotations.kt");
+  }
+
+  @Test
+  @TestMetadata("propertyWithInlineGetterAndSetter.kt")
+  public void testPropertyWithInlineGetterAndSetter() {
+    runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/propertyWithInlineGetterAndSetter.kt");
+  }
+
+  @Test
+  @TestMetadata("propertyWithInlineKeyword.kt")
+  public void testPropertyWithInlineKeyword() {
+    runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/propertyWithInlineKeyword.kt");
   }
 
   @Test
@@ -752,6 +800,12 @@ public class FirStandaloneNormalAnalysisSourceModuleSingleSymbolByPsiTestGenerat
     }
 
     @Test
+    @TestMetadata("inlinePropertyWithBackingField.kt")
+    public void testInlinePropertyWithBackingField() {
+      runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/errors/inlinePropertyWithBackingField.kt");
+    }
+
+    @Test
     @TestMetadata("memberLevelDestructuringDeclaration.kt")
     public void testMemberLevelDestructuringDeclaration() {
       runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/errors/memberLevelDestructuringDeclaration.kt");
@@ -815,6 +869,12 @@ public class FirStandaloneNormalAnalysisSourceModuleSingleSymbolByPsiTestGenerat
     @TestMetadata("valPropertyWithSetter.kt")
     public void testValPropertyWithSetter() {
       runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/errors/valPropertyWithSetter.kt");
+    }
+
+    @Test
+    @TestMetadata("valPropertyWithSetter2.kt")
+    public void testValPropertyWithSetter2() {
+      runTest("analysis/analysis-api/testData/symbols/singleSymbolByPsi/errors/valPropertyWithSetter2.kt");
     }
   }
 }

@@ -110,6 +110,12 @@
         <option value="$PROJECT_DIR$/native/native.tests/cli-tests/testData" />
       </array>
     </option>
+    <option name="testDataDirectories">
+      <array>
+        <option value="$PROJECT_DIR$/jps/jps-plugin/testData" />
+        <option value="$PROJECT_DIR$/compiler/testData/integration/ant" />
+      </array>
+    </option>
     <option name="testTags">
       <map>
         <entry key="ClassicJsIrText.*">
@@ -232,7 +238,7 @@
             </array>
           </value>
         </entry>
-        <entry key="FirJsIrDeserialization.*">
+        <entry key="JsIrDeserialization.*">
           <value>
             <array>
               <option value="FIR" />
@@ -258,7 +264,7 @@
             </array>
           </value>
         </entry>
-        <entry key="FirNativeSerialization.*">
+        <entry key="NativeIrDeserialization.*">
           <value>
             <array>
               <option value="FIR" />

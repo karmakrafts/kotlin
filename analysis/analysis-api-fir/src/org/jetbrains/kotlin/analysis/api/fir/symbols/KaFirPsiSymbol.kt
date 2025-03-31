@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.analysis.low.level.api.fir.api.resolveToFirSymbolOfT
 import org.jetbrains.kotlin.asJava.classes.lazyPub
 import org.jetbrains.kotlin.fir.analysis.checkers.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
+import org.jetbrains.kotlin.fir.extensions.declarationGenerators
 import org.jetbrains.kotlin.fir.extensions.extensionService
 import org.jetbrains.kotlin.fir.extensions.supertypeGenerators
 import org.jetbrains.kotlin.fir.realPsi
@@ -143,6 +144,15 @@ private fun KaFirSession.hasCompilerPluginForSupertypes(declaration: KtClassOrOb
     return declarationSiteSession.extensionService.supertypeGenerators.isNotEmpty()
 }
 
+/**
+ * We cannot optimize some declaration creations if at least one compiler plugin may generate additional declarations
+ */
+internal fun KaFirSession.hasDeclarationGeneratorCompilerPlugin(declaration: KtClassOrObject): Boolean {
+    val declarationSiteModule = getModule(declaration)
+    val declarationSiteSession = firResolveSession.getSessionFor(declarationSiteModule)
+    return declarationSiteSession.extensionService.declarationGenerators.isNotEmpty()
+}
+
 internal fun KaFirKtBasedSymbol<KtClassOrObject, FirClassSymbol<*>>.createSuperTypes(): List<KaType> {
     /**
      * There is no so much profit to analyze PSI from libraries, but it requires additional logic
@@ -237,7 +247,7 @@ internal inline fun <reified S : FirBasedSymbol<*>> lazyFirSymbol(
 }
 
 /**
- * This function is a workaround for KT-70728 issue.
+ * This function is a workaround for the KT-70728 issue.
  *
  * The problem is that library sources share the underlying PSI with binary modules, and
  * the use site session is not enough to build the correct FIR from PSI.
@@ -263,10 +273,15 @@ internal fun KaFirKtBasedSymbol<KtCallableDeclaration, *>.createKaValueParameter
 internal fun KaFirKtBasedSymbol<KtCallableDeclaration, *>.createKaContextParameters(): List<KaContextParameterSymbol>? =
     ifNotLibrarySource {
         val psi = backingPsi as? KtTypeParameterListOwnerStub<*> ?: return null // no psi
-        val list = psi.contextReceiverList ?: return emptyList() // no context receivers/parameters
+        val lists = psi.contextReceiverLists.ifEmpty { return emptyList() } // no context receivers/parameters
         with(analysisSession) {
-            list.contextParameters().map { it.symbol as KaContextParameterSymbol }.ifEmpty {
-                list.contextReceivers().map { it.symbol }
+            lists.flatMap { list ->
+                val contextParameters = list.contextParameters()
+                if (contextParameters.isNotEmpty()) {
+                    contextParameters.map { it.symbol as KaContextParameterSymbol }
+                } else {
+                    list.contextReceivers().map { it.symbol }
+                }
             }
         }
     }

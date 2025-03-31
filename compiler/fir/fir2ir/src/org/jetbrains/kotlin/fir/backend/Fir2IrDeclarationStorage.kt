@@ -23,6 +23,7 @@ import org.jetbrains.kotlin.fir.declarations.utils.nameOrSpecialName
 import org.jetbrains.kotlin.fir.declarations.utils.visibility
 import org.jetbrains.kotlin.fir.descriptors.FirBuiltInsPackageFragment
 import org.jetbrains.kotlin.fir.descriptors.FirModuleDescriptor
+import org.jetbrains.kotlin.fir.lazy.Fir2IrLazyClass
 import org.jetbrains.kotlin.fir.lazy.Fir2IrLazyConstructor
 import org.jetbrains.kotlin.fir.lazy.Fir2IrLazyProperty
 import org.jetbrains.kotlin.fir.lazy.Fir2IrLazySimpleFunction
@@ -160,25 +161,21 @@ class Fir2IrDeclarationStorage(
     @Suppress("unused")
     @DelicateDeclarationStorageApi
     fun forEachCachedDeclarationSymbol(block: (IrSymbol) -> Unit) {
-        functionCache.values.forEachWithRemapping(symbolsMappingForLazyClasses::remapFunctionSymbol, block)
+        functionCache.values.forEachSkipFakeOverrides(block)
         constructorCache.values.forEach(block)
-        propertyCache.normal.values.forEachWithRemapping(symbolsMappingForLazyClasses::remapPropertySymbol, block)
-        propertyCache.synthetic.values.forEachWithRemapping(symbolsMappingForLazyClasses::remapPropertySymbol, block)
-        getterForPropertyCache.values.forEachWithRemapping(symbolsMappingForLazyClasses::remapFunctionSymbol, block)
-        setterForPropertyCache.values.forEachWithRemapping(symbolsMappingForLazyClasses::remapFunctionSymbol, block)
+        propertyCache.normal.values.forEachSkipFakeOverrides(block)
+        propertyCache.synthetic.values.forEachSkipFakeOverrides(block)
+        getterForPropertyCache.values.forEachSkipFakeOverrides(block)
+        setterForPropertyCache.values.forEachSkipFakeOverrides(block)
         backingFieldForPropertyCache.values.forEach(block)
         propertyForBackingFieldCache.values.forEach(block)
         delegateVariableForPropertyCache.values.forEach(block)
     }
 
-    private inline fun <S : IrSymbol> Collection<S>.forEachWithRemapping(remapper: (S) -> S, block: (S) -> Unit) {
+    private inline fun <S : IrSymbol> Collection<S>.forEachSkipFakeOverrides(block: (S) -> Unit) {
         for (symbol in this) {
-            val updatedSymbol = if (symbol is IrFakeOverrideSymbolBase<*, *, *>) {
-                remapper(symbol)
-            } else {
-                symbol
-            }
-            block(updatedSymbol)
+            if (symbol is IrFakeOverrideSymbolBase<*, *, *>) continue
+            block(symbol)
         }
     }
 
@@ -394,6 +391,7 @@ class Fir2IrDeclarationStorage(
             ?: error("IR class for $containingClassLookupTag not found")
     }
 
+    @OptIn(UnsafeDuringIrConstructionAPI::class)
     private fun cacheIrFunctionSymbol(
         function: FirFunction,
         irFunctionSymbol: IrSimpleFunctionSymbol,
@@ -422,8 +420,14 @@ class Fir2IrDeclarationStorage(
                  *
                  * In AA API mode the source-based data class may come as a dependency, which means that even for generated method we
                  *   will create a regular Fir2IrLazyFunction
+                 *
+                 * Additionally in case of pulling declarations from other snippets, they are
                  */
-                require(OperatorNameConventions.isComponentN(name) || name == DATA_CLASS_COPY || configuration.allowNonCachedDeclarations) {
+                require(
+                    OperatorNameConventions.isComponentN(name) || name == DATA_CLASS_COPY ||
+                            configuration.allowNonCachedDeclarations ||
+                            (irFunctionSymbol.owner.parent as? Fir2IrLazyClass)?.origin == IrDeclarationOrigin.REPL_FROM_OTHER_SNIPPET
+                ) {
                     "Only componentN functions should be cached this way, but got: $name"
                 }
                 functionCache[function] = irFunctionSymbol
@@ -1461,7 +1465,7 @@ private object IsStubPropertyForPureFieldKey : FirDeclarationDataKey()
 
 internal var FirProperty.isStubPropertyForPureField: Boolean? by FirDeclarationDataRegistry.data(IsStubPropertyForPureFieldKey)
 
-internal var IrClass.isNonCachedSourceFileFacade: Boolean by irFlag(followAttributeOwner = false)
+internal var IrClass.isNonCachedSourceFileFacade: Boolean by irFlag(copyByDefault = false)
 
 /**
  * Opt-in to this annotation indicates that some code uses annotated function but it actually shouldn't

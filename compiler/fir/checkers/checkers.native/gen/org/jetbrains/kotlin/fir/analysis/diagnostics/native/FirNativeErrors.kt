@@ -21,8 +21,10 @@ import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.psi.KtElement
+import org.jetbrains.kotlin.psi.KtTypeReference
 
 /**
  * Generated from: [org.jetbrains.kotlin.fir.checkers.generator.diagnostics.NATIVE_DIAGNOSTICS_LIST]
@@ -67,6 +69,8 @@ object FirNativeErrors {
     val CONSTRUCTOR_MATCHES_SEVERAL_SUPER_CONSTRUCTORS: KtDiagnosticFactory1<FqName> = KtDiagnosticFactory1("CONSTRUCTOR_MATCHES_SEVERAL_SUPER_CONSTRUCTORS", ERROR, SourceElementPositioningStrategies.DEFAULT, KtElement::class)
     val CONFLICTING_OBJC_OVERLOADS: KtDiagnosticFactory1<Collection<FirBasedSymbol<*>>> = KtDiagnosticFactory1("CONFLICTING_OBJC_OVERLOADS", ERROR, SourceElementPositioningStrategies.DEFAULT, PsiElement::class)
     val INAPPLICABLE_OBJC_OVERRIDE: KtDiagnosticFactory0 = KtDiagnosticFactory0("INAPPLICABLE_OBJC_OVERRIDE", ERROR, SourceElementPositioningStrategies.DEFAULT, PsiElement::class)
+    val NATIVE_SPECIFIC_ATOMIC: KtDiagnosticFactory1<Name> = KtDiagnosticFactory1("NATIVE_SPECIFIC_ATOMIC", WARNING, SourceElementPositioningStrategies.DEFAULT, KtTypeReference::class)
+    val IDENTITY_HASH_CODE_ON_VALUE_TYPE: KtDiagnosticFactory1<ConeKotlinType> = KtDiagnosticFactory1("IDENTITY_HASH_CODE_ON_VALUE_TYPE", WARNING, SourceElementPositioningStrategies.DEFAULT, KtElement::class)
 
     init {
         RootDiagnosticRendererFactory.registerFactory(FirNativeErrorsDefaultMessages)

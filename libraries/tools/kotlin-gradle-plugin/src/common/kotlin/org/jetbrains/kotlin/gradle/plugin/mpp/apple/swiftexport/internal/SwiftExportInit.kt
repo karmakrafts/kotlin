@@ -11,7 +11,6 @@ import org.gradle.api.attributes.Category
 import org.gradle.api.attributes.LibraryElements
 import org.gradle.api.attributes.Usage
 import org.jetbrains.kotlin.gradle.internal.KOTLIN_MODULE_GROUP
-import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.Companion.kotlinPropertiesProvider
 import org.jetbrains.kotlin.gradle.plugin.categoryByName
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnosticsCollector
@@ -32,10 +31,8 @@ private const val SWIFT_EXPORT_EMBEDDABLE_MODULE = "swift-export-embeddable"
 internal const val SWIFT_EXPORT_MODULE_NAME_PATTERN = "^[A-Za-z0-9_]+$"
 
 internal fun Project.initSwiftExportClasspathConfigurations() {
-    if (project.kotlinPropertiesProvider.swiftExportEnabled) {
-        maybeCreateSwiftExportClasspathDependenciesConfiguration()
-        SwiftExportClasspathResolvableConfiguration
-    }
+    maybeCreateSwiftExportClasspathDependenciesConfiguration()
+    SwiftExportClasspathResolvableConfiguration
 }
 
 private fun Project.maybeCreateSwiftExportClasspathDependenciesConfiguration(): Configuration {
@@ -53,9 +50,9 @@ private fun Project.maybeCreateSwiftExportClasspathDependenciesConfiguration(): 
 internal val Project.SwiftExportClasspathResolvableConfiguration: Configuration
     get() = configurations.maybeCreateResolvable(SWIFT_EXPORT_CLASSPATH_RESOLVABLE) {
         description = "Resolves the runtime classpath for the SwiftExport worker."
-        attributes.setAttribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
-        attributes.setAttribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
-        attributes.setAttribute(Usage.USAGE_ATTRIBUTE, usageByName(Usage.JAVA_RUNTIME))
+        attributes.attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+        attributes.attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
+        attributes.attribute(Usage.USAGE_ATTRIBUTE, usageByName(Usage.JAVA_RUNTIME))
         extendsFrom(maybeCreateSwiftExportClasspathDependenciesConfiguration())
     }
 
@@ -69,8 +66,8 @@ internal fun KotlinNativeTarget.exportedSwiftExportApiConfiguration(buildType: N
         isVisible = false
         isTransitive = false
         usesPlatformOf(this@exportedSwiftExportApiConfiguration)
-        attributes.setAttribute(Category.CATEGORY_ATTRIBUTE, project.categoryByName(Category.LIBRARY))
-        attributes.setAttribute(Usage.USAGE_ATTRIBUTE, project.objects.named(KotlinUsages.KOTLIN_API))
+        attributes.attribute(Category.CATEGORY_ATTRIBUTE, project.categoryByName(Category.LIBRARY))
+        attributes.attribute(Usage.USAGE_ATTRIBUTE, project.objects.named(KotlinUsages.KOTLIN_API))
     }
 
 internal val String.normalizedSwiftExportModuleName get() = dashSeparatedToUpperCamelCase(this)

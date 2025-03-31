@@ -413,11 +413,11 @@ private val coroutinesLivenessAnalysisPhase = createFileLoweringPhase(
         lowering = { context: NativeGenerationState ->
             object : BodyLoweringPass {
                 override fun lower(irBody: IrBody, container: IrDeclaration) {
-                    val liveVariablesAtSuspensionPoints = context.liveVariablesAtSuspensionPoints
                     LivenessAnalysis.run(irBody) { it is IrSuspensionPoint }
                             .forEach { (irElement, liveVariables) ->
-                                liveVariablesAtSuspensionPoints[irElement as IrSuspensionPoint] = liveVariables
+                                (irElement as IrSuspensionPoint).liveVariablesAtSuspensionPoint = liveVariables
                             }
+                    context.coroutinesLivenessAnalysisPhasePerformed = true
                 }
             }
         },
@@ -549,7 +549,6 @@ internal val constEvaluationPhase = createFileLoweringPhase(
 )
 
 internal fun getLoweringsUpToAndIncludingSyntheticAccessors(): LoweringList = listOfNotNull(
-        interopPhase,
         testProcessorPhase,
         upgradeCallableReferencesPhase,
         assertionWrapperPhase,
@@ -563,6 +562,7 @@ internal fun getLoweringsUpToAndIncludingSyntheticAccessors(): LoweringList = li
 )
 
 internal fun KonanConfig.getLoweringsAfterInlining(): LoweringList = listOfNotNull(
+        interopPhase,
         specialInteropIntrinsicsPhase,
         dumpTestsPhase.takeIf { this.configuration.getNotNull(KonanConfigKeys.GENERATE_TEST_RUNNER) != TestRunnerKind.NONE },
         removeExpectDeclarationsPhase,

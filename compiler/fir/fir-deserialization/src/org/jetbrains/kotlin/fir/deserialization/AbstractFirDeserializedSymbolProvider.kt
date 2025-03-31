@@ -70,19 +70,14 @@ abstract class LibraryPathFilter {
     }
 
     class LibraryList(libs: Set<Path>) : LibraryPathFilter() {
-        val libs: Set<Path> = libs.mapTo(mutableSetOf()) { it.normalize() }
+        val libs: Set<Path> = libs.mapNotNullTo(mutableSetOf()) {
+            it.normalize().takeIf { it.exists() }?.toRealPath()
+        }
 
         override fun accepts(path: Path?): Boolean {
             if (path == null) return false
-            val isPathAbsolute = path.isAbsolute
-            val realPath by lazy(LazyThreadSafetyMode.NONE) { path.toRealPath() }
-            return libs.any {
-                when {
-                    it.isAbsolute && !isPathAbsolute -> realPath.startsWith(it)
-                    !it.isAbsolute && isPathAbsolute && it.exists() -> path.startsWith(it.toRealPath())
-                    else -> path.startsWith(it)
-                }
-            }
+            val realPath = path.toRealPath()
+            return libs.any { realPath.startsWith(it) }
         }
     }
 }
@@ -204,7 +199,6 @@ abstract class AbstractFirDeserializedSymbolProvider(
             val annotationDeserializer: AbstractAnnotationDeserializer?,
             val moduleData: FirModuleData?,
             val sourceElement: DeserializedContainerSource?,
-            val classPostProcessor: DeserializedClassPostProcessor?,
             val flexibleTypeFactory: FirTypeDeserializer.FlexibleTypeFactory,
         ) : ClassMetadataFindResult()
     }
@@ -230,7 +224,7 @@ abstract class AbstractFirDeserializedSymbolProvider(
         return when (val result = extractClassMetadata(classId, parentContext)) {
             is ClassMetadataFindResult.NoMetadata -> FirRegularClassSymbol(classId) to result.classPostProcessor
             is ClassMetadataFindResult.Metadata -> {
-                val (nameResolver, classProto, annotationDeserializer, moduleData, sourceElement, postProcessor) = result
+                val (nameResolver, classProto, annotationDeserializer, moduleData, sourceElement) = result
                 moduleData ?: return null to null
                 val symbol = FirRegularClassSymbol(classId)
                 deserializeClassToSymbol(
@@ -250,7 +244,7 @@ abstract class AbstractFirDeserializedSymbolProvider(
                     deserializeNestedClass = this::getClass,
                 )
                 symbol.fir.isNewPlaceForBodyGeneration = isNewPlaceForBodyGeneration(classProto)
-                symbol to postProcessor
+                symbol to null
             }
             null -> null to null
         }

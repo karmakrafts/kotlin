@@ -21,7 +21,6 @@ import org.jetbrains.kotlin.fir.resolve.providers.impl.FirBuiltinSyntheticFuncti
 import org.jetbrains.kotlin.fir.resolve.providers.impl.syntheticFunctionInterfacesSymbolProvider
 import org.jetbrains.kotlin.fir.session.*
 import org.jetbrains.kotlin.fir.session.environment.AbstractProjectFileSearchScope
-import org.jetbrains.kotlin.incremental.components.LookupTracker
 import org.jetbrains.kotlin.library.KotlinLibrary
 import org.jetbrains.kotlin.library.metadata.resolver.KotlinResolvedLibrary
 import org.jetbrains.kotlin.load.kotlin.PackageAndMetadataPartProvider
@@ -36,7 +35,6 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.multiplatform.hmppModuleName
 import org.jetbrains.kotlin.resolve.multiplatform.isCommonSource
 import org.jetbrains.kotlin.wasm.config.WasmConfigurationKeys
-import org.jetbrains.kotlin.wasm.config.wasmTarget
 
 val isCommonSourceForPsi: (KtFile) -> Boolean = { it.isCommonSource == true }
 val fileBelongsToModuleForPsi: (KtFile, String) -> Boolean = { file, moduleName -> file.hmppModuleName == moduleName }
@@ -115,34 +113,12 @@ fun <F> prepareJsSessions(
     extensionRegistrars: List<FirExtensionRegistrar>,
     isCommonSource: (F) -> Boolean,
     fileBelongsToModule: (F, String) -> Boolean,
-    lookupTracker: LookupTracker?,
     icData: KlibIcData?,
 ): List<SessionWithSources<F>> {
-    return SessionConstructionUtils.prepareSessions(
-        files, configuration, rootModuleName, JsPlatforms.defaultJsPlatform,
-        metadataCompilationMode = false, libraryList, isCommonSource, isScript = { false },
-        fileBelongsToModule,
-        createLibrarySession = { sessionProvider ->
-            FirJsSessionFactory.createLibrarySession(
-                rootModuleName,
-                resolvedLibraries,
-                sessionProvider,
-                libraryList.moduleDataProvider,
-                extensionRegistrars,
-                configuration,
-            )
-        }
-    ) { _, moduleData, sessionProvider, sessionConfigurator ->
-        FirJsSessionFactory.createModuleBasedSession(
-            moduleData,
-            sessionProvider,
-            extensionRegistrars,
-            configuration,
-            lookupTracker,
-            icData = icData,
-            init = sessionConfigurator,
-        )
-    }
+    return prepareKlibSessions(
+        FirJsSessionFactory, JsPlatforms.defaultJsPlatform, files, configuration, rootModuleName, resolvedLibraries,
+        libraryList, extensionRegistrars, isCommonSource, fileBelongsToModule, metadataCompilationMode = false, icData
+    )
 }
 
 /**
@@ -156,36 +132,17 @@ fun <F> prepareNativeSessions(
     files: List<F>,
     configuration: CompilerConfiguration,
     rootModuleName: Name,
-    resolvedLibraries: List<KotlinResolvedLibrary>,
+    resolvedLibraries: List<KotlinLibrary>,
     libraryList: DependencyListForCliModule,
     extensionRegistrars: List<FirExtensionRegistrar>,
     metadataCompilationMode: Boolean,
     isCommonSource: (F) -> Boolean,
     fileBelongsToModule: (F, String) -> Boolean,
 ): List<SessionWithSources<F>> {
-    return SessionConstructionUtils.prepareSessions(
-        files, configuration, rootModuleName, NativePlatforms.unspecifiedNativePlatform,
-        metadataCompilationMode, libraryList, isCommonSource, isScript = { false },
-        fileBelongsToModule, createLibrarySession = { sessionProvider ->
-            FirNativeSessionFactory.createLibrarySession(
-                rootModuleName,
-                resolvedLibraries,
-                sessionProvider,
-                libraryList.moduleDataProvider,
-                extensionRegistrars,
-                configuration.languageVersionSettings,
-            )
-        }
-    ) { _, moduleData, sessionProvider, sessionConfigurator ->
-        FirNativeSessionFactory.createModuleBasedSession(
-            moduleData,
-            sessionProvider,
-            extensionRegistrars,
-            configuration.languageVersionSettings,
-            configuration.useFirExtraCheckers,
-            sessionConfigurator,
-        )
-    }
+    return prepareKlibSessions(
+        FirNativeSessionFactory, NativePlatforms.unspecifiedNativePlatform, files, configuration, rootModuleName, resolvedLibraries,
+        libraryList, extensionRegistrars, isCommonSource, fileBelongsToModule, metadataCompilationMode, icData = null
+    )
 }
 
 /**
@@ -204,37 +161,60 @@ fun <F> prepareWasmSessions(
     extensionRegistrars: List<FirExtensionRegistrar>,
     isCommonSource: (F) -> Boolean,
     fileBelongsToModule: (F, String) -> Boolean,
-    lookupTracker: LookupTracker?,
     icData: KlibIcData?,
 ): List<SessionWithSources<F>> {
     val platform = when (configuration.get(WasmConfigurationKeys.WASM_TARGET, WasmTarget.JS)) {
         WasmTarget.JS -> WasmPlatforms.wasmJs
         WasmTarget.WASI -> WasmPlatforms.wasmWasi
     }
+    return prepareKlibSessions(
+        FirWasmSessionFactory, platform, files, configuration, rootModuleName, resolvedLibraries, libraryList, extensionRegistrars,
+        isCommonSource, fileBelongsToModule, metadataCompilationMode = false, icData,
+    )
+}
+
+private fun <F> prepareKlibSessions(
+    sessionFactory: AbstractFirKlibSessionFactory<*, *>,
+    platform: TargetPlatform,
+    files: List<F>,
+    configuration: CompilerConfiguration,
+    rootModuleName: Name,
+    resolvedLibraries: List<KotlinLibrary>,
+    libraryList: DependencyListForCliModule,
+    extensionRegistrars: List<FirExtensionRegistrar>,
+    isCommonSource: (F) -> Boolean,
+    fileBelongsToModule: (F, String) -> Boolean,
+    metadataCompilationMode: Boolean,
+    icData: KlibIcData?,
+): List<SessionWithSources<F>> {
     return SessionConstructionUtils.prepareSessions(
         files, configuration, rootModuleName, platform,
-        metadataCompilationMode = false, libraryList, isCommonSource, isScript = { false },
+        metadataCompilationMode, libraryList, isCommonSource, isScript = { false },
         fileBelongsToModule,
-        createLibrarySession = { sessionProvider ->
-            FirWasmSessionFactory.createLibrarySession(
+        createSharedLibrarySession = { sessionProvider ->
+            sessionFactory.createSharedLibrarySession(
                 rootModuleName,
+                sessionProvider,
+                configuration,
+                extensionRegistrars,
+            )
+        },
+        createLibrarySession = { sessionProvider, sharedLibrarySession ->
+            sessionFactory.createLibrarySession(
                 resolvedLibraries,
                 sessionProvider,
+                sharedLibrarySession,
                 libraryList.moduleDataProvider,
                 extensionRegistrars,
-                configuration.languageVersionSettings,
-                configuration.wasmTarget,
+                configuration,
             )
         }
     ) { _, moduleData, sessionProvider, sessionConfigurator ->
-        FirWasmSessionFactory.createModuleBasedSession(
+        sessionFactory.createSourceSession(
             moduleData,
             sessionProvider,
             extensionRegistrars,
-            configuration.languageVersionSettings,
-            configuration.useFirExtraCheckers,
-            configuration.wasmTarget,
-            lookupTracker,
+            configuration,
             icData = icData,
             init = sessionConfigurator,
         )
@@ -246,7 +226,7 @@ fun <F> prepareWasmSessions(
  * Number of created sessions is always one, in this mode modules are compiled against compiled
  *   metadata of dependent modules
  */
-fun <F> prepareCommonSessions(
+fun <F> prepareMetadataSessions(
     files: List<F>,
     configuration: CompilerConfiguration,
     projectEnvironment: VfsBasedProjectEnvironment,
@@ -259,34 +239,40 @@ fun <F> prepareCommonSessions(
     fileBelongsToModule: (F, String) -> Boolean,
     createProviderAndScopeForIncrementalCompilation: (List<F>) -> IncrementalCompilationContext?,
 ): List<SessionWithSources<F>> {
+    val packagePartProvider = projectEnvironment.getPackagePartProvider(librariesScope) as PackageAndMetadataPartProvider
+    val languageVersionSettings = configuration.languageVersionSettings
     return SessionConstructionUtils.prepareSessions(
         files, configuration, rootModuleName, CommonPlatforms.defaultCommonPlatform,
         metadataCompilationMode = true, libraryList, isCommonSource, isScript = { false }, fileBelongsToModule,
-        createLibrarySession = { sessionProvider ->
-            FirCommonSessionFactory.createLibrarySession(
+        createSharedLibrarySession = { sessionProvider ->
+            FirMetadataSessionFactory.createSharedLibrarySession(
                 rootModuleName,
                 sessionProvider,
+                languageVersionSettings,
+                extensionRegistrars,
+            )
+        },
+        createLibrarySession = { sessionProvider, sharedLibrarySession ->
+            FirMetadataSessionFactory.createLibrarySession(
+                sessionProvider,
+                sharedLibrarySession,
                 libraryList.moduleDataProvider,
                 projectEnvironment,
                 extensionRegistrars,
                 librariesScope,
                 resolvedLibraries,
-                projectEnvironment.getPackagePartProvider(librariesScope) as PackageAndMetadataPartProvider,
-                configuration.languageVersionSettings,
+                packagePartProvider,
+                languageVersionSettings,
             )
         }
     ) { moduleFiles, moduleData, sessionProvider, sessionConfigurator ->
-        FirCommonSessionFactory.createModuleBasedSession(
+        FirMetadataSessionFactory.createSourceSession(
             moduleData,
             sessionProvider,
             projectEnvironment,
             incrementalCompilationContext = createProviderAndScopeForIncrementalCompilation(moduleFiles),
             extensionRegistrars,
-            configuration.languageVersionSettings,
-            configuration.useFirExtraCheckers,
-            lookupTracker = configuration.get(CommonConfigurationKeys.LOOKUP_TRACKER),
-            enumWhenTracker = configuration.get(CommonConfigurationKeys.ENUM_WHEN_TRACKER),
-            importTracker = configuration.get(CommonConfigurationKeys.IMPORT_TRACKER),
+            configuration,
             init = sessionConfigurator
         )
     }
@@ -310,7 +296,8 @@ object SessionConstructionUtils {
         isCommonSource: (F) -> Boolean,
         isScript: (F) -> Boolean,
         fileBelongsToModule: (F, String) -> Boolean,
-        createLibrarySession: (FirProjectSessionProvider) -> FirSession,
+        createSharedLibrarySession: (FirProjectSessionProvider) -> FirSession,
+        createLibrarySession: (FirProjectSessionProvider, sharedLibrarySession: FirSession) -> FirSession,
         createSourceSession: FirSessionProducer<F>,
     ): List<SessionWithSources<F>> {
         val languageVersionSettings = configuration.languageVersionSettings
@@ -324,7 +311,8 @@ object SessionConstructionUtils {
         val hmppModuleStructure = configuration.get(CommonConfigurationKeys.HMPP_MODULE_STRUCTURE)
         val sessionProvider = FirProjectSessionProvider()
 
-        val librarySession = createLibrarySession(sessionProvider)
+        val sharedLibrarySession = createSharedLibrarySession(sessionProvider)
+        val librarySession = createLibrarySession(sessionProvider, sharedLibrarySession)
         val extraAnalysisMode = configuration.useFirExtraCheckers
         val experimentalAnalysisMode = configuration.useFirExperimentalCheckers
         val sessionConfigurator: FirSessionConfigurator.() -> Unit = {
@@ -379,10 +367,11 @@ object SessionConstructionUtils {
     ): SessionWithSources<F> =
         createSingleSession(
             scripts, Name.identifier("${rootModuleName.asString()}-scripts"),
+            @OptIn(PrivateSessionConstructor::class)
             DependencyListForCliModule(
                 libraryList.regularDependencies,
                 listOf(lastModuleData),
-                libraryList.friendsDependencies,
+                libraryList.friendDependencies,
                 libraryList.moduleDataProvider
             ),
             targetPlatform,
@@ -398,11 +387,11 @@ object SessionConstructionUtils {
         noinline sessionConfigurator: FirSessionConfigurator.() -> Unit,
         createFirSession: FirSessionProducer<F>,
     ): SessionWithSources<F> {
-        val platformModuleData = FirModuleDataImpl(
+        val platformModuleData = FirSourceModuleData(
             rootModuleName,
             libraryList.regularDependencies,
             libraryList.dependsOnDependencies,
-            libraryList.friendsDependencies,
+            libraryList.friendDependencies,
             targetPlatform,
         )
 
@@ -423,20 +412,20 @@ object SessionConstructionUtils {
         isCommonSource: (F) -> Boolean,
         createFirSession: FirSessionProducer<F>,
     ): List<SessionWithSources<F>> {
-        val commonModuleData = FirModuleDataImpl(
+        val commonModuleData = FirSourceModuleData(
             Name.identifier("${rootModuleName.asString()}-common"),
             libraryList.regularDependencies,
             listOf(),
-            libraryList.friendsDependencies,
+            libraryList.friendDependencies,
             targetPlatform,
             isCommon = true
         )
 
-        val platformModuleData = FirModuleDataImpl(
+        val platformModuleData = FirSourceModuleData(
             rootModuleName,
             libraryList.regularDependencies,
             listOf(commonModuleData),
-            libraryList.friendsDependencies,
+            libraryList.friendDependencies,
             targetPlatform,
             isCommon = false
         )
@@ -483,11 +472,11 @@ object SessionConstructionUtils {
             } else {
                 Name.special("<${module.name}>")
             }
-            val moduleData = FirModuleDataImpl(
+            val moduleData = FirSourceModuleData(
                 moduleName,
                 libraryList.regularDependencies,
                 dependsOnDependencies = dependencies,
-                libraryList.friendsDependencies,
+                libraryList.friendDependencies,
                 targetPlatform,
                 isCommon = index < hmppModuleStructure.modules.size - 1
             )

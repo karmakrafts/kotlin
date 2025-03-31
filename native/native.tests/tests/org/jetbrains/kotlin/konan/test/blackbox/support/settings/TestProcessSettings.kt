@@ -182,7 +182,6 @@ enum class GCScheduler(val compilerFlag: String?) {
 enum class Allocator(val compilerFlag: String?) {
     UNSPECIFIED(null),
     STD("-Xallocator=std"),
-    MIMALLOC("-Xallocator=mimalloc"),
     CUSTOM("-Xallocator=custom");
 
     override fun toString() = compilerFlag?.let { "($it)" }.orEmpty()
@@ -263,7 +262,7 @@ sealed class CacheMode {
             cacheKind: String,
             debuggable: Boolean,
             partialLinkageEnabled: Boolean
-        ) = "$testTarget${if (debuggable) "-g" else ""}$cacheKind${if (partialLinkageEnabled) "-pl" else ""}"
+        ) = "$testTarget${if (debuggable) "-g" else ""}${cacheKind}-user${if (partialLinkageEnabled) "-pl" else ""}"
     }
 }
 

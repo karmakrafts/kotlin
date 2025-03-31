@@ -5,11 +5,14 @@
 
 package org.jetbrains.kotlin.test.backend.handlers
 
+import org.jetbrains.kotlin.backend.common.DumpIrReferenceRenderingAsSignatureStrategy
 import org.jetbrains.kotlin.builtins.StandardNames.DEFAULT_VALUE_PARAMETER
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin.Companion.IR_EXTERNAL_DECLARATION_STUB
 import org.jetbrains.kotlin.ir.expressions.IrDeclarationReference
+import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
 import org.jetbrains.kotlin.ir.util.DumpIrTreeOptions
+import org.jetbrains.kotlin.ir.util.DumpIrTreeOptions.ReferenceRenderingStrategy
 import org.jetbrains.kotlin.ir.util.dumpTreesFromLineNumber
 import org.jetbrains.kotlin.ir.util.resolveFakeOverride
 import org.jetbrains.kotlin.test.backend.ir.IrBackendInput
@@ -117,6 +120,32 @@ class SerializedIrDumpHandler(
             printParameterNamesInOverriddenSymbols = false,
 
             /**
+             * Names of type and value parameters are not a part of ABI (except for the single existing case in Kotlin/Native related to
+             * names of value parameters, which should be covered with a separate bunch of tests).
+             *
+             * When running IR deserialization tests running with the enabled IR inliner, it may happen that some [IrMemberAccessExpression]
+             * refers to an unbound function symbol. It means that for such an expression it's not possible to get a function to collect
+             * real type and value parameter names. Thus, the expression is rendered with just indices instead of names:
+             * ```
+             * CALL[1159, 1181] ...
+             *     TYPE_ARG 1: kotlin.Array<kotlin.Any?>
+             *     ARG 1: TYPE_OP[1150, 1158] type=kotlin.Array<out kotlin.Any?> ...
+             * ```
+             *
+             * However, after the deserialization, the function symbol in the expression becomes bound, and it's possible to collect
+             * real names now:
+             * ```
+             * CALL[1159, 1181] ...
+             *     TYPE_ARG T: kotlin.Array<kotlin.Any?>
+             *     ARG <this>: TYPE_OP[1150, 1158] type=kotlin.Array<out kotlin.Any?> ...
+             * ```
+             *
+             * To overcome this artificial difference in IR dumps taken before serialization and after deserialization, the names
+             * of type and value parameters in [IrMemberAccessExpression]s can be forcefully replaced by their indices.
+             */
+            printMemberAccessExpressionArgumentNames = false,
+
+            /**
              * Sealed subclasses are not deserialized from KLIBs, so we need to wipe them out from dumps.
              * For details see KT-54028,
              * and in particular the commit https://github.com/jetbrains/kotlin/commit/3713d95bb1fc0cc434eeed42a0f0adac52af091b
@@ -189,6 +218,15 @@ class SerializedIrDumpHandler(
              * ```
              */
             printAnnotationsInFakeOverrides = false,
+
+            /**
+             * It may happen that after running the IR inliner at the 1st phase of compilation, there are unbound symbols in
+             * various flavors of [IrDeclarationReference] expressions. For such expressions, the IR dumper just renders
+             * the standard "unbound symbol" text. Which leads to diverging ID dumps.
+             * To work around this, we use a custom [ReferenceRenderingStrategy] that, for non-private and non-local declarations,
+             * renders signatures instead of KT-like representation of the symbol owner.
+             */
+            referenceRenderingStrategy = DumpIrReferenceRenderingAsSignatureStrategy(info.irMangler),
         )
 
         val builder = dumper.builderForModule(module.name)

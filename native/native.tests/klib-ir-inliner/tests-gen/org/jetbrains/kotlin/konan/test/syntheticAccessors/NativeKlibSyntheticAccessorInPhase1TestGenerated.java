@@ -10,7 +10,6 @@ import org.jetbrains.kotlin.test.util.KtTestUtil;
 import org.jetbrains.kotlin.konan.test.blackbox.support.EnforcedProperty;
 import org.jetbrains.kotlin.konan.test.blackbox.support.ClassLevelProperty;
 import org.jetbrains.kotlin.konan.test.blackbox.support.group.UseExtTestCaseGroupProvider;
-import org.jetbrains.kotlin.konan.test.blackbox.support.group.FirPipeline;
 import org.jetbrains.kotlin.test.TargetBackend;
 import org.jetbrains.kotlin.test.TestMetadata;
 import org.junit.jupiter.api.Nested;
@@ -26,7 +25,6 @@ import java.util.regex.Pattern;
 @EnforcedProperty(property = ClassLevelProperty.TEST_KIND, propertyValue = "STANDALONE")
 @EnforcedProperty(property = ClassLevelProperty.CACHE_MODE, propertyValue = "NO")
 @UseExtTestCaseGroupProvider()
-@FirPipeline()
 public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNativeKlibSyntheticAccessorInPhase1Test {
   @Test
   public void testAllFilesPresentInSyntheticAccessors() {
@@ -39,7 +37,6 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
   @EnforcedProperty(property = ClassLevelProperty.TEST_KIND, propertyValue = "STANDALONE")
   @EnforcedProperty(property = ClassLevelProperty.CACHE_MODE, propertyValue = "NO")
   @UseExtTestCaseGroupProvider()
-  @FirPipeline()
   public class OuterThis {
     @Test
     public void testAllFilesPresentInOuterThis() {
@@ -52,7 +49,6 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
     @EnforcedProperty(property = ClassLevelProperty.TEST_KIND, propertyValue = "STANDALONE")
     @EnforcedProperty(property = ClassLevelProperty.CACHE_MODE, propertyValue = "NO")
     @UseExtTestCaseGroupProvider()
-    @FirPipeline()
     public class CrossFileLeak {
       @Test
       public void testAllFilesPresentInCrossFileLeak() {
@@ -132,7 +128,6 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
     @EnforcedProperty(property = ClassLevelProperty.TEST_KIND, propertyValue = "STANDALONE")
     @EnforcedProperty(property = ClassLevelProperty.CACHE_MODE, propertyValue = "NO")
     @UseExtTestCaseGroupProvider()
-    @FirPipeline()
     public class CrossModuleLeak {
       @Test
       public void testAllFilesPresentInCrossModuleLeak() {
@@ -212,7 +207,6 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
     @EnforcedProperty(property = ClassLevelProperty.TEST_KIND, propertyValue = "STANDALONE")
     @EnforcedProperty(property = ClassLevelProperty.CACHE_MODE, propertyValue = "NO")
     @UseExtTestCaseGroupProvider()
-    @FirPipeline()
     public class SingleFile {
       @Test
       public void testAllFilesPresentInSingleFile() {
@@ -293,7 +287,6 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
   @EnforcedProperty(property = ClassLevelProperty.TEST_KIND, propertyValue = "STANDALONE")
   @EnforcedProperty(property = ClassLevelProperty.CACHE_MODE, propertyValue = "NO")
   @UseExtTestCaseGroupProvider()
-  @FirPipeline()
   public class PrivateMember {
     @Test
     public void testAllFilesPresentInPrivateMember() {
@@ -306,7 +299,6 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
     @EnforcedProperty(property = ClassLevelProperty.TEST_KIND, propertyValue = "STANDALONE")
     @EnforcedProperty(property = ClassLevelProperty.CACHE_MODE, propertyValue = "NO")
     @UseExtTestCaseGroupProvider()
-    @FirPipeline()
     public class CrossFilePrivateLeak {
       @Test
       public void testAllFilesPresentInCrossFilePrivateLeak() {
@@ -582,6 +574,12 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
       public void testUsePrivateConstValFromInternalInline() {
         runTest("compiler/testData/klib/syntheticAccessors/privateMember/crossFilePrivateLeak/usePrivateConstValFromInternalInline.kt");
       }
+
+      @Test
+      @TestMetadata("usePrivateVarFromLocalClassInsideInternalInlineFun.kt")
+      public void testUsePrivateVarFromLocalClassInsideInternalInlineFun() {
+        runTest("compiler/testData/klib/syntheticAccessors/privateMember/crossFilePrivateLeak/usePrivateVarFromLocalClassInsideInternalInlineFun.kt");
+      }
     }
 
     @Nested
@@ -590,7 +588,6 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
     @EnforcedProperty(property = ClassLevelProperty.TEST_KIND, propertyValue = "STANDALONE")
     @EnforcedProperty(property = ClassLevelProperty.CACHE_MODE, propertyValue = "NO")
     @UseExtTestCaseGroupProvider()
-    @FirPipeline()
     public class CrossModulePrivateLeak {
       @Test
       public void testAllFilesPresentInCrossModulePrivateLeak() {
@@ -874,7 +871,6 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
     @EnforcedProperty(property = ClassLevelProperty.TEST_KIND, propertyValue = "STANDALONE")
     @EnforcedProperty(property = ClassLevelProperty.CACHE_MODE, propertyValue = "NO")
     @UseExtTestCaseGroupProvider()
-    @FirPipeline()
     public class SingleFile {
       @Test
       public void testAllFilesPresentInSingleFile() {
@@ -1033,7 +1029,6 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
   @EnforcedProperty(property = ClassLevelProperty.TEST_KIND, propertyValue = "STANDALONE")
   @EnforcedProperty(property = ClassLevelProperty.CACHE_MODE, propertyValue = "NO")
   @UseExtTestCaseGroupProvider()
-  @FirPipeline()
   public class TopLevelPrivate {
     @Test
     public void testAllFilesPresentInTopLevelPrivate() {
@@ -1046,7 +1041,6 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
     @EnforcedProperty(property = ClassLevelProperty.TEST_KIND, propertyValue = "STANDALONE")
     @EnforcedProperty(property = ClassLevelProperty.CACHE_MODE, propertyValue = "NO")
     @UseExtTestCaseGroupProvider()
-    @FirPipeline()
     public class CrossFilePrivateLeak {
       @Test
       public void testAllFilesPresentInCrossFilePrivateLeak() {
@@ -1216,7 +1210,6 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
     @EnforcedProperty(property = ClassLevelProperty.TEST_KIND, propertyValue = "STANDALONE")
     @EnforcedProperty(property = ClassLevelProperty.CACHE_MODE, propertyValue = "NO")
     @UseExtTestCaseGroupProvider()
-    @FirPipeline()
     public class CrossModulePrivateLeak {
       @Test
       public void testAllFilesPresentInCrossModulePrivateLeak() {
@@ -1386,7 +1379,6 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
     @EnforcedProperty(property = ClassLevelProperty.TEST_KIND, propertyValue = "STANDALONE")
     @EnforcedProperty(property = ClassLevelProperty.CACHE_MODE, propertyValue = "NO")
     @UseExtTestCaseGroupProvider()
-    @FirPipeline()
     public class SingleFile {
       @Test
       public void testAllFilesPresentInSingleFile() {
@@ -1403,18 +1395,6 @@ public class NativeKlibSyntheticAccessorInPhase1TestGenerated extends AbstractNa
       @TestMetadata("useLateinitIsInitializedFromInternalInline.kt")
       public void testUseLateinitIsInitializedFromInternalInline() {
         runTest("compiler/testData/klib/syntheticAccessors/topLevelPrivate/singleFile/useLateinitIsInitializedFromInternalInline.kt");
-      }
-
-      @Test
-      @TestMetadata("usePrivateClassThroughGenericType.kt")
-      public void testUsePrivateClassThroughGenericType() {
-        runTest("compiler/testData/klib/syntheticAccessors/topLevelPrivate/singleFile/usePrivateClassThroughGenericType.kt");
-      }
-
-      @Test
-      @TestMetadata("usePrivateClassThroughtPrivateTopLevelFun.kt")
-      public void testUsePrivateClassThroughtPrivateTopLevelFun() {
-        runTest("compiler/testData/klib/syntheticAccessors/topLevelPrivate/singleFile/usePrivateClassThroughtPrivateTopLevelFun.kt");
       }
 
       @Test

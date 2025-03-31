@@ -77,14 +77,29 @@ interface TypeSystemBuiltInsContext {
 /**
  * Context that allow construction of types
  */
-interface TypeSystemTypeFactoryContext: TypeSystemBuiltInsContext {
+interface TypeSystemTypeFactoryContext : TypeSystemContext, TypeSystemBuiltInsContext {
     fun createFlexibleType(lowerBound: RigidTypeMarker, upperBound: RigidTypeMarker): KotlinTypeMarker
+
+    fun createTrivialFlexibleTypeOrSelf(lowerBound: KotlinTypeMarker): KotlinTypeMarker {
+        if (lowerBound.isFlexible()) return lowerBound
+        return createFlexibleType(lowerBound.lowerBoundIfFlexible(), lowerBound.lowerBoundIfFlexible().withNullability(true))
+    }
+
+    fun isTriviallyFlexible(flexibleType: FlexibleTypeMarker): Boolean = false
+
+    fun makeLowerBoundDefinitelyNotNullOrNotNull(flexibleType: FlexibleTypeMarker): KotlinTypeMarker {
+        return createFlexibleType(
+            flexibleType.lowerBound().makeDefinitelyNotNullOrNotNull(),
+            flexibleType.upperBound()
+        )
+    }
+
     fun createSimpleType(
         constructor: TypeConstructorMarker,
         arguments: List<TypeArgumentMarker>,
         nullable: Boolean,
         isExtensionFunction: Boolean = false,
-        attributes: List<AnnotationMarker>? = null
+        attributes: List<AnnotationMarker>? = null,
     ): SimpleTypeMarker
 
     fun createTypeArgument(type: KotlinTypeMarker, variance: TypeVariance): TypeArgumentMarker
@@ -319,6 +334,7 @@ interface TypeSystemInferenceExtensionContext : TypeSystemContext, TypeSystemBui
      *
      * In future once we have only K2 (or FE 1.0 behavior is fixed) this method should be inlined to the use-site
      * TODO: Get rid of this function once KT-59138 is fixed and the relevant feature for disabling it will be removed
+     * In fact it may be done during the fix of KT-76065 (dropping JavaTypeParameterDefaultRepresentationWithDNN)
      */
     fun useRefinedBoundsForTypeVariableInFlexiblePosition(): Boolean
 
@@ -357,6 +373,8 @@ interface TypeSystemInferenceExtensionContext : TypeSystemContext, TypeSystemBui
         EmptyIntersectionTypeChecker.computeEmptyIntersectionEmptiness(this, types)
 
     val isK2: Boolean
+
+    val allowSemiFixationToOtherTypeVariables: Boolean get() = false
 }
 
 

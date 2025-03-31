@@ -440,11 +440,17 @@ abstract class FirVisitor<out R, in D> {
     open fun visitErrorNamedReference(errorNamedReference: FirErrorNamedReference, data: D): R =
         visitElement(errorNamedReference, data)
 
+    open fun visitErrorSuperReference(errorSuperReference: FirErrorSuperReference, data: D): R =
+        visitElement(errorSuperReference, data)
+
     open fun visitIntersectionTypeRef(intersectionTypeRef: FirIntersectionTypeRef, data: D): R =
         visitElement(intersectionTypeRef, data)
 
     open fun visitThisReceiverExpression(thisReceiverExpression: FirThisReceiverExpression, data: D): R =
         visitElement(thisReceiverExpression, data)
+
+    open fun visitSuperReceiverExpression(superReceiverExpression: FirSuperReceiverExpression, data: D): R =
+        visitElement(superReceiverExpression, data)
 
     open fun visitInaccessibleReceiverExpression(inaccessibleReceiverExpression: FirInaccessibleReceiverExpression, data: D): R =
         visitElement(inaccessibleReceiverExpression, data)

@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.ir.interpreter.preprocessor
 
+import org.jetbrains.kotlin.backend.common.linkage.partial.reflectionTargetLinkageError
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.*
@@ -22,7 +23,7 @@ import org.jetbrains.kotlin.name.SpecialNames
 // This code will be optimized but not completely turned into "ab" result.
 class IrInterpreterKCallableNamePreprocessor : IrInterpreterPreprocessor() {
     override fun visitCall(expression: IrCall, data: IrInterpreterPreprocessorData): IrElement {
-        if (!expression.isKCallableNameCall(data.irBuiltIns)) return super.visitCall(expression, data)
+        if (!expression.isInterpretableKCallableNameCall(data.irBuiltIns)) return super.visitCall(expression, data)
         return handleCallableReference(expression, data)
     }
 
@@ -30,8 +31,7 @@ class IrInterpreterKCallableNamePreprocessor : IrInterpreterPreprocessor() {
         val callableReference = expression.dispatchReceiver
         val boundArgs = when (callableReference) {
             is IrCallableReference<*> -> callableReference.arguments.filterNotNull()
-            is IrRichPropertyReference -> callableReference.boundValues.toList() // make a copy
-            is IrRichFunctionReference -> callableReference.boundValues.toList() // make a copy
+            is IrRichCallableReference<*> -> callableReference.boundValues.toList() // make a copy
             else -> return super.visitCall(expression, data)
         }
 
@@ -58,8 +58,7 @@ class IrInterpreterKCallableNamePreprocessor : IrInterpreterPreprocessor() {
         // Callable reference shouldn't have any bound arguments
         when (callableReference) {
             is IrCallableReference<*> -> callableReference.arguments.fill(null)
-            is IrRichPropertyReference -> callableReference.boundValues.clear()
-            is IrRichFunctionReference -> callableReference.boundValues.clear()
+            is IrRichCallableReference<*> -> callableReference.boundValues.clear()
             else -> return super.visitCall(expression, data)
         }
 
@@ -73,9 +72,14 @@ class IrInterpreterKCallableNamePreprocessor : IrInterpreterPreprocessor() {
     }
 
     companion object {
-        fun IrCall.isKCallableNameCall(irBuiltIns: IrBuiltIns): Boolean {
+        fun IrCall.isInterpretableKCallableNameCall(irBuiltIns: IrBuiltIns): Boolean {
             val receiver = this.dispatchReceiver
-            if (receiver !is IrCallableReference<*> && receiver !is IrRichPropertyReference && receiver !is IrRichFunctionReference) {
+            if (receiver !is IrCallableReference<*> && receiver !is IrRichCallableReference<*>) {
+                return false
+            }
+
+            if (receiver is IrRichCallableReference<*> && receiver.reflectionTargetLinkageError != null) {
+                // There was a partial linkage error of reflectionTargetSymbol -> we don't have accurate information about the callable's name.
                 return false
             }
 

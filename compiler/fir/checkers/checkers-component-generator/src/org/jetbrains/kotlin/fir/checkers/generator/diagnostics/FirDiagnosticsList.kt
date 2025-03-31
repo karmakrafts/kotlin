@@ -285,6 +285,7 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         val SUPERTYPE_IS_EXTENSION_FUNCTION_TYPE by error<KtElement>()
         val SINGLETON_IN_SUPERTYPE by error<KtElement>()
         val NULLABLE_SUPERTYPE by error<KtElement>(PositioningStrategy.QUESTION_MARK_BY_TYPE)
+        val NULLABLE_SUPERTYPE_THROUGH_TYPEALIAS by deprecationError<KtElement>(LanguageFeature.ProhibitNullableTypeThroughTypealias)
         val MANY_CLASSES_IN_SUPERTYPE_LIST by error<KtElement>()
         val SUPERTYPE_APPEARS_TWICE by error<KtElement>()
         val CLASS_IN_SUPERTYPE_FOR_ENUM by error<KtElement>()
@@ -372,8 +373,8 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         val MISSING_VAL_ON_ANNOTATION_PARAMETER by error<KtParameter>()
         val NON_CONST_VAL_USED_IN_CONSTANT_EXPRESSION by error<KtExpression>()
         val CYCLE_IN_ANNOTATION_PARAMETER by deprecationError<KtParameter>(LanguageFeature.ProhibitCyclesInAnnotations)
-        val ANNOTATION_CLASS_CONSTRUCTOR_CALL by error<KtCallExpression>()
-        val ENUM_CLASS_CONSTRUCTOR_CALL by error<KtCallExpression>()
+        val ANNOTATION_CLASS_CONSTRUCTOR_CALL by error<KtElement>(PositioningStrategy.SELECTOR_BY_QUALIFIED)
+        val ENUM_CLASS_CONSTRUCTOR_CALL by error<KtElement>(PositioningStrategy.SELECTOR_BY_QUALIFIED)
         val NOT_AN_ANNOTATION_CLASS by error<PsiElement> {
             parameter<String>("annotationName")
         }
@@ -417,6 +418,9 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
             parameter<String>("useSiteTarget")
             parameter<Collection<KotlinTarget>>("allowedTargets")
         }
+        val ANNOTATION_WITH_USE_SITE_TARGET_ON_EXPRESSION by deprecationError<KtAnnotationEntry>(
+            LanguageFeature.ForbidAnnotationsWithUseSiteTargetOnExpressions
+        )
         val INAPPLICABLE_TARGET_ON_PROPERTY by error<KtAnnotationEntry> {
             parameter<String>("useSiteDescription")
         }
@@ -463,6 +467,8 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
             parameter<String>("useSiteDescription")
         }
         val ANNOTATIONS_ON_BLOCK_LEVEL_EXPRESSION_ON_THE_SAME_LINE by warning<PsiElement>()
+
+        val IGNORABILITY_ANNOTATIONS_WITH_CHECKER_DISABLED by error<KtAnnotationEntry>()
     }
 
     val OPT_IN by object : DiagnosticGroup("OptIn") {
@@ -735,6 +741,14 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         val NESTED_CLASS_ACCESSED_VIA_INSTANCE_REFERENCE by error<PsiElement> {
             parameter<FirClassLikeSymbol<*>>("symbol")
         }
+
+        val COMPARE_TO_TYPE_MISMATCH by error<KtExpression>(PositioningStrategy.OPERATOR) {
+            parameter<ConeKotlinType>("actualType")
+        }
+
+        val HAS_NEXT_FUNCTION_TYPE_MISMATCH by error<KtExpression> {
+            parameter<ConeKotlinType>("actualType")
+        }
     }
 
     val AMBIGUITY by object : DiagnosticGroup("Ambiguity") {
@@ -903,7 +917,9 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
             isSuppressible = true
         }
 
-        val CYCLIC_GENERIC_UPPER_BOUND by error<PsiElement>()
+        val CYCLIC_GENERIC_UPPER_BOUND by error<PsiElement> {
+            parameter<List<FirTypeParameterSymbol>>("typeParameters")
+        }
 
         val FINITE_BOUNDS_VIOLATION by error<PsiElement>()
         val FINITE_BOUNDS_VIOLATION_IN_JAVA by warning<PsiElement>(PositioningStrategy.DECLARATION_NAME) {
@@ -1428,6 +1444,9 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         }
 
         val LOCAL_EXTENSION_PROPERTY by error<PsiElement>()
+
+        val UNNAMED_VAR_PROPERTY by error<PsiElement>(PositioningStrategy.VAL_OR_VAR_NODE)
+        val UNNAMED_DELEGATED_PROPERTY by error<PsiElement>(PositioningStrategy.PROPERTY_DELEGATE_BY_KEYWORD)
     }
 
     val MPP_PROJECTS by object : DiagnosticGroup("Multi-platform projects") {
@@ -1469,6 +1488,10 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
             parameter<Map<out ExpectActualCompatibility<Symbol>, Collection<Symbol>>>("compatibility")
         }
 
+        val EXPECT_REFINEMENT_ANNOTATION_WRONG_TARGET by error<KtNamedDeclaration>(
+            PositioningStrategy.DECLARATION_NAME
+        )
+
         val AMBIGUOUS_EXPECTS by error<KtNamedDeclaration>(PositioningStrategy.EXPECT_ACTUAL_MODIFIER) {
             parameter<Symbol>("declaration")
             parameter<Collection<FirModuleData>>("modules")
@@ -1480,6 +1503,8 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         }
 
         val ACTUAL_MISSING by error<KtNamedDeclaration>(PositioningStrategy.ACTUAL_DECLARATION_NAME)
+
+        val EXPECT_REFINEMENT_ANNOTATION_MISSING by error<KtNamedDeclaration>(PositioningStrategy.DECLARATION_NAME)
 
         val EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING by warning<KtClassLikeDeclaration>(PositioningStrategy.EXPECT_ACTUAL_MODIFIER)
 
@@ -1581,6 +1606,8 @@ object DIAGNOSTICS_LIST : DiagnosticList("FirErrors") {
         }
         val SENSELESS_NULL_IN_WHEN by warning<KtElement>()
         val TYPECHECKER_HAS_RUN_INTO_RECURSIVE_PROBLEM by error<KtExpression>()
+
+        val RETURN_VALUE_NOT_USED by warning<KtElement>()
     }
 
     val NULLABILITY by object : DiagnosticGroup("Nullability") {

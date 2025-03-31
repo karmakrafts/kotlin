@@ -184,12 +184,6 @@ public abstract class org/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformExtensi
 	public fun mingwX64 (Lorg/gradle/api/Action;)Lorg/jetbrains/kotlin/gradle/plugin/mpp/KotlinNativeTargetWithHostTests;
 	public fun publishing (Lkotlin/jvm/functions/Function1;)V
 	public fun publishing (Lorg/gradle/api/Action;)V
-	public final fun targetFromPreset (Lorg/jetbrains/kotlin/gradle/plugin/KotlinTargetPreset;)Lorg/jetbrains/kotlin/gradle/plugin/KotlinTarget;
-	public final fun targetFromPreset (Lorg/jetbrains/kotlin/gradle/plugin/KotlinTargetPreset;Ljava/lang/String;)Lorg/jetbrains/kotlin/gradle/plugin/KotlinTarget;
-	public final fun targetFromPreset (Lorg/jetbrains/kotlin/gradle/plugin/KotlinTargetPreset;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lorg/jetbrains/kotlin/gradle/plugin/KotlinTarget;
-	public final fun targetFromPreset (Lorg/jetbrains/kotlin/gradle/plugin/KotlinTargetPreset;Ljava/lang/String;Lorg/gradle/api/Action;)Lorg/jetbrains/kotlin/gradle/plugin/KotlinTarget;
-	public final fun targetFromPreset (Lorg/jetbrains/kotlin/gradle/plugin/KotlinTargetPreset;Lorg/gradle/api/Action;)Lorg/jetbrains/kotlin/gradle/plugin/KotlinTarget;
-	public static synthetic fun targetFromPreset$default (Lorg/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformExtension;Lorg/jetbrains/kotlin/gradle/plugin/KotlinTargetPreset;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lorg/jetbrains/kotlin/gradle/plugin/KotlinTarget;
 	public final fun targets (Lkotlin/jvm/functions/Function1;)V
 	public final fun targets (Lorg/gradle/api/Action;)V
 	public fun tvosArm64 ()Lorg/jetbrains/kotlin/gradle/plugin/mpp/KotlinNativeTarget;
@@ -837,14 +831,6 @@ public final class org/jetbrains/kotlin/gradle/dsl/KotlinTargetContainerWithWasm
 }
 
 public abstract interface class org/jetbrains/kotlin/gradle/dsl/TargetsFromPresetExtension : org/gradle/api/NamedDomainObjectCollection {
-	public abstract fun fromPreset (Lorg/jetbrains/kotlin/gradle/plugin/KotlinTargetPreset;Ljava/lang/String;)Lorg/jetbrains/kotlin/gradle/plugin/KotlinTarget;
-	public abstract fun fromPreset (Lorg/jetbrains/kotlin/gradle/plugin/KotlinTargetPreset;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lorg/jetbrains/kotlin/gradle/plugin/KotlinTarget;
-	public abstract fun fromPreset (Lorg/jetbrains/kotlin/gradle/plugin/KotlinTargetPreset;Ljava/lang/String;Lorg/gradle/api/Action;)Lorg/jetbrains/kotlin/gradle/plugin/KotlinTarget;
-}
-
-public final class org/jetbrains/kotlin/gradle/dsl/TargetsFromPresetExtension$DefaultImpls {
-	public static fun fromPreset (Lorg/jetbrains/kotlin/gradle/dsl/TargetsFromPresetExtension;Lorg/jetbrains/kotlin/gradle/plugin/KotlinTargetPreset;Ljava/lang/String;)Lorg/jetbrains/kotlin/gradle/plugin/KotlinTarget;
-	public static synthetic fun fromPreset$default (Lorg/jetbrains/kotlin/gradle/dsl/TargetsFromPresetExtension;Lorg/jetbrains/kotlin/gradle/plugin/KotlinTargetPreset;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lorg/jetbrains/kotlin/gradle/plugin/KotlinTarget;
 }
 
 public abstract interface class org/jetbrains/kotlin/gradle/plugin/hierarchy/KotlinSourceSetTreeClassifier {
@@ -1211,7 +1197,6 @@ public abstract class org/jetbrains/kotlin/gradle/plugin/mpp/external/DecoratedE
 	public fun getExtras ()Lorg/jetbrains/kotlin/tooling/core/MutableExtras;
 	public fun getKotlinComponents ()Ljava/util/Set;
 	public fun getName ()Ljava/lang/String;
-	public fun getOverrideDisambiguationClassifierOnIdeImport ()Ljava/lang/String;
 	public fun getPlatformType ()Lorg/jetbrains/kotlin/gradle/plugin/KotlinPlatformType;
 	public fun getPreset ()Lorg/jetbrains/kotlin/gradle/plugin/KotlinTargetPreset;
 	public fun getProject ()Lorg/gradle/api/Project;
@@ -1225,7 +1210,6 @@ public abstract class org/jetbrains/kotlin/gradle/plugin/mpp/external/DecoratedE
 	public fun getSourcesElementsConfigurationName ()Ljava/lang/String;
 	public final fun getSourcesElementsPublishedConfiguration ()Lorg/gradle/api/artifacts/Configuration;
 	public fun getTargetName ()Ljava/lang/String;
-	public fun getUseDisambiguationClassifierAsSourceSetNamePrefix ()Z
 	public fun get_preset ()Lorg/jetbrains/kotlin/gradle/plugin/KotlinTargetPreset;
 	public fun isSourcesPublishable ()Z
 	public fun jvmToolchain (I)V

@@ -1,6 +1,7 @@
 import FunctionalType
 import Testing
 import ref_types
+import optional_types
 import primitive_types
 import collection_types
 import data
@@ -56,15 +57,51 @@ func testFunctionalTypeTypealias() throws {
 
 @Test
 func testBlockWithRefType() throws {
+    for _ in 0...1_000_000 {
+        var lastB: Bar? = nil
+        var receivedB: Bar? = nil
+        saveRefBlock { b in
+            lastB = b
+            return Bar(i: b.i+1)
+        }
+        receivedB = callRefBlock(with: Bar(i: 0))
+        try #require(receivedB!.i == 1)
+        try #require(lastB!.i == 0)
+    }
+}
+
+@Test
+func testBlockWithOptRefType() throws {
     var lastB: Bar? = nil
     var receivedB: Bar? = nil
-    saveRefBlock { b in
+    saveOptRefBlock { b in
         lastB = b
-        return Bar(i: b.i+1)
+        return b.flatMap { it in Bar(i: it.i+1) }
     }
-    receivedB = callRefBlock(with: Bar(i: 0))
+    receivedB = callOptRefBlock(with: Bar(i: 0))
     try #require(receivedB!.i == 1)
     try #require(lastB!.i == 0)
+
+    receivedB = callOptRefBlock(with: nil)
+    try #require(receivedB == nil)
+    try #require(lastB == nil)
+}
+
+@Test
+func testBlockWithOptPrimType() throws {
+    var last: Int32? = nil
+    var received: Int32? = nil
+    saveOptPrimBlock { i in
+        last = i
+        return i?.advanced(by: 1)
+    }
+    received = callOptPrimBlock(with: 0)
+    try #require(received == 1)
+    try #require(last == 0)
+
+    received = callOptPrimBlock(with: nil)
+    try #require(received == nil)
+    try #require(last == nil)
 }
 
 @Test

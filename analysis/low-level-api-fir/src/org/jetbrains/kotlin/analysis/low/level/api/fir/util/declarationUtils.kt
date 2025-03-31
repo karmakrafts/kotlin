@@ -14,7 +14,7 @@ import org.jetbrains.kotlin.analysis.low.level.api.fir.LLFirInternals
 import org.jetbrains.kotlin.analysis.low.level.api.fir.api.LLFirResolveSession
 import org.jetbrains.kotlin.analysis.low.level.api.fir.element.builder.containingDeclaration
 import org.jetbrains.kotlin.analysis.low.level.api.fir.element.builder.getNonLocalContainingOrThisDeclaration
-import org.jetbrains.kotlin.analysis.low.level.api.fir.element.builder.isAutonomousDeclaration
+import org.jetbrains.kotlin.analysis.low.level.api.fir.element.builder.isAutonomousElement
 import org.jetbrains.kotlin.analysis.low.level.api.fir.file.builder.LLFirFileBuilder
 import org.jetbrains.kotlin.analysis.low.level.api.fir.providers.LLFirProvider
 import org.jetbrains.kotlin.descriptors.Visibilities
@@ -30,7 +30,6 @@ import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.containingClassOrObject
-import org.jetbrains.kotlin.psi.psiUtil.parameterIndex
 import org.jetbrains.kotlin.util.OperatorNameConventions
 
 internal fun KtDeclaration.findSourceNonLocalFirDeclaration(
@@ -97,7 +96,7 @@ internal fun KtDeclaration.findSourceNonLocalFirDeclaration(firFile: FirFile, pr
 
 @KaImplementationDetail
 fun collectUseSiteContainers(element: PsiElement, resolveSession: LLFirResolveSession): List<FirDeclaration>? {
-    val containingDeclaration = element.getNonLocalContainingOrThisDeclaration { it.isAutonomousDeclaration } ?: return null
+    val containingDeclaration = element.getNonLocalContainingOrThisDeclaration { it.isAutonomousElement } ?: return null
     val containingFile = containingDeclaration.containingKtFile
     val firFile = resolveSession.getOrBuildFirFile(containingFile)
     return FirElementFinder.findPathToDeclarationWithTarget(firFile, containingDeclaration)
@@ -166,7 +165,7 @@ private fun KtDeclaration.findSourceNonLocalFirDeclarationByProvider(
                 (firDeclaration as? FirFunction)?.valueParameters
             }
 
-            parameters?.get(parameterIndex())
+            parameters?.firstOrNull { it.psi == this }
         }
 
         is KtTypeParameter -> {

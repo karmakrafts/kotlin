@@ -23,6 +23,7 @@ object CommonDeclarationCheckers : DeclarationCheckers() {
             FirExposedVisibilityDeclarationChecker,
             FirCyclicTypeBoundsChecker,
             FirExpectActualDeclarationChecker,
+            FirExpectRefinementChecker,
             FirRequiresOptInOnExpectChecker,
             FirAmbiguousAnonymousTypeChecker,
             FirExplicitApiDeclarationChecker,
@@ -34,6 +35,8 @@ object CommonDeclarationCheckers : DeclarationCheckers() {
             FirOptionalExpectationDeclarationChecker,
             FirMissingDependencySupertypeInDeclarationsChecker,
             FirContextParametersDeclarationChecker,
+            FirUnusedReturnValueChecker,
+            FirReturnValueAnnotationsChecker,
         )
 
     override val classLikeCheckers: Set<FirClassLikeChecker>
@@ -90,6 +93,7 @@ object CommonDeclarationCheckers : DeclarationCheckers() {
             ContractSyntaxV2PropertyChecker,
             FirVolatileAnnotationChecker,
             FirInlinePropertyChecker,
+            FirUnnamedPropertyChecker,
             FirContextualPropertyWithBackingFieldChecker
         )
 

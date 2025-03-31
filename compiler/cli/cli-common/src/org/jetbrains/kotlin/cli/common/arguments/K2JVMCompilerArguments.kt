@@ -5,16 +5,11 @@
 
 package org.jetbrains.kotlin.cli.common.arguments
 
-import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
-import org.jetbrains.kotlin.cli.common.messages.MessageCollector
-import org.jetbrains.kotlin.config.*
+import com.intellij.util.xmlb.annotations.Transient
+import org.jetbrains.kotlin.config.JVMAssertionsMode
+import org.jetbrains.kotlin.config.JvmTarget
 
 class K2JVMCompilerArguments : CommonCompilerArguments() {
-    companion object {
-        @JvmStatic
-        private val serialVersionUID = 0L
-    }
-
     @Argument(value = "-d", valueDescription = "<directory|jar>", description = "Destination for generated class files.")
     var destination: String? = null
         set(value) {
@@ -151,11 +146,12 @@ class K2JVMCompilerArguments : CommonCompilerArguments() {
     @Argument(
         value = "-jvm-default",
         valueDescription = "{enable|no-compatibility|disable}",
-        description = """Emit JVM default methods for interface declarations with bodies. The default is 'disable'.
--jvm-default=disable             Default behavior. Do not generate JVM default methods.
--jvm-default=enable              Generate default methods for non-abstract interface declarations, as well as 'DefaultImpls' classes
-                                 with static methods for compatibility with code compiled in the 'disable' mode.
--jvm-default=no-compatibility    Generate default methods for non-abstract interface declarations. Do not generate 'DefaultImpls' classes."""
+        description = """Emit JVM default methods for interface declarations with bodies. The default is 'enable'.
+-jvm-default=enable              Generate default methods for non-abstract interface declarations, as well as 'DefaultImpls' classes with
+                                 static methods for compatibility with code compiled in the 'disable' mode.
+                                 This is the default behavior since language version 2.2.
+-jvm-default=no-compatibility    Generate default methods for non-abstract interface declarations. Do not generate 'DefaultImpls' classes.
+-jvm-default=disable             Do not generate JVM default methods. This is the default behavior up to language version 2.1."""
     )
     var jvmDefaultStable: String? = null
         set(value) {
@@ -600,6 +596,16 @@ The default value is 'indy' if language version is 2.0+, and 'class' otherwise."
         }
 
     @Argument(
+        value = "-Xindy-allow-annotated-lambdas",
+        description = "Allow using 'invokedynamic' for lambda expressions with annotations"
+    )
+    var indyAllowAnnotatedLambdas: Boolean? = null
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Argument(
         value = "-Xklib",
         valueDescription = "<path>",
         description = "Paths to cross-platform libraries in the .klib format."
@@ -824,71 +830,20 @@ If API Level >= 2.2 -- no-op."""
             field = value
         }
 
-    override fun configureAnalysisFlags(collector: MessageCollector, languageVersion: LanguageVersion): MutableMap<AnalysisFlag<*>, Any> {
-        val result = super.configureAnalysisFlags(collector, languageVersion)
-        result[JvmAnalysisFlags.strictMetadataVersionSemantics] = strictMetadataVersionSemantics
-        result[JvmAnalysisFlags.javaTypeEnhancementState] = JavaTypeEnhancementStateParser(collector, languageVersion.toKotlinVersion())
-            .parse(jsr305, supportCompatqualCheckerFrameworkAnnotations, jspecifyAnnotations, nullabilityAnnotations)
-        result[AnalysisFlags.ignoreDataFlowInAssert] = JVMAssertionsMode.fromString(assertionsMode) != JVMAssertionsMode.LEGACY
-        result[JvmAnalysisFlags.jvmDefaultMode] = configureJvmDefaultMode(collector)
-        result[JvmAnalysisFlags.inheritMultifileParts] = inheritMultifileParts
-        result[JvmAnalysisFlags.sanitizeParentheses] = sanitizeParentheses
-        result[JvmAnalysisFlags.suppressMissingBuiltinsError] = suppressMissingBuiltinsError
-        result[JvmAnalysisFlags.enableJvmPreview] = enableJvmPreview
-        result[AnalysisFlags.allowUnstableDependencies] = allowUnstableDependencies
-        result[JvmAnalysisFlags.outputBuiltinsMetadata] = outputBuiltinsMetadata
-        if (expectBuiltinsAsPartOfStdlib && !stdlibCompilation) {
-            collector.report(
-                CompilerMessageSeverity.ERROR,
-                "-Xcompile-builtins-as-part-of-stdlib must not be used without -Xstdlib-compilation"
-            )
+    @Argument(
+        value = "-Xannotations-in-metadata",
+        description = "Write annotations on declarations into the metadata (in addition to the JVM bytecode), " +
+                "and read annotations from the metadata if they are present."
+    )
+    var annotationsInMetadata = false
+        set(value) {
+            checkFrozen()
+            field = value
         }
-        result[JvmAnalysisFlags.expectBuiltinsAsPartOfStdlib] = expectBuiltinsAsPartOfStdlib
-        return result
-    }
 
-    private fun configureJvmDefaultMode(collector: MessageCollector?): JvmDefaultMode {
-        val mode = when {
-            jvmDefaultStable != null -> JvmDefaultMode.fromStringOrNull(jvmDefaultStable).also {
-                if (it == null) {
-                    collector?.report(
-                        CompilerMessageSeverity.ERROR,
-                        "Unknown -jvm-default mode: $jvmDefaultStable, supported modes: " +
-                                "${JvmDefaultMode.entries.map(JvmDefaultMode::description)}"
-                    )
-                }
-            }
-            jvmDefault != null -> JvmDefaultMode.fromStringOrNullOld(jvmDefault).also {
-                if (it == null) {
-                    collector?.report(
-                        CompilerMessageSeverity.ERROR,
-                        "Unknown -Xjvm-default mode: $jvmDefault, supported modes: " +
-                                "${JvmDefaultMode.entries.map(JvmDefaultMode::oldDescription)}"
-                    )
-                }
-            }
-            else -> null
-        }
-        return mode ?: JvmDefaultMode.DISABLE
-    }
-
-    override fun configureLanguageFeatures(collector: MessageCollector): MutableMap<LanguageFeature, LanguageFeature.State> {
-        val result = super.configureLanguageFeatures(collector)
-        if (typeEnhancementImprovementsInStrictMode) {
-            result[LanguageFeature.TypeEnhancementImprovementsInStrictMode] = LanguageFeature.State.ENABLED
-        }
-        if (enhanceTypeParameterTypesToDefNotNull) {
-            result[LanguageFeature.ProhibitUsingNullableTypeParameterAgainstNotNullAnnotated] = LanguageFeature.State.ENABLED
-        }
-        if (configureJvmDefaultMode(null).isEnabled) {
-            result[LanguageFeature.ForbidSuperDelegationToAbstractFakeOverride] = LanguageFeature.State.ENABLED
-            result[LanguageFeature.AbstractClassMemberNotImplementedWithIntermediateAbstractClass] = LanguageFeature.State.ENABLED
-        }
-        if (valueClasses) {
-            result[LanguageFeature.ValueClasses] = LanguageFeature.State.ENABLED
-        }
-        return result
-    }
+    @get:Transient
+    @field:kotlin.jvm.Transient
+    override val configurator: CommonCompilerArgumentsConfigurator = K2JVMCompilerArgumentsConfigurator()
 
     override fun copyOf(): Freezable = copyK2JVMCompilerArguments(this, K2JVMCompilerArguments())
 }

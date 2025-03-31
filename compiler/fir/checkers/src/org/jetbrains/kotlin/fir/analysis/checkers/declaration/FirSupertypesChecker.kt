@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.fir.FirFunctionTypeParameter
 import org.jetbrains.kotlin.fir.analysis.checkers.*
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
+import org.jetbrains.kotlin.fir.declarations.DirectDeclarationsAccess
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirField
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
@@ -42,7 +43,6 @@ object FirSupertypesChecker : FirClassChecker(MppCheckerKind.Platform) {
     override fun check(declaration: FirClass, context: CheckerContext, reporter: DiagnosticReporter) {
         if (declaration.source?.kind is KtFakeSourceElementKind) return
         val isInterface = declaration.classKind == ClassKind.INTERFACE
-        var nullableSupertypeReported = false
         var extensionFunctionSupertypeReported = false
         var interfaceWithSuperclassReported = !isInterface
         var finalSupertypeReported = false
@@ -56,9 +56,13 @@ object FirSupertypesChecker : FirClassChecker(MppCheckerKind.Platform) {
             val expandedSupertype = superTypeRef.coneType.fullyExpandedType(context.session)
             val originalSupertype = expandedSupertype.abbreviatedTypeOrSelf
             val supertypeIsDynamic = originalSupertype is ConeDynamicType
-            if (!nullableSupertypeReported && originalSupertype.isMarkedNullable) {
-                reporter.reportOn(superTypeRef.source, FirErrors.NULLABLE_SUPERTYPE, context)
-                nullableSupertypeReported = true
+            when {
+                originalSupertype.isMarkedNullable -> {
+                    reporter.reportOn(superTypeRef.source, FirErrors.NULLABLE_SUPERTYPE, context)
+                }
+                expandedSupertype.isMarkedNullable -> {
+                    reporter.reportOn(superTypeRef.source, FirErrors.NULLABLE_SUPERTYPE_THROUGH_TYPEALIAS, context)
+                }
             }
             if (!extensionFunctionSupertypeReported && originalSupertype.isExtensionFunctionType &&
                 !context.session.languageVersionSettings.supportsFeature(LanguageFeature.FunctionalTypeWithExtensionAsSupertype)
@@ -204,6 +208,7 @@ object FirSupertypesChecker : FirClassChecker(MppCheckerKind.Platform) {
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
+        @OptIn(DirectDeclarationsAccess::class)
         for (subDeclaration in declaration.declarations) {
             if (subDeclaration is FirField) {
                 if (subDeclaration.visibility == Visibilities.Private && subDeclaration.name.isDelegated) {
@@ -259,9 +264,10 @@ object FirSupertypesChecker : FirClassChecker(MppCheckerKind.Platform) {
         if (declaration.isExpect) return
         val primaryConstructor = declaration.primaryConstructorIfAny(context.session)
         if (primaryConstructor != null) return
+        @OptIn(DirectDeclarationsAccess::class)
         for (subDeclaration in declaration.declarations) {
             if (subDeclaration !is FirField) continue
-            if (subDeclaration.visibility == Visibilities.Private && subDeclaration.name.isDelegated) {
+            if (subDeclaration.symbol.visibility == Visibilities.Private && subDeclaration.name.isDelegated) {
                 reporter.reportOn(
                     subDeclaration.source,
                     FirErrors.UNSUPPORTED,

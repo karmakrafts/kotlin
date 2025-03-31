@@ -16,17 +16,9 @@
 
 package org.jetbrains.kotlin.cli.common.arguments
 
-import org.jetbrains.kotlin.cli.common.messages.MessageCollector
-import org.jetbrains.kotlin.config.AnalysisFlag
-import org.jetbrains.kotlin.config.AnalysisFlags
-import org.jetbrains.kotlin.config.LanguageFeature
-import org.jetbrains.kotlin.config.LanguageVersion
+import com.intellij.util.xmlb.annotations.Transient
 
 class K2MetadataCompilerArguments : CommonCompilerArguments() {
-    companion object {
-        @JvmStatic private val serialVersionUID = 0L
-    }
-
     @Argument(value = "-d", valueDescription = "<directory|jar>", description = "Destination for generated .kotlin_metadata files.")
     var destination: String? = null
         set(value) {
@@ -95,14 +87,9 @@ class K2MetadataCompilerArguments : CommonCompilerArguments() {
             field = value
         }
 
+    @get:Transient
+    @field:kotlin.jvm.Transient
+    override val configurator: CommonCompilerArgumentsConfigurator = K2MetadataCompilerArgumentsConfigurator()
+
     override fun copyOf(): Freezable = copyK2MetadataCompilerArguments(this, K2MetadataCompilerArguments())
-
-    override fun configureAnalysisFlags(collector: MessageCollector, languageVersion: LanguageVersion): MutableMap<AnalysisFlag<*>, Any> =
-        super.configureAnalysisFlags(collector, languageVersion).also {
-            it[AnalysisFlags.metadataCompilation] = true
-        }
-
-    override fun configureExtraLanguageFeatures(map: HashMap<LanguageFeature, LanguageFeature.State>) {
-        map[LanguageFeature.MultiPlatformProjects] = LanguageFeature.State.ENABLED
-    }
 }

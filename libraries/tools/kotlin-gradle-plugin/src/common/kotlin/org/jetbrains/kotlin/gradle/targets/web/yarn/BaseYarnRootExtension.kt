@@ -9,24 +9,17 @@ import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileCollection
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.tasks.TaskProvider
+import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.logging.kotlinInfo
 import org.jetbrains.kotlin.gradle.targets.js.AbstractSettings
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsEnv
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.NpmApiExtension
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.Platform
 import org.jetbrains.kotlin.gradle.targets.js.npm.LockCopyTask
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
-import org.jetbrains.kotlin.gradle.targets.js.yarn.Yarn
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnEnv
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnEnvironment
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockCopyTask
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockStoreTask
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnResolution
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnSetupTask
-import org.jetbrains.kotlin.gradle.targets.js.yarn.asYarnEnvironment
+import org.jetbrains.kotlin.gradle.targets.js.yarn.*
 import org.jetbrains.kotlin.gradle.targets.web.nodejs.BaseNodeJsRootExtension
 import org.jetbrains.kotlin.gradle.utils.property
 import java.io.File
@@ -35,7 +28,10 @@ abstract class BaseYarnRootExtension internal constructor(
     val project: Project,
     val nodeJsRoot: BaseNodeJsRootExtension,
     private val yarnSpec: BaseYarnRootEnvSpec,
+    private val objects: ObjectFactory,
+    private val execOps: ExecOperations,
 ) : AbstractSettings<YarnEnv>(), NpmApiExtension<YarnEnvironment, Yarn> {
+
     init {
         check(project == project.rootProject)
     }
@@ -45,7 +41,10 @@ abstract class BaseYarnRootExtension internal constructor(
     }
 
     override val packageManager: Yarn by lazy {
-        Yarn()
+        Yarn(
+            objects = objects,
+            execOps = execOps,
+        )
     }
 
     override val environment: YarnEnvironment by lazy {
@@ -53,7 +52,7 @@ abstract class BaseYarnRootExtension internal constructor(
     }
 
     override val additionalInstallOutput: FileCollection = project.objects.fileCollection().from(
-        nodeJsRoot.rootPackageDirectory.map { it.file(LockCopyTask.Companion.YARN_LOCK) }
+        nodeJsRoot.rootPackageDirectory.map { it.file(LockCopyTask.YARN_LOCK) }
     )
 
     override val preInstallTasks: ListProperty<TaskProvider<*>> = project.objects.listProperty(TaskProvider::class.java)
@@ -76,8 +75,8 @@ abstract class BaseYarnRootExtension internal constructor(
     override val downloadProperty: org.gradle.api.provider.Property<Boolean> = project.objects.property<Boolean>()
         .convention(true)
 
-    var lockFileName by Property(LockCopyTask.Companion.YARN_LOCK)
-    var lockFileDirectory: File by Property(project.rootDir.resolve(LockCopyTask.Companion.KOTLIN_JS_STORE))
+    var lockFileName by Property(LockCopyTask.YARN_LOCK)
+    var lockFileDirectory: File by Property(project.rootDir.resolve(LockCopyTask.KOTLIN_JS_STORE))
 
     var ignoreScripts by Property(true)
 
@@ -90,7 +89,7 @@ abstract class BaseYarnRootExtension internal constructor(
     val yarnSetupTaskProvider: TaskProvider<YarnSetupTask>
         get() = project.tasks
             .withType(YarnSetupTask::class.java)
-            .named(nodeJsRoot.extensionName(YarnSetupTask.Companion.NAME))
+            .named(nodeJsRoot.extensionName(YarnSetupTask.NAME))
 
     internal val platform: org.gradle.api.provider.Property<Platform> = project.objects.property(Platform::class.java)
 
@@ -117,9 +116,9 @@ abstract class BaseYarnRootExtension internal constructor(
 
     val restoreYarnLockTaskProvider: TaskProvider<YarnLockCopyTask>
         get() = project.tasks.withType(YarnLockCopyTask::class.java)
-            .named(nodeJsRoot.extensionName(YarnPlugin.Companion.RESTORE_YARN_LOCK_NAME))
+            .named(nodeJsRoot.extensionName(YarnPlugin.RESTORE_YARN_LOCK_NAME))
 
     val storeYarnLockTaskProvider: TaskProvider<YarnLockStoreTask>
         get() = project.tasks.withType(YarnLockStoreTask::class.java)
-            .named(nodeJsRoot.extensionName(YarnPlugin.Companion.STORE_YARN_LOCK_NAME))
+            .named(nodeJsRoot.extensionName(YarnPlugin.STORE_YARN_LOCK_NAME))
 }

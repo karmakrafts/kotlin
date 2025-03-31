@@ -12,8 +12,6 @@ import org.jetbrains.kotlin.library.impl.BuiltInsPlatform
 import org.jetbrains.kotlin.metadata.deserialization.BinaryVersion
 import org.jetbrains.kotlin.metadata.deserialization.MetadataVersion
 
-val KLIB_LEGACY_METADATA_VERSION = MetadataVersion(1, 4, 1)
-
 /**
  * [org.jetbrains.kotlin.library.KotlinAbiVersion]
  */
@@ -68,6 +66,18 @@ const val KLIB_PROPERTY_COMMONIZER_TARGET = "commonizer_target"
  * that were unsupported on the host creating this artifact
  */
 const val KLIB_PROPERTY_COMMONIZER_NATIVE_TARGETS = "commonizer_native_targets"
+
+
+/**
+ * List of all manually enabled and disabled language features
+ */
+const val KLIB_PROPERTY_MANUALLY_ALTERED_LANGUAGE_FEATURES = "language_features"
+
+/**
+ *  List of all manually enabled poisoning language features
+ */
+const val KLIB_PROPERTY_MANUALLY_ENABLED_POISONING_LANGUAGE_FEATURES = "poisoning_language_features"
+
 
 /**
  * Abstractions for getting access to the information stored inside of Kotlin/Native library.

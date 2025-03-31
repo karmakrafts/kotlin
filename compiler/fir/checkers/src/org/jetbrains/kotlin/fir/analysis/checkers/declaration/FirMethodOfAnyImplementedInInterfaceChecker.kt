@@ -12,11 +12,11 @@ import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
-import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.isEquals
-import org.jetbrains.kotlin.fir.declarations.utils.hasBody
+import org.jetbrains.kotlin.fir.declarations.processAllDeclaredCallables
 import org.jetbrains.kotlin.fir.declarations.utils.isInterface
 import org.jetbrains.kotlin.fir.declarations.utils.isOverride
+import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.util.OperatorNameConventions.TO_STRING
 
 // TODO: rewrite with declared member scope
@@ -26,10 +26,10 @@ object FirMethodOfAnyImplementedInInterfaceChecker : FirRegularClassChecker(MppC
             return
         }
 
-        for (function in declaration.declarations) {
-            if (function !is FirSimpleFunction || !function.isOverride || !function.hasBody) continue
+        declaration.symbol.processAllDeclaredCallables(context.session) { function ->
+            if (function !is FirNamedFunctionSymbol || !function.isOverride || !function.hasBody) return@processAllDeclaredCallables
             var methodOfAny = false
-            if (function.valueParameters.isEmpty() &&
+            if (function.valueParameterSymbols.isEmpty() &&
                 (function.name == HASHCODE_NAME || function.name == TO_STRING)
             ) {
                 methodOfAny = true

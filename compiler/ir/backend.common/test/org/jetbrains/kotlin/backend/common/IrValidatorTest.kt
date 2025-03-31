@@ -799,6 +799,87 @@ class IrValidatorTest {
     }
 
     @Test
+    fun `dynamic receiver of field access is reported`() = with(IrFactoryImpl) {
+        fun IrElement.fortyTwo() = IrConstImpl.int(startOffset, endOffset, TestIrBuiltins.intType, 42)
+        val dynamicType = IrDynamicTypeImpl(
+            annotations = emptyList(),
+            variance = Variance.INVARIANT
+        )
+
+        fun IrDeclarationContainer.addField(name: String): IrField {
+            return buildField {
+                this.name = Name.identifier(name)
+                type = TestIrBuiltins.intType
+                startOffset = 1
+                endOffset = 2
+            }.also { field ->
+                field.initializer = createExpressionBody(startOffset, endOffset, fortyTwo())
+                addChild(field)
+            }
+        }
+
+        val file = createIrFile(name = "file.kt")
+        val memberField = buildClass {
+            name = Name.identifier("MyClass")
+        }.let { clazz ->
+            file.addChild(clazz)
+            clazz.addField("memberField").also { it.visibility = DescriptorVisibilities.PRIVATE}
+        }
+
+        buildFun {
+            name = Name.identifier("foo")
+            returnType = TestIrBuiltins.unitType
+            startOffset = 3
+            endOffset = 4
+        }.apply {
+            val vp = addValueParameter {
+                name = Name.identifier("myVP")
+                type = dynamicType
+            }
+            val receiver1 = IrGetValueImpl(startOffset, endOffset, type = dynamicType, symbol = vp.symbol)
+            val receiver2 = IrGetValueImpl(startOffset, endOffset, type = dynamicType, symbol = vp.symbol)
+            body = createBlockBody(
+                startOffset,
+                endOffset,
+                listOf(
+                    IrGetFieldImpl(startOffset, endOffset, memberField.symbol, memberField.type, receiver = receiver1),
+                    IrSetFieldImpl(startOffset, endOffset, memberField.symbol, receiver2, fortyTwo(), TestIrBuiltins.unitType)
+                ),
+            )
+            file.addChild(this)
+        }
+
+        testValidation(
+            IrVerificationMode.ERROR,
+            file,
+            listOf(
+                Message(
+                    ERROR,
+                    """
+                    [IR VALIDATION] IrValidatorTest: IrFieldAccessExpression may not access fields using dynamic receiver. IrDynamicMemberExpression must be used instead.
+                    GET_FIELD 'FIELD name:memberField type:kotlin.Int visibility:private declared in org.sample.MyClass' type=kotlin.Int origin=null
+                      inside BLOCK_BODY
+                        inside FUN name:foo visibility:public modality:FINAL <> (myVP:dynamic) returnType:kotlin.Unit
+                          inside FILE fqName:org.sample fileName:file.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("file.kt", 1, 4, null),
+                ),
+                Message(
+                    ERROR,
+                    """
+                    [IR VALIDATION] IrValidatorTest: IrFieldAccessExpression may not access fields using dynamic receiver. IrDynamicMemberExpression must be used instead.
+                    SET_FIELD 'FIELD name:memberField type:kotlin.Int visibility:private declared in org.sample.MyClass' type=kotlin.Unit origin=null
+                      inside BLOCK_BODY
+                        inside FUN name:foo visibility:public modality:FINAL <> (myVP:dynamic) returnType:kotlin.Unit
+                          inside FILE fqName:org.sample fileName:file.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("file.kt", 1, 4, null),
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun `out-of scope usages of type parameters are reported`() {
         val file = createIrFile()
         val klass = IrFactoryImpl.buildClass {
@@ -2527,6 +2608,37 @@ class IrValidatorTest {
                     CompilerMessageLocation.create("test.kt", 0, 0, null),
                 )
             )
+        )
+    }
+
+    @Test
+    fun `functions with body of type IrExpressionBody are reported`() {
+        val file = createIrFile("test.kt")
+        val functionWithExpressionBody = IrFactoryImpl.buildFun {
+            name = Name.identifier("foo")
+            returnType = TestIrBuiltins.booleanType
+        }.apply {
+            body = IrFactoryImpl.createExpressionBody(
+                startOffset = UNDEFINED_OFFSET,
+                endOffset = UNDEFINED_OFFSET,
+                expression = createTrueConst()
+            )
+        }
+        file.addChild(functionWithExpressionBody)
+        testValidation(
+            IrVerificationMode.WARNING,
+            file,
+            listOf(
+                Message(
+                    WARNING,
+                    """
+                    [IR VALIDATION] IrValidatorTest: IrFunction body cannot be of type IrExpressionBody. Use IrBlockBody instead.
+                    FUN name:foo visibility:public modality:FINAL <> () returnType:kotlin.Boolean
+                      inside FILE fqName:org.sample fileName:test.kt
+                    """.trimIndent(),
+                    CompilerMessageLocation.create("test.kt", 0, 0, null),
+                )
+            ),
         )
     }
 }

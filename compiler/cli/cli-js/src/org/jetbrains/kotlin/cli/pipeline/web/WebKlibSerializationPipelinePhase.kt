@@ -41,7 +41,7 @@ object WebKlibSerializationPipelinePhase : PipelinePhase<JsFir2IrPipelineArtifac
                 configuration.phaseConfig!!,
                 PhaserState(),
                 JsPreSerializationLoweringContext(fir2IrResult.irBuiltIns, configuration, diagnosticCollector),
-            ).runPreSerializationLoweringPhases(fir2IrResult, jsLoweringsOfTheFirstPhase)
+            ).runPreSerializationLoweringPhases(fir2IrResult, jsLoweringsOfTheFirstPhase(configuration.languageVersionSettings))
         }
 
         val outputKlibPath = configuration.computeOutputKlibPath()
@@ -124,7 +124,6 @@ object WebKlibSerializationPipelinePhase : PipelinePhase<JsFir2IrPipelineArtifac
             fir2IrActualizedResult.irBuiltIns,
             cleanFiles = icData ?: emptyList(),
             nopack = nopack,
-            perFile = false,
             containsErrorCode = messageCollector.hasErrors() || diagnosticsReporter.hasErrors,
             abiVersion = KotlinAbiVersion.CURRENT, // TODO get from test file data
             jsOutputName = jsOutputName,

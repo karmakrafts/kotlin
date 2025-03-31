@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.fir.tree.generator.FirTree.FieldSets.declarations
 import org.jetbrains.kotlin.fir.tree.generator.FirTree.FieldSets.typeArguments
 import org.jetbrains.kotlin.fir.tree.generator.FirTree.FieldSets.typeParameters
 import org.jetbrains.kotlin.fir.tree.generator.context.AbstractFirTreeBuilder
+import org.jetbrains.kotlin.fir.tree.generator.directDeclarationsAccessAnnotation
 import org.jetbrains.kotlin.fir.tree.generator.model.Element
 import org.jetbrains.kotlin.fir.tree.generator.model.Element.Kind.*
 import org.jetbrains.kotlin.fir.tree.generator.model.fieldSet
@@ -24,6 +25,9 @@ import org.jetbrains.kotlin.fir.tree.generator.model.Element.Kind.TypeRef as Typ
 // 3) fields
 object FirTree : AbstractFirTreeBuilder() {
     override val rootElement: Element by element(Other, name = "Element") {
+        hasAcceptChildrenMethod = true
+        hasTransformChildrenMethod = true
+
         +field("source", sourceElementType, nullable = true)
     }
 
@@ -292,8 +296,8 @@ object FirTree : AbstractFirTreeBuilder() {
         parent(expression)
         parent(diagnosticHolder)
 
-        +field("selector", errorExpression)
-        +field("receiver", expression)
+        +field("selector", errorExpression, withTransform = true)
+        +field("receiver", expression, withReplace = true)
     }
 
     val literalExpression: Element by element(Expression) {
@@ -892,6 +896,7 @@ object FirTree : AbstractFirTreeBuilder() {
 
     val propertyAccessExpression: Element by element(Expression) {
         parent(qualifiedAccessExpression)
+        +field("calleeReference", namedReference, withReplace = true, withTransform = true)
     }
 
     val getClassCall: Element by element(Expression) {
@@ -1036,9 +1041,7 @@ object FirTree : AbstractFirTreeBuilder() {
     }
 
     val whenSubjectExpression: Element by element(Expression) {
-        parent(expression)
-
-        +field("whenRef", whenRefType)
+        parent(propertyAccessExpression)
     }
 
     val desugaredAssignmentValueReferenceExpression: Element by element(Expression) {
@@ -1192,6 +1195,11 @@ object FirTree : AbstractFirTreeBuilder() {
         parent(diagnosticHolder)
     }
 
+    val errorSuperReference: Element by element(Reference) {
+        parent(superReference)
+        parent(diagnosticHolder)
+    }
+
     val intersectionTypeRef: Element by element(TypeRefElement) {
         parent(unresolvedTypeRef)
 
@@ -1204,6 +1212,12 @@ object FirTree : AbstractFirTreeBuilder() {
 
         +field("calleeReference", thisReference)
         +field("isImplicit", boolean)
+    }
+
+    val superReceiverExpression: Element by element(Expression) {
+        parent(qualifiedAccessExpression)
+
+        +field("calleeReference", superReference)
     }
 
     val inaccessibleReceiverExpression: Element by element(Expression) {
@@ -1293,6 +1307,7 @@ object FirTree : AbstractFirTreeBuilder() {
         val declarations = fieldSet(
             listField(declaration) {
                 useInBaseTransformerDetection = false
+                optInAnnotation = directDeclarationsAccessAnnotation
             }
         )
 

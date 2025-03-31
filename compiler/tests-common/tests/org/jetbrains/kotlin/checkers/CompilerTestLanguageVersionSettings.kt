@@ -36,6 +36,12 @@ data class CompilerTestLanguageVersionSettings(
     override fun getFeatureSupport(feature: LanguageFeature): LanguageFeature.State =
         extraLanguageFeatures[feature] ?: delegate.getFeatureSupport(feature)
 
+    override fun getManuallyEnabledLanguageFeatures(): List<LanguageFeature> =
+        delegate.getManuallyEnabledLanguageFeatures()
+
+    override fun getManuallyDisabledLanguageFeatures(): List<LanguageFeature> =
+        delegate.getManuallyDisabledLanguageFeatures()
+
     override fun isPreRelease(): Boolean = KotlinCompilerVersion.isPreRelease()
 
     @Suppress("UNCHECKED_CAST")
@@ -110,7 +116,7 @@ fun setupLanguageVersionSettingsForCompilerTests(originalFileText: String, envir
 }
 
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE", "HIDDEN")
-private fun <T : Any> analysisFlag(flag: AnalysisFlag<T>, value: @kotlin.internal.NoInfer T?): Pair<AnalysisFlag<T>, T>? =
+private fun <T : Any> analysisFlag(flag: AnalysisFlag<T?>, value: @kotlin.internal.NoInfer T?): Pair<AnalysisFlag<T?>, T>? =
     value?.let(flag::to)
 
 private fun collectLanguageFeatureMap(directives: String): Map<LanguageFeature, LanguageFeature.State> {

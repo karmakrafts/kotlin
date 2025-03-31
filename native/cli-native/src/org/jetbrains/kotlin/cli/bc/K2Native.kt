@@ -10,21 +10,21 @@ import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.Nullable
 import org.jetbrains.kotlin.analyzer.CompilationErrorException
 import org.jetbrains.kotlin.backend.common.IrValidationError
+import org.jetbrains.kotlin.backend.common.linkage.partial.partialLinkageConfig
+import org.jetbrains.kotlin.backend.common.linkage.partial.setupPartialLinkageConfig
 import org.jetbrains.kotlin.backend.konan.*
 import org.jetbrains.kotlin.cli.common.*
 import org.jetbrains.kotlin.cli.common.arguments.K2NativeCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.parseCommandLineArguments
 import org.jetbrains.kotlin.cli.common.arguments.parseCustomKotlinAbiVersion
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity.ERROR
 import org.jetbrains.kotlin.cli.common.messages.MessageRenderer
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.plugins.PluginCliParser
 import org.jetbrains.kotlin.config.*
-import org.jetbrains.kotlin.ir.linkage.partial.partialLinkageConfig
-import org.jetbrains.kotlin.ir.linkage.partial.setupPartialLinkageConfig
 import org.jetbrains.kotlin.konan.KonanPendingCompilationError
-import org.jetbrains.kotlin.library.KLIB_LEGACY_METADATA_VERSION
 import org.jetbrains.kotlin.metadata.deserialization.BinaryVersion
 import org.jetbrains.kotlin.metadata.deserialization.MetadataVersion
 import org.jetbrains.kotlin.platform.TargetPlatform
@@ -98,12 +98,6 @@ class K2Native : CLICompiler<K2NativeCompilerArguments>() {
 
         configuration.phaseConfig = createPhaseConfig(arguments)
 
-        /* Set default version of metadata version */
-        val metadataVersionString = arguments.metadataVersion
-        if (metadataVersionString == null) {
-            configuration.put(CommonConfigurationKeys.METADATA_VERSION, KLIB_LEGACY_METADATA_VERSION)
-        }
-
         arguments.relativePathBases?.let {
             configuration.put(KlibConfigurationKeys.KLIB_RELATIVE_PATH_BASES, it.toList())
         }
@@ -139,7 +133,7 @@ class K2Native : CLICompiler<K2NativeCompilerArguments>() {
     ) {
         val mainPerfManager = configuration.perfManager
         val childPerfManager = if (spawning) {
-            if (mainPerfManager?.isMeasuring == true) {
+            if (mainPerfManager?.isPhaseMeasuring == true) {
                 mainPerfManager.notifyPhaseFinished(PhaseType.Initialization)
             }
             PerformanceManagerImpl.createAndEnableChildIfNeeded(mainPerfManager)
@@ -192,7 +186,7 @@ class K2Native : CLICompiler<K2NativeCompilerArguments>() {
         try {
             konanDriver.run()
         } finally {
-            mainPerfManager?.addMeasurementResults(childPerfManager)
+            mainPerfManager?.addOtherUnitStats(childPerfManager?.unitStats)
         }
     }
 

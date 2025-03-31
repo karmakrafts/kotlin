@@ -9,6 +9,9 @@ import org.jetbrains.kotlin.backend.common.PreSerializationLoweringContext
 import org.jetbrains.kotlin.backend.common.lower.UpgradeCallableReferences
 import org.jetbrains.kotlin.backend.common.phaser.makeIrModulePhase
 import org.jetbrains.kotlin.backend.konan.lower.NativeAssertionWrapperLowering
+import org.jetbrains.kotlin.backend.konan.serialization.KonanManglerIr
+import org.jetbrains.kotlin.config.LanguageFeature
+import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.config.phaser.NamedCompilerPhase
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.inline.loweringsOfTheFirstPhase
@@ -23,5 +26,18 @@ private val assertionWrapperPhase = makeIrModulePhase(
     name = "AssertionWrapperLowering",
 )
 
-val nativeLoweringsOfTheFirstPhase: List<NamedCompilerPhase<PreSerializationLoweringContext, IrModuleFragment, IrModuleFragment>> =
-    listOf(upgradeCallableReferencesPhase, assertionWrapperPhase) + loweringsOfTheFirstPhase
+fun nativeLoweringsOfTheFirstPhase(
+    languageVersionSettings: LanguageVersionSettings,
+): List<NamedCompilerPhase<PreSerializationLoweringContext, IrModuleFragment, IrModuleFragment>> = buildList {
+    // TODO: after the fix of KT-76260 this condition should be simplified to just the check of `IrRichCallableReferencesInKlibs` feature
+    val enableRichReferences = languageVersionSettings.supportsFeature(LanguageFeature.IrRichCallableReferencesInKlibs) ||
+            languageVersionSettings.supportsFeature(LanguageFeature.IrInlinerBeforeKlibSerialization)
+
+    if (enableRichReferences) {
+        this += upgradeCallableReferencesPhase
+    }
+    if (languageVersionSettings.supportsFeature(LanguageFeature.IrInlinerBeforeKlibSerialization)) {
+        this += assertionWrapperPhase
+    }
+    this += loweringsOfTheFirstPhase(KonanManglerIr, languageVersionSettings)
+}

@@ -18,7 +18,6 @@ import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
 import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.utils.addToStdlib.runIf
 import org.jetbrains.kotlin.utils.mapToSetOrEmpty
 import java.io.File
 
@@ -142,9 +141,31 @@ private class SyntheticAccessorCollector : IrVisitorVoid() {
         element.acceptChildrenVoid(this)
     }
 
+    override fun visitMemberAccess(expression: IrMemberAccessExpression<*>) {
+        visitProbablyAccessorSymbol(expression.symbol)
+        super.visitMemberAccess(expression)
+    }
+
+    override fun visitRichFunctionReference(expression: IrRichFunctionReference) {
+        visitProbablyAccessorSymbol(expression.overriddenFunctionSymbol)
+        super.visitRichFunctionReference(expression)
+    }
+
+    override fun visitRichPropertyReference(expression: IrRichPropertyReference) {
+        visitProbablyAccessorSymbol(expression.getterFunction.symbol)
+        visitProbablyAccessorSymbol(expression.setterFunction?.symbol)
+        super.visitRichPropertyReference(expression)
+    }
+
     override fun visitFunction(declaration: IrFunction) {
-        runIf(declaration.origin == IrDeclarationOrigin.SYNTHETIC_ACCESSOR) { accessorSymbols += declaration.symbol }
+        visitProbablyAccessorSymbol(declaration.symbol)
         super.visitFunction(declaration)
+    }
+
+    private fun visitProbablyAccessorSymbol(symbol: IrSymbol?) {
+        if (symbol is IrFunctionSymbol && symbol.owner.origin == IrDeclarationOrigin.SYNTHETIC_ACCESSOR) {
+            accessorSymbols += symbol
+        }
     }
 }
 
@@ -154,36 +175,62 @@ private class SyntheticAccessorsDumper(
 ) : IrVisitorVoid() {
     private val stack = ArrayList<StackFrame>()
     private val dump = StringBuilder()
+    private val localDeclarations = LinkedHashSet<IrSymbol>()
 
     fun getDump(): String? = dump.toString().takeIf(String::isNotBlank)
 
-    private inline fun <T> withNewStackFrame(declaration: IrDeclaration, crossinline block: () -> T): T =
-        stack.temporarilyPushing(StackFrame(declaration)) { block() }
+    private inline fun <T> withNewStackFrame(element: IrElement, crossinline block: () -> T): T =
+        stack.temporarilyPushing(StackFrame(element)) { block() }
 
     private fun dumpCurrentStackIfSymbolIsObserved(symbol: IrSymbol) {
-        if (symbol in accessorSymbols || symbol in accessorTargetSymbols) {
+        if (symbol in accessorSymbols || symbol in accessorTargetSymbols || symbol in localDeclarations) {
             for ((index, stackFrame) in stack.withIndex()) {
-                stackFrame.ifNotYetPrinted { declaration ->
-                    val comment = when (declaration.symbol) {
-                        in accessorSymbols -> "/* ACCESSOR declaration */ "
-                        in accessorTargetSymbols -> "/* TARGET declaration */ "
-                        else -> ""
+                stackFrame.ifNotYetPrinted { element ->
+                    when (element) {
+                        is IrDeclaration -> dumpDeclaration(element, index)
+                        is IrInlinedFunctionBlock -> dumpInlinedFunctionBlock(element, index)
+                        is IrRichPropertyReference -> dump.appendIndent(index).appendLine("/* RICH PROPERTY REFERENCE */")
                     }
-
-                    dump.appendIndent(indent = index).append(comment).appendIrElement(declaration)
                 }
             }
         }
+    }
+
+    private fun dumpInlinedFunctionBlock(inlinedBlock: IrInlinedFunctionBlock, indent: Int) {
+        val function = inlinedBlock.inlinedFunctionSymbol!!.owner
+        dump.appendIndent(indent = indent)
+            .append("/* INLINED use-site @${localDeclarations.indexOf(function.symbol)} */ ")
+            .appendIrElement(function)
+    }
+
+    private fun dumpDeclaration(declaration: IrDeclaration, indent: Int) {
+        if (declaration.isLocal) {
+            localDeclarations.add(declaration.symbol)
+        }
+        val comment = when (declaration.symbol) {
+            in accessorSymbols -> "/* ACCESSOR declaration */ "
+            in accessorTargetSymbols -> "/* TARGET declaration */ "
+            in localDeclarations -> "/* LOCAL declaration @${localDeclarations.indexOf(declaration.symbol)} */ "
+            else -> ""
+        }
+
+        dump.appendIndent(indent = indent).append(comment).appendIrElement(declaration)
     }
 
     private fun dumpExpressionIfSymbolIsObserved(expression: IrDeclarationReference) {
         val comment = when (expression.symbol) {
             in accessorSymbols -> "/* ACCESSOR use-site */ "
             in accessorTargetSymbols -> "/* TARGET use-site */ "
+            in localDeclarations -> "/* LOCAL use-site @${localDeclarations.indexOf(expression.symbol)} */ "
             else -> return
         }
 
         dump.appendIndent(indent = stack.size).append(comment).appendIrElement(expression)
+    }
+
+    private fun dumpInvoke(function: IrSimpleFunction) {
+        val comment = "/* INVOKE @${localDeclarations.indexOf(function.symbol)} */ "
+        dump.appendIndent(indent = stack.size).append(comment).appendIrElement(function)
     }
 
     override fun visitElement(element: IrElement) {
@@ -207,12 +254,43 @@ private class SyntheticAccessorsDumper(
         super.visitDeclaration(declaration)
     }
 
-    private class StackFrame(private val declaration: IrDeclaration) {
+    override fun visitInlinedFunctionBlock(inlinedBlock: IrInlinedFunctionBlock) {
+        val inlinedFunctionSymbol = inlinedBlock.inlinedFunctionSymbol
+        if (inlinedFunctionSymbol != null && inlinedFunctionSymbol in localDeclarations) {
+            withNewStackFrame(inlinedBlock) {
+                super.visitInlinedFunctionBlock(inlinedBlock)
+            }
+        } else {
+            super.visitInlinedFunctionBlock(inlinedBlock)
+        }
+    }
+
+    override fun visitRichFunctionReference(expression: IrRichFunctionReference) {
+        super.visitRichFunctionReference(expression)
+        if (expression.invokeFunction.symbol in localDeclarations) {
+            dumpCurrentStackIfSymbolIsObserved(expression.invokeFunction.symbol)
+            dumpInvoke(expression.invokeFunction)
+        }
+    }
+
+    override fun visitRichPropertyReference(expression: IrRichPropertyReference) = withNewStackFrame(expression) {
+        super.visitRichPropertyReference(expression)
+    }
+
+    override fun visitFunctionExpression(expression: IrFunctionExpression) {
+        super.visitFunctionExpression(expression)
+        if (expression.function.symbol in localDeclarations) {
+            dumpCurrentStackIfSymbolIsObserved(expression.function.symbol)
+            dumpInvoke(expression.function)
+        }
+    }
+
+    private class StackFrame(private val element: IrElement) {
         private var printed: Boolean = false
 
-        inline fun ifNotYetPrinted(block: (IrDeclaration) -> Unit) {
+        inline fun ifNotYetPrinted(block: (IrElement) -> Unit) {
             if (!printed) {
-                block(declaration)
+                block(element)
                 printed = true
             }
         }
@@ -228,7 +306,8 @@ private class SyntheticAccessorsDumper(
                     printFakeOverridesStrategy = FakeOverridesStrategy.NONE,
                     bodyPrintingStrategy = BodyPrintingStrategy.NO_BODIES,
                     visibilityPrintingStrategy = VisibilityPrintingStrategy.ALWAYS,
-                    printMemberDeclarations = false
+                    printMemberDeclarations = false,
+                    collapseObjectLiteralBlock = true
                 )
             ).substringBefore('{').trimEnd()
 

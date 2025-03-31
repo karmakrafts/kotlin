@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 plugins {
     kotlin("jvm")
     id("jps-compatible")
+    id("gradle-plugin-compiler-dependency-configuration")
 }
 
 description = "Standalone Runner for Swift Export"
@@ -48,7 +49,8 @@ sourceSets {
     }
 }
 
-val test by nativeTest("test", null)
+val testTags = findProperty("kotlin.native.tests.tags")?.toString()
+val test by nativeTest("test", testTags)
 
 publish()
 

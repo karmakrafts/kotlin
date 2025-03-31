@@ -5,8 +5,8 @@
 
 package org.jetbrains.kotlin.backend.konan.optimizations
 
-import org.jetbrains.kotlin.backend.common.copy
-import org.jetbrains.kotlin.backend.common.forEachBit
+import org.jetbrains.kotlin.utils.copy
+import org.jetbrains.kotlin.utils.forEachBit
 import org.jetbrains.kotlin.backend.common.pop
 import org.jetbrains.kotlin.backend.common.push
 import org.jetbrains.kotlin.backend.common.lower.createIrBuilder
@@ -36,7 +36,7 @@ import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.name.Name
 import java.util.*
 
-internal var IrCall.devirtualizedCallSite: DevirtualizationAnalysis.DevirtualizedCallSite? by irAttribute(followAttributeOwner = true)
+internal var IrCall.devirtualizedCallSite: DevirtualizationAnalysis.DevirtualizedCallSite? by irAttribute(copyByDefault = true)
 
 object DevirtualizationUnfoldFactors {
     /**

@@ -1139,6 +1139,14 @@ abstract class FirVisitorVoid : FirVisitor<Unit, Nothing?>() {
         visitElement(errorNamedReference)
     }
 
+    final override fun visitErrorSuperReference(errorSuperReference: FirErrorSuperReference, data: Nothing?) {
+        visitErrorSuperReference(errorSuperReference)
+    }
+
+    open fun visitErrorSuperReference(errorSuperReference: FirErrorSuperReference) {
+        visitElement(errorSuperReference)
+    }
+
     final override fun visitIntersectionTypeRef(intersectionTypeRef: FirIntersectionTypeRef, data: Nothing?) {
         visitIntersectionTypeRef(intersectionTypeRef)
     }
@@ -1153,6 +1161,14 @@ abstract class FirVisitorVoid : FirVisitor<Unit, Nothing?>() {
 
     open fun visitThisReceiverExpression(thisReceiverExpression: FirThisReceiverExpression) {
         visitElement(thisReceiverExpression)
+    }
+
+    final override fun visitSuperReceiverExpression(superReceiverExpression: FirSuperReceiverExpression, data: Nothing?) {
+        visitSuperReceiverExpression(superReceiverExpression)
+    }
+
+    open fun visitSuperReceiverExpression(superReceiverExpression: FirSuperReceiverExpression) {
+        visitElement(superReceiverExpression)
     }
 
     final override fun visitInaccessibleReceiverExpression(inaccessibleReceiverExpression: FirInaccessibleReceiverExpression, data: Nothing?) {

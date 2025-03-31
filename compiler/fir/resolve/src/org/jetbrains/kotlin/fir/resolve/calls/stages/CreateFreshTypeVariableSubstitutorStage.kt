@@ -91,7 +91,6 @@ internal object CreateFreshTypeVariableSubstitutorStage : ResolutionStage() {
     }
 
     /**
-     * TODO: Get rid of this function once KT-59138 is fixed and the relevant feature for disabling it will be removed
      * This function provides a type for a newly created EQUALS constraint on a fresh type variable,
      * for a situation when we have an explicit type argument and type parameter is a Java type parameter without known nullability.
      *
@@ -134,6 +133,9 @@ internal object CreateFreshTypeVariableSubstitutorStage : ResolutionStage() {
      * }
      * ```
      *
+     * TODO: Get rid of this function once KT-59138 is fixed and the relevant feature for disabling it will be removed
+     * Also we should get rid of it once [LanguageFeature.DontMakeExplicitJavaTypeArgumentsFlexible] is removed
+     *
      * @return type which is chosen for EQUALS constraint
      */
     private fun getTypePreservingFlexibilityWrtTypeVariable(
@@ -143,10 +145,7 @@ internal object CreateFreshTypeVariableSubstitutorStage : ResolutionStage() {
     ): ConeKotlinType {
         return if (typeParameter.shouldBeFlexible(session.typeContext)) {
             when (type) {
-                is ConeRigidType -> ConeFlexibleType(
-                    type.withNullability(nullable = false, session.typeContext),
-                    type.withNullability(nullable = true, session.typeContext)
-                )
+                is ConeRigidType -> type.withNullability(nullable = false, session.typeContext).toTrivialFlexibleType(session.typeContext)
                 /*
                  * ConeFlexibleTypes have to be handled here
                  * at least because MapTypeArguments special-cases ConeRawTypes without explicit arguments (KT-54666)
@@ -158,7 +157,8 @@ internal object CreateFreshTypeVariableSubstitutorStage : ResolutionStage() {
                  */
                 is ConeFlexibleType -> ConeFlexibleType(
                     type.lowerBound.withNullability(nullable = false, session.typeContext),
-                    type.upperBound.withNullability(nullable = true, session.typeContext)
+                    type.upperBound.withNullability(nullable = true, session.typeContext),
+                    isTrivial = false,
                 )
             }.run {
                 if (session.languageVersionSettings.supportsFeature(LanguageFeature.DontMakeExplicitJavaTypeArgumentsFlexible)) {

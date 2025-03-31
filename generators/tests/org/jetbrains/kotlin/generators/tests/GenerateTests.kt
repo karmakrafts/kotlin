@@ -11,6 +11,8 @@ import org.jetbrains.kotlin.assignment.plugin.AbstractFirLightTreeBlackBoxCodege
 import org.jetbrains.kotlin.assignment.plugin.AbstractFirPsiAssignmentPluginDiagnosticTest
 import org.jetbrains.kotlin.assignment.plugin.AbstractIrBlackBoxCodegenTestAssignmentPlugin
 import org.jetbrains.kotlin.compiler.plugins.AbstractPluginInteractionFirBlackBoxCodegenTest
+import org.jetbrains.kotlin.fir.dataframe.AbstractDataFrameBlackBoxCodegenTest
+import org.jetbrains.kotlin.fir.dataframe.AbstractDataFrameDiagnosticTest
 import org.jetbrains.kotlin.generators.generateTestGroupSuiteWithJUnit5
 import org.jetbrains.kotlin.generators.impl.generateTestGroupSuite
 import org.jetbrains.kotlin.generators.tests.IncrementalTestsGeneratorUtil.Companion.IcTestTypes.PURE_KOTLIN
@@ -100,52 +102,52 @@ fun main(args: Array<String>) {
 
             testClass<AbstractIncrementalK1JsKlibCompilerRunnerTest> {
                 // IC of sealed interfaces are not supported in JS
-                model("incremental/pureKotlin", extension = null, recursive = false, excludedPattern = "(^sealed.*)|(.*SinceK2)")
-                model("incremental/classHierarchyAffected", extension = null, recursive = false)
+                modelForDirectoryBasedTest("incremental", "pureKotlin", extension = null, recursive = false, excludedPattern = "(^sealed.*)|(.*SinceK2)")
+                modelForDirectoryBasedTest("incremental", "classHierarchyAffected", extension = null, recursive = false)
                 model("incremental/js", extension = null, excludeParentDirs = true)
             }
 
             testClass<AbstractIncrementalK1JsKlibMultiModuleCompilerRunnerTest> {
-                model("incremental/multiModule/common", extension = null, excludeParentDirs = true)
+                modelForDirectoryBasedTest("incremental/multiModule", "common", extension = null, excludeParentDirs = true)
             }
 
             testClass<AbstractIncrementalK2JsKlibMultiModuleCompilerRunnerTest> {
-                model("incremental/multiModule/common", extension = null, excludeParentDirs = true)
+                modelForDirectoryBasedTest("incremental/multiModule", "common", extension = null, excludeParentDirs = true)
             }
 
             testClass<AbstractIncrementalK1JsKlibCompilerWithScopeExpansionRunnerTest> {
                 // IC of sealed interfaces are not supported in JS
-                model("incremental/pureKotlin", extension = null, recursive = false, excludedPattern = "^sealed.*")
-                model("incremental/classHierarchyAffected", extension = null, recursive = false)
-                model("incremental/js", extension = null, excludeParentDirs = true)
-                model("incremental/scopeExpansion", extension = null, excludeParentDirs = true)
+                modelForDirectoryBasedTest("incremental", "pureKotlin", extension = null, recursive = false, excludedPattern = "(^sealed.*)|(.*SinceK2)")
+                modelForDirectoryBasedTest("incremental", "classHierarchyAffected", extension = null, recursive = false)
+                modelForDirectoryBasedTest("incremental", "js", extension = null, excludeParentDirs = true)
+                modelForDirectoryBasedTest("incremental", "scopeExpansion", extension = null, excludeParentDirs = true)
             }
 
             // TODO: https://youtrack.jetbrains.com/issue/KT-61602/JS-K2-ICL-Fix-muted-tests
             testClass<AbstractIncrementalK2JsKlibCompilerWithScopeExpansionRunnerTest> {
                 // IC of sealed interfaces are not supported in JS
-                model(
-                    "incremental/pureKotlin", extension = null, recursive = false,
+                modelForDirectoryBasedTest(
+                    "incremental", "pureKotlin", extension = null, recursive = false,
                     // TODO: 'fileWithConstantRemoved' should be fixed in https://youtrack.jetbrains.com/issue/KT-58824
                     excludedPattern = "^(sealed.*|fileWithConstantRemoved|propertyRedeclaration|funRedeclaration|funVsConstructorOverloadConflict)"
                 )
-                model(
-                    "incremental/classHierarchyAffected", extension = null, recursive = false,
+                modelForDirectoryBasedTest(
+                    "incremental", "classHierarchyAffected", extension = null, recursive = false,
                     excludedPattern = "secondaryConstructorAdded"
                 )
-                model("incremental/js", extension = null, excludeParentDirs = true)
+                modelForDirectoryBasedTest("incremental", "js", extension = null, excludeParentDirs = true)
             }
 
             testClass<AbstractIncrementalK1JsKlibCompilerRunnerWithFriendModulesDisabledTest> {
-                model("incremental/js/friendsModuleDisabled", extension = null, recursive = false)
+                modelForDirectoryBasedTest("incremental/js", "friendsModuleDisabled", extension = null, recursive = false)
             }
 
             testClass<AbstractIncrementalMultiplatformJvmCompilerRunnerTest> {
-                model("incremental/mpp/allPlatforms", extension = null, excludeParentDirs = true)
-                model("incremental/mpp/jvmOnlyK1", extension = null, excludeParentDirs = true)
+                modelForDirectoryBasedTest("incremental/mpp", "allPlatforms", extension = null, excludeParentDirs = true)
+                modelForDirectoryBasedTest("incremental/mpp", "jvmOnlyK1", extension = null, excludeParentDirs = true)
             }
             testClass<AbstractIncrementalK1JsKlibMultiplatformJsCompilerRunnerTest> {
-                model("incremental/mpp/allPlatforms", extension = null, excludeParentDirs = true)
+                modelForDirectoryBasedTest("incremental/mpp", "allPlatforms", extension = null, excludeParentDirs = true)
             }
             //TODO: write a proper k2 multiplatform test runner KT-63183
         }
@@ -426,6 +428,16 @@ fun main(args: Array<String>) {
         testGroup("plugins/plugins-interactions-testing/tests-gen", "plugins/plugins-interactions-testing/testData") {
             testClass<AbstractPluginInteractionFirBlackBoxCodegenTest> {
                 model("box", excludedPattern = excludedFirTestdataPattern)
+            }
+        }
+
+        testGroup("plugins/kotlin-dataframe/tests-gen", "plugins/kotlin-dataframe/testData") {
+            testClass<AbstractDataFrameDiagnosticTest> {
+                model("diagnostics")
+            }
+
+            testClass<AbstractDataFrameBlackBoxCodegenTest> {
+                model("box")
             }
         }
     }

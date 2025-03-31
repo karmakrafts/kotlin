@@ -10,6 +10,7 @@ import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.compilerRunner.KotlinCompilerArgumentsLogLevel
+import org.jetbrains.kotlin.gradle.plugin.mpp.uklibs.consumption.KmpResolutionStrategy
 import org.jetbrains.kotlin.gradle.dsl.NativeCacheOrchestration
 import org.jetbrains.kotlin.gradle.dsl.jvm.JvmTargetValidationMode
 import org.jetbrains.kotlin.gradle.internal.properties.PropertiesBuildService
@@ -23,13 +24,13 @@ import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLI
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_EXPERIMENTAL_TRY_NEXT
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_INCREMENTAL_FIR
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_JVM_ADD_CLASSES_VARIANT
-import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_INCREMENTAL_USE_CLASSPATH_SNAPSHOT
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_INTERNAL_DIAGNOSTICS_IGNORE_WARNING_MODE
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_INTERNAL_DIAGNOSTICS_SHOW_STACKTRACE
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_INTERNAL_DIAGNOSTICS_USE_PARSABLE_FORMATTING
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_JS_KARMA_BROWSERS
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_JS_STDLIB_DOM_API_INCLUDED
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_JS_YARN
+import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_KMP_PUBLICATION_STRATEGY
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_MPP_ALLOW_LEGACY_DEPENDENCIES
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_MPP_ANDROID_SOURCE_SET_LAYOUT_ANDROID_STYLE_NO_WARN
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_MPP_ANDROID_SOURCE_SET_LAYOUT_VERSION
@@ -42,18 +43,19 @@ import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLI
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_MPP_FILTER_RESOURCES_BY_EXTENSION
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_MPP_IMPORT_ENABLE_KGP_DEPENDENCY_RESOLUTION
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_MPP_IMPORT_ENABLE_SLOW_SOURCES_JAR_RESOLVER
-import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_MPP_RESOURCES_RESOLUTION_STRATEGY
+import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_KMP_RESOLUTION_STRATEGY
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_NATIVE_IGNORE_DISABLED_TARGETS
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_NATIVE_SUPPRESS_EXPERIMENTAL_ARTIFACTS_DSL_WARNING
+import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_PARSE_INLINED_LOCAL_CLASSES
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_PUBLISH_JVM_ENVIRONMENT_ATTRIBUTE
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_RUN_COMPILER_VIA_BUILD_TOOLS_API
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_STDLIB_DEFAULT_DEPENDENCY
 import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_STDLIB_JDK_VARIANTS_VERSION_ALIGNMENT
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
-import org.jetbrains.kotlin.gradle.plugin.diagnostics.reportDiagnostic
 import org.jetbrains.kotlin.gradle.plugin.diagnostics.reportDiagnosticOncePerBuild
 import org.jetbrains.kotlin.gradle.plugin.internal.isProjectIsolationEnabled
 import org.jetbrains.kotlin.gradle.plugin.mpp.KmpIsolatedProjectsSupport
+import org.jetbrains.kotlin.gradle.plugin.mpp.uklibs.publication.KmpPublicationStrategy
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinIrJsGeneratedTSValidationStrategy
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrOutputGranularity
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilerExecutionStrategy
@@ -179,6 +181,15 @@ internal class PropertiesProvider private constructor(private val project: Proje
     val keepAndroidBuildTypeAttribute: Boolean
         get() = booleanProperty("kotlin.android.buildTypeAttribute.keep") ?: false
 
+    val kmpPublicationStrategy: KmpPublicationStrategy
+        get() = this.get(KOTLIN_KMP_PUBLICATION_STRATEGY)?.let {
+            KmpPublicationStrategy.fromProperty(it)
+        } ?: KmpPublicationStrategy.StandardKMPPublication
+
+    val kmpResolutionStrategy: KmpResolutionStrategy
+        get() = this.get(KOTLIN_KMP_RESOLUTION_STRATEGY)?.let {
+            KmpResolutionStrategy.fromProperty(it)
+        } ?: KmpResolutionStrategy.StandardKMPResolution
 
 
     val enableKotlinToolingMetadataArtifact: Boolean
@@ -435,9 +446,6 @@ internal class PropertiesProvider private constructor(private val project: Proje
     val appleAllowEmbedAndSignWithCocoapods: Boolean
         get() = booleanProperty(PropertyNames.KOTLIN_APPLE_ALLOW_EMBED_AND_SIGN_WITH_COCOAPODS) ?: false
 
-    val swiftExportEnabled: Boolean
-        get() = booleanProperty(PropertyNames.KOTLIN_SWIFT_EXPORT_ENABLED) ?: false
-
     val appleIgnoreXcodeVersionCompatibility: Boolean
         get() = booleanProperty(PropertyNames.KOTLIN_APPLE_XCODE_COMPATIBILITY_NOWARN) ?: false
 
@@ -446,6 +454,9 @@ internal class PropertiesProvider private constructor(private val project: Proje
 
     val appleCopyDsymDuringArchiving: Boolean
         get() = booleanProperty(PropertyNames.KOTLIN_APPLE_COPY_DSYM_DURING_ARCHIVING) ?: true
+
+    val swiftExportIgnoreExperimental: Boolean
+        get() = booleanProperty(PropertyNames.KOTLIN_SWIFT_EXPORT_EXPERIMENTAL_NOWARN) == true
 
     /**
      * Application Binary Interface (ABI) validation:
@@ -586,13 +597,6 @@ internal class PropertiesProvider private constructor(private val project: Proje
             .map { it.toLongOrNull() ?: defaultClassLoaderCacheTimeout }
             .orElse(defaultClassLoaderCacheTimeout)
 
-    val useClasspathSnapshot: Provider<Boolean> =
-        booleanPropertyWithDeprecatedValues(KOTLIN_INCREMENTAL_USE_CLASSPATH_SNAPSHOT, setOf(false)) {
-            project.reportDiagnosticOncePerBuild(
-                KotlinToolingDiagnostics.DeprecatedJvmHistoryBasedIncrementalCompilationDiagnostic()
-            )
-        }.orElse(true)
-
     val preciseCompilationResultsBackup: Provider<Boolean> =
         booleanPropertyWithDeprecatedValues(KOTLIN_COMPILER_USE_PRECISE_COMPILATION_RESULTS_BACKUP, setOf(false)) {
             project.reportDiagnosticOncePerBuild(
@@ -614,6 +618,14 @@ internal class PropertiesProvider private constructor(private val project: Proje
      * Ignore overflow in [org.jetbrains.kotlin.gradle.internal.testing.TCServiceMessageOutputStreamHandler]
      */
     val ignoreTcsmOverflow: Provider<Boolean> = booleanProvider(IGNORE_TCSM_OVERFLOW).orElse(false)
+
+    /**
+     * Affects classpath snapshot transformation.
+     *
+     * If enabled, we'd process the inlined local classes and use their contents
+     * to refine the abi hash of the containing inline functions.
+     */
+    val parseInlinedLocalClasses: Provider<Boolean> = booleanProvider(KOTLIN_PARSE_INLINED_LOCAL_CLASSES).orElse(false)
 
     /**
      * Retrieves a comma-separated list of browsers to use when running karma tests for [target]
@@ -697,7 +709,6 @@ internal class PropertiesProvider private constructor(private val project: Proje
         val KOTLIN_BUILD_REPORT_JSON_DIR = property("kotlin.build.report.json.directory")
         val KOTLIN_BUILD_REPORT_FILE_DIR = property("kotlin.build.report.file.output_dir")
         val KOTLIN_OPTIONS_SUPPRESS_FREEARGS_MODIFICATION_WARNING = property("kotlin.options.suppressFreeCompilerArgsModificationWarning")
-        val KOTLIN_INCREMENTAL_USE_CLASSPATH_SNAPSHOT = property("kotlin.incremental.useClasspathSnapshot")
         val KOTLIN_JVM_ADD_CLASSES_VARIANT = property("kotlin.jvm.addClassesVariant")
         val KOTLIN_COMPILER_USE_PRECISE_COMPILATION_RESULTS_BACKUP = property("kotlin.compiler.preciseCompilationResultsBackup")
         val KOTLIN_COMPILER_KEEP_INCREMENTAL_COMPILATION_CACHES_IN_MEMORY =
@@ -719,9 +730,11 @@ internal class PropertiesProvider private constructor(private val project: Proje
         val KOTLIN_APPLE_XCODE_COMPATIBILITY_NOWARN = property("kotlin.apple.xcodeCompatibility.nowarn")
         val KOTLIN_APPLE_COCOAPODS_EXECUTABLE = property("kotlin.apple.cocoapods.bin")
         val KOTLIN_APPLE_ALLOW_EMBED_AND_SIGN_WITH_COCOAPODS = property("kotlin.apple.deprecated.allowUsingEmbedAndSignWithCocoaPodsDependencies")
-        val KOTLIN_SWIFT_EXPORT_ENABLED = property("kotlin.experimental.swift-export.enabled")
+        val KOTLIN_SWIFT_EXPORT_EXPERIMENTAL_NOWARN = property("kotlin.swift-export.experimental.nowarn")
         val KOTLIN_NATIVE_ENABLE_KLIBS_CROSSCOMPILATION = property("kotlin.native.enableKlibsCrossCompilation")
         val KOTLIN_ARCHIVES_TASK_OUTPUT_AS_FRIEND_ENABLED = property("kotlin.build.archivesTaskOutputAsFriendModule")
+        val KOTLIN_KMP_PUBLICATION_STRATEGY = property("kotlin.internal.kmp.kmpPublicationStrategy")
+        val KOTLIN_KMP_RESOLUTION_STRATEGY = property("kotlin.internal.kmp.kmpResolutionStrategy")
         val KOTLIN_KMP_ISOLATED_PROJECT_SUPPORT = property("kotlin.kmp.isolated-projects.support")
         val KOTLIN_INCREMENTAL_FIR = property("kotlin.incremental.jvm.fir")
 
@@ -748,6 +761,7 @@ internal class PropertiesProvider private constructor(private val project: Proje
         val KOTLIN_CLASSLOADER_CACHE_TIMEOUT = property("$KOTLIN_INTERNAL_NAMESPACE.classloaderCache.timeoutSeconds")
         val ABI_VALIDATION_BANNED_TARGETS = property(ABI_VALIDATION_BANNED_TARGETS_NAME)
         val ABI_VALIDATION_DISABLED = property(ABI_VALIDATION_DISABLED_NAME)
+        val KOTLIN_PARSE_INLINED_LOCAL_CLASSES = property("$KOTLIN_INTERNAL_NAMESPACE.classpathSnapshot.parseInlinedLocalClasses")
     }
 
     companion object {

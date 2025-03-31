@@ -222,6 +222,7 @@ fun main(args: Array<String>) {
 
             testClass<AbstractFirJsCodegenBoxWithInlinedFunInKlibTest> {
                 model("box", excludeDirs = jvmOnlyBoxTests + k1BoxTestDir)
+                model("boxInline")
             }
 
             testClass<AbstractFirJsES6CodegenBoxTest>(annotations = listOf(*es6())) {
@@ -256,12 +257,12 @@ fun main(args: Array<String>) {
                 model("boxWasmJsInterop")
             }
 
-            testClass<AbstractFirJsIrDeserializationCodegenBoxTest> {
+            testClass<AbstractJsIrDeserializationCodegenBoxTest> {
                 model("box", excludeDirs = jvmOnlyBoxTests + k1BoxTestDir + irInterpreterTests)
                 model("boxInline")
             }
 
-            testClass<AbstractFirJsIrDeserializationCodegenBoxWithInlinedFunInKlibTest> {
+            testClass<AbstractJsIrDeserializationCodegenBoxWithInlinedFunInKlibTest> {
                 model("box", excludeDirs = jvmOnlyBoxTests + k1BoxTestDir + irInterpreterTests)
                 model("boxInline")
             }
@@ -326,6 +327,15 @@ fun main(args: Array<String>) {
             }
 
             testClass<AbstractFirLightTreeJsDiagnosticWithBackendTest>(suiteTestClassName = "FirLightTreeJsOldFrontendDiagnosticsWithBackendTestGenerated") {
+                model(
+                    relativeRootPath = "testsWithJsStdLibAndBackendCompilation",
+                    pattern = "^([^_](.+))\\.kt$",
+                    excludedPattern = excludedFirTestdataPattern,
+                    targetBackend = TargetBackend.JS_IR
+                )
+            }
+
+            testClass<AbstractFirJsDiagnosticWithBackendWithInlinedFunInKlibTestBase>(suiteTestClassName = "FirJsOldFrontendDiagnosticsWithBackendWithInlinedFunInKlibTestGenerated") {
                 model(
                     relativeRootPath = "testsWithJsStdLibAndBackendCompilation",
                     pattern = "^([^_](.+))\\.kt$",

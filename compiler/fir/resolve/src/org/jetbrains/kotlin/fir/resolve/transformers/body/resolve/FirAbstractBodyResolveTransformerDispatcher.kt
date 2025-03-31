@@ -117,15 +117,14 @@ abstract class FirAbstractBodyResolveTransformerDispatcher(
     }
 
     override fun transformImplicitTypeRef(implicitTypeRef: FirImplicitTypeRef, data: ResolutionMode): FirTypeRef {
-        if (data !is ResolutionMode.WithExpectedType)
+        if (data !is ResolutionMode.UpdateImplicitTypeRef)
             return implicitTypeRef
 
         /**
          * We should transform a provided type to process such references in [transformAnnotationCall] by [transformForeignAnnotationCall]
          * because usually we do not run such transformations on replaced types explicitly
          */
-        @OptIn(ResolutionMode.WithExpectedType.ExpectedTypeRefAccess::class)
-        return data.expectedTypeRef.transformSingle(this, data)
+        return data.newTypeRef.transformSingle(this, data)
     }
 
     // ------------------------------------- Expressions -------------------------------------
@@ -158,6 +157,17 @@ abstract class FirAbstractBodyResolveTransformerDispatcher(
         FirExpressionsResolveTransformer::transformQualifiedAccessExpression,
     )
 
+    override fun transformQualifiedErrorAccessExpression(
+        qualifiedErrorAccessExpression: FirQualifiedErrorAccessExpression,
+        data: ResolutionMode
+    ): FirStatement {
+        return expressionTransformation(
+            qualifiedErrorAccessExpression,
+            data,
+            FirExpressionsResolveTransformer::transformQualifiedErrorAccessExpression,
+        )
+    }
+
     override fun transformPropertyAccessExpression(
         propertyAccessExpression: FirPropertyAccessExpression,
         data: ResolutionMode,
@@ -165,6 +175,15 @@ abstract class FirAbstractBodyResolveTransformerDispatcher(
         propertyAccessExpression,
         data,
         FirExpressionsResolveTransformer::transformQualifiedAccessExpression,
+    )
+
+    override fun transformSuperReceiverExpression(
+        superReceiverExpression: FirSuperReceiverExpression,
+        data: ResolutionMode,
+    ): FirStatement = expressionTransformation(
+        superReceiverExpression,
+        data,
+        FirExpressionsResolveTransformer::transformSuperReceiverExpression,
     )
 
     override fun transformFunctionCall(
@@ -676,11 +695,11 @@ abstract class FirAbstractBodyResolveTransformerDispatcher(
     override fun transformWhenSubjectExpression(
         whenSubjectExpression: FirWhenSubjectExpression,
         data: ResolutionMode,
-    ): FirStatement = controlFlowStatementsTransformation(
-        whenSubjectExpression,
-        data,
-        FirControlFlowStatementsResolveTransformer::transformWhenSubjectExpression,
-    )
+    ): FirStatement {
+        return transformPropertyAccessExpression(whenSubjectExpression, data).also {
+            dataFlowAnalyzer.exitWhenSubjectExpression(whenSubjectExpression)
+        }
+    }
 
     override fun transformTryExpression(
         tryExpression: FirTryExpression,

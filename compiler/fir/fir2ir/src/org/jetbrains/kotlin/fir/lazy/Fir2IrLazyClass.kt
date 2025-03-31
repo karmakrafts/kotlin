@@ -27,7 +27,7 @@ import org.jetbrains.kotlin.fir.visibilityChecker
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
 import org.jetbrains.kotlin.ir.declarations.*
-import org.jetbrains.kotlin.ir.declarations.lazy.IrMaybeDeserializedClass
+import org.jetbrains.kotlin.ir.declarations.lazy.IrLazyClassBase
 import org.jetbrains.kotlin.ir.declarations.lazy.lazyVar
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
@@ -41,14 +41,14 @@ import org.jetbrains.kotlin.name.Name
 
 class Fir2IrLazyClass(
     private val c: Fir2IrComponents,
-    override val startOffset: Int,
-    override val endOffset: Int,
+    override var startOffset: Int,
+    override var endOffset: Int,
     override var origin: IrDeclarationOrigin,
     override val fir: FirRegularClass,
     override val symbol: IrClassSymbol,
     parent: IrDeclarationParent,
 ) : IrClass(), AbstractFir2IrLazyDeclaration<FirRegularClass>, Fir2IrTypeParametersContainer,
-    IrMaybeDeserializedClass, Fir2IrComponents by c {
+    IrLazyClassBase, Fir2IrComponents by c {
     init {
         this.parent = parent
         symbol.bind(this)
@@ -73,7 +73,15 @@ class Fir2IrLazyClass(
         get() = fir.name
         set(_) = mutationNotSupported()
 
-    override var visibility: DescriptorVisibility = c.visibilityConverter.convertToDescriptorVisibility(fir.visibility)
+    // We need to make it lazy at the moment, because the lazy classes are created for REPL in such a way, that the origin may be
+    // updated after the object creation (but before visibility checks)
+    private val _visibility: DescriptorVisibility by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        if (origin == IrDeclarationOrigin.REPL_FROM_OTHER_SNIPPET) DescriptorVisibilities.PUBLIC
+        else c.visibilityConverter.convertToDescriptorVisibility(fir.visibility)
+    }
+
+    override var visibility: DescriptorVisibility
+        get() = _visibility
         set(_) = mutationNotSupported()
 
     override var modality: Modality
@@ -262,4 +270,6 @@ class Fir2IrLazyClass(
 
     override val isNewPlaceForBodyGeneration: Boolean
         get() = fir.isNewPlaceForBodyGeneration == true
+
+    override val isK2: Boolean get() = true
 }

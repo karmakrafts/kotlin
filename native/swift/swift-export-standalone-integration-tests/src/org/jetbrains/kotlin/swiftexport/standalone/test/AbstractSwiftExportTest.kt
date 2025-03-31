@@ -5,7 +5,6 @@
 
 package org.jetbrains.kotlin.swiftexport.standalone.test
 
-import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.TestDataFile
 import org.jetbrains.kotlin.konan.target.Distribution
 import org.jetbrains.kotlin.konan.test.blackbox.support.*
@@ -44,10 +43,9 @@ abstract class AbstractSwiftExportTest {
 
     private val binariesDir get() = testRunSettings.get<Binaries>().testBinariesDir
     protected fun buildDir(testName: String) = binariesDir.resolve(testName)
-    private val targets: KotlinNativeTargets get() = testRunSettings.get()
+    protected val targets: KotlinNativeTargets get() = testRunSettings.get()
     protected val testCompilationFactory = TestCompilationFactory()
     private val compiledSwiftCache = ThreadSafeCache<SwiftExportModule, TestCompilationArtifact.Swift.Module>()
-    private val tmpdir = FileUtil.createTempDirectory("SwiftExportIntegrationTests", null, false)
 
     protected abstract fun runCompiledTest(
         testPathFull: File,
@@ -66,46 +64,44 @@ abstract class AbstractSwiftExportTest {
             .getTestCaseGroup(testCaseId.testCaseGroupId, testRunSettings)
             ?.getByName(testCaseId)!!
 
-        val rootModules = originalTestCase.rootModules
-        val modulesMarkedForExport = originalTestCase.modules.filterToSetOrEmpty { it.shouldBeExportedToSwift() }
-        val modulesToExport = rootModules + modulesMarkedForExport
+        val modulesToExport = (originalTestCase.rootModules + originalTestCase.modules).mapToSet {
+            createInputModule(
+                testModule = it,
+                originalTestCase = originalTestCase,
+                shouldBeFullyExported = it.shouldBeExportedToSwift() || originalTestCase.rootModules.contains(it)
+            )
+        }
 
         val config = SwiftExportConfig(
-            outputPath = tmpdir.toPath().resolve(testDir),
+            outputPath = buildDir(testPathFull.name).resolve(testDir).toPath(),
             stableDeclarationsOrder = true,
             distribution = Distribution(KonanHome.konanHomePath),
+            konanTarget = targets.testTarget,
             errorTypeStrategy = ErrorTypeStrategy.Fail,
             unsupportedTypeStrategy = ErrorTypeStrategy.SpecialType
         )
 
-        val input = modulesToExport.mapToSet { testModule ->
-            testModule.constructSwiftInput(
-                originalTestCase.freeCompilerArgs,
-                SwiftModuleConfig(
-                    rootPackage = testModule.swiftExportConfigMap()?.get(SwiftModuleConfig.ROOT_PACKAGE),
-                    unsupportedDeclarationReporterKind = getUnsupportedDeclarationsReporterKind(testModule.swiftExportConfigMap())
-                )
-            )
-        }
-
         // run swift export
-        val swiftExportOutputs: Set<SwiftExportModule> = runSwiftExport(input, config).getOrThrow()
+        val swiftExportOutputs = runSwiftExport(
+            modulesToExport,
+            config
+        ).getOrThrow()
 
         // compile kotlin into binary
         val additionalKtFiles: Set<Path> = mutableSetOf<Path>()
             .apply { swiftExportOutputs.collectKotlinBridgeFilesRecursively(into = this) }
 
-        val kotlinFiles = modulesToExport.flatMapToSet { module -> module.files.map { file -> file.location } }
+        val kotlinFiles = originalTestCase.rootModules.flatMapToSet { module -> module.files.map { file -> file.location } }
         val kotlinBinaryLibraryName = testPathFull.name + "Kotlin"
 
         val resultingTestCase = generateSwiftExportTestCase(
             testPathFull,
             kotlinBinaryLibraryName,
             kotlinFiles.toList() + additionalKtFiles.map { it.toFile() },
-            modules = modulesToExport
+            modules = originalTestCase.rootModules
                 .flatMapToSet {
                     it.allRegularDependencies.filterIsInstance<TestModule.Exclusive>().toSet()
-                } - modulesToExport,
+                } - originalTestCase.rootModules,
         )
 
         // TODO: we don't need to compile Kotlin binary for generation tests.
@@ -132,6 +128,20 @@ abstract class AbstractSwiftExportTest {
             kotlinBinaryLibrary
         )
     }
+
+    private fun createInputModule(
+        testModule: TestModule.Exclusive,
+        originalTestCase: TestCase,
+        shouldBeFullyExported: Boolean
+    ): InputModule =
+        testModule.constructSwiftInput(
+            originalTestCase.freeCompilerArgs,
+            SwiftModuleConfig(
+                rootPackage = testModule.swiftExportConfigMap()?.get(SwiftModuleConfig.ROOT_PACKAGE),
+                unsupportedDeclarationReporterKind = getUnsupportedDeclarationsReporterKind(testModule.swiftExportConfigMap()),
+                shouldBeFullyExported = shouldBeFullyExported,
+            )
+        )
 
     private fun TestModule.Exclusive.constructSwiftInput(
         freeCompilerArgs: TestCompilerArgs,

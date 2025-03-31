@@ -20,14 +20,14 @@ import org.jetbrains.kotlin.fir.*
 import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.isDataClassCopy
-import org.jetbrains.kotlin.fir.analysis.checkers.getDirectOverriddenSymbols
+import org.jetbrains.kotlin.fir.analysis.checkers.directOverriddenSymbolsSafe
 import org.jetbrains.kotlin.fir.analysis.checkers.inlineCheckerExtension
 import org.jetbrains.kotlin.fir.analysis.checkers.isInlineOnly
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.declarations.*
+import org.jetbrains.kotlin.fir.declarations.primaryConstructorIfAny
 import org.jetbrains.kotlin.fir.declarations.utils.*
 import org.jetbrains.kotlin.fir.expressions.*
-import org.jetbrains.kotlin.fir.references.FirSuperReference
 import org.jetbrains.kotlin.fir.references.symbol
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
 import org.jetbrains.kotlin.fir.resolve.toClassLikeSymbol
@@ -236,7 +236,7 @@ object FirInlineDeclarationChecker : FirFunctionChecker(MppCheckerKind.Common) {
             val receiverSymbol =
                 receiverExpression.unwrapErrorExpression()?.toResolvedCallableSymbol(session) as? FirValueParameterSymbol ?: return
             if (receiverSymbol in inlinableParameters) {
-                if (!isInvokeOrInlineExtension(targetSymbol)) {
+                if (targetSymbol?.isInvokeOfSomeFunctionType() != true || qualifiedAccessExpression is FirCallableReferenceAccess) {
                     reporter.reportOn(
                         receiverExpression.source ?: qualifiedAccessExpression.source,
                         FirErrors.USAGE_IS_NOT_INLINABLE,
@@ -254,12 +254,10 @@ object FirInlineDeclarationChecker : FirFunctionChecker(MppCheckerKind.Common) {
             }
         }
 
-        private fun isInvokeOrInlineExtension(targetSymbol: FirBasedSymbol<*>?): Boolean {
-            if (targetSymbol !is FirNamedFunctionSymbol) return false
-            // TODO: receivers are currently not inline (KT-5837)
-            // if (targetSymbol.isInline) return true
-            return targetSymbol.name == OperatorNameConventions.INVOKE &&
-                    targetSymbol.dispatchReceiverType?.isSomeFunctionType(session) == true
+        private fun FirBasedSymbol<*>.isInvokeOfSomeFunctionType(): Boolean {
+            if (this !is FirNamedFunctionSymbol) return false
+            return this.name == OperatorNameConventions.INVOKE &&
+                    this.dispatchReceiverType?.isSomeFunctionType(session) == true
         }
 
         internal fun checkQualifiedAccess(
@@ -366,7 +364,7 @@ object FirInlineDeclarationChecker : FirFunctionChecker(MppCheckerKind.Common) {
                 else -> null
             } as? FirQualifiedAccessExpression ?: return
 
-            if (receiver.calleeReference is FirSuperReference) {
+            if (receiver is FirSuperReceiverExpression) {
                 val dispatchReceiverType = receiver.dispatchReceiver?.resolvedType
                 val classSymbol = dispatchReceiverType?.toSymbol(session) ?: return
                 if (!classSymbol.isDefinedInInlineFunction()) {
@@ -526,7 +524,7 @@ object FirInlineDeclarationChecker : FirFunctionChecker(MppCheckerKind.Common) {
 
     fun checkCallableDeclaration(declaration: FirCallableDeclaration, context: CheckerContext, reporter: DiagnosticReporter) {
         if (declaration is FirPropertyAccessor) return
-        val directOverriddenSymbols = declaration.getDirectOverriddenSymbols(context)
+        val directOverriddenSymbols = declaration.symbol.directOverriddenSymbolsSafe(context)
         if (declaration is FirSimpleFunction) {
             checkParameters(declaration, directOverriddenSymbols, context, reporter)
             checkNothingToInline(declaration, context, reporter)
@@ -613,4 +611,4 @@ fun createInlineFunctionBodyContext(function: FirFunction, session: FirSession):
 fun FirBasedSymbol<*>.unwrapDataClassCopyWithPrimaryConstructorOrNull(session: FirSession): FirCallableSymbol<*>? =
     (this as? FirCallableSymbol<*>)?.containingClassLookupTag()?.toClassSymbol(session)
         ?.takeIf { containingClass -> isDataClassCopy(containingClass, session) }
-        ?.primaryConstructorSymbol(session)
+        ?.primaryConstructorIfAny(session)

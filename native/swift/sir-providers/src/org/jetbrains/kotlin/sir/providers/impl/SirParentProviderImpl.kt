@@ -14,6 +14,8 @@ import org.jetbrains.kotlin.sir.providers.SirParentProvider
 import org.jetbrains.kotlin.sir.providers.SirSession
 import org.jetbrains.kotlin.sir.providers.utils.containingModule
 import org.jetbrains.kotlin.sir.providers.utils.updateImport
+import org.jetbrains.kotlin.sir.providers.withSessions
+import org.jetbrains.kotlin.sir.util.SirPlatformModule
 import org.jetbrains.kotlin.sir.util.addChild
 
 public class SirParentProviderImpl(
@@ -22,6 +24,11 @@ public class SirParentProviderImpl(
 ) : SirParentProvider {
 
     private val createdExtensionsForModule: MutableMap<SirModule, MutableMap<SirEnum, SirExtension>> = mutableMapOf()
+
+    override fun KaDeclarationSymbol.getOriginalSirParent(ktAnalysisSession: KaSession): SirElement = sirSession.withSessions {
+        this@getOriginalSirParent.containingDeclaration?.toSir()?.primaryDeclaration
+            ?: this@getOriginalSirParent.containingModule.sirModule()
+    }
 
     override fun KaDeclarationSymbol.getSirParent(ktAnalysisSession: KaSession): SirDeclarationContainer {
         val symbol = this@getSirParent
@@ -38,7 +45,7 @@ public class SirParentProviderImpl(
 
             val ktModule = with(ktAnalysisSession) { symbol.containingModule }
             val sirModule = with(sirSession) { ktModule.sirModule() }
-            return if (packageFqName.isRoot) {
+            return if (packageFqName.isRoot || sirModule is SirPlatformModule) {
                 sirModule
             } else {
                 val enumAsPackage = with(packageEnumGenerator) { packageFqName.sirPackageEnum() }
@@ -63,8 +70,15 @@ public class SirParentProviderImpl(
             }
         } else {
             with(sirSession) {
-                parentSymbol.toSir().primaryDeclaration as? SirDeclarationContainer
-            } ?: error("parent declaration does not produce suitable SIR")
+                if (symbol is KaClassSymbol && parentSymbol is KaNamedClassSymbol && parentSymbol.classKind == KaClassKind.INTERFACE) {
+                    with(ktAnalysisSession) {
+                        parentSymbol.containingModule.sirModule()
+                    }
+                } else {
+                    parentSymbol.toSir().primaryDeclaration as? SirDeclarationContainer
+                        ?: error("parent declaration does not produce suitable SIR")
+                }
+            }
         }
     }
 }

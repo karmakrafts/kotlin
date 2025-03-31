@@ -32,6 +32,7 @@ import org.jetbrains.kotlin.utils.addToStdlib.applyIf
 import org.jetbrains.kotlin.utils.addToStdlib.shouldNotBeCalled
 import java.util.*
 
+@OptIn(DirectDeclarationsAccess::class)
 class FirRenderer(
     builder: StringBuilder = StringBuilder(),
     override val annotationRenderer: FirAnnotationRenderer? = FirAnnotationRenderer(),
@@ -1052,6 +1053,18 @@ class FirRenderer(
             visitQualifiedAccessExpressionReceivers(qualifiedAccessExpression)
             qualifiedAccessExpression.calleeReference.accept(this)
             qualifiedAccessExpression.typeArguments.renderTypeArguments()
+        }
+
+        override fun visitQualifiedErrorAccessExpression(qualifiedErrorAccessExpression: FirQualifiedErrorAccessExpression) {
+            errorExpressionRenderer?.renderDiagnostic(qualifiedErrorAccessExpression.diagnostic)
+            annotationRenderer?.render(qualifiedErrorAccessExpression)
+            qualifiedErrorAccessExpression.receiver.accept(this)
+            print('.')
+            qualifiedErrorAccessExpression.selector.accept(this)
+        }
+
+        override fun visitSuperReceiverExpression(superReceiverExpression: FirSuperReceiverExpression) {
+            visitQualifiedAccessExpression(superReceiverExpression)
         }
 
         override fun visitPropertyAccessExpression(propertyAccessExpression: FirPropertyAccessExpression) {

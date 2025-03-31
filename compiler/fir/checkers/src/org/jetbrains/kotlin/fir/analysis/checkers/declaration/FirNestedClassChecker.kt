@@ -20,11 +20,13 @@ import org.jetbrains.kotlin.fir.declarations.utils.effectiveVisibility
 import org.jetbrains.kotlin.fir.declarations.utils.isCompanion
 import org.jetbrains.kotlin.fir.declarations.utils.isInner
 import org.jetbrains.kotlin.fir.declarations.utils.isLocal
+import org.jetbrains.kotlin.fir.declarations.utils.isReplSnippetDeclaration
 
 // No need to visit anonymous object since an anonymous object is always inner. This aligns with
 // compiler/frontend/src/org/jetbrains/kotlin/resolve/ModifiersChecker.java:198
 object FirNestedClassChecker : FirRegularClassChecker(MppCheckerKind.Common) {
     override fun check(declaration: FirRegularClass, context: CheckerContext, reporter: DiagnosticReporter) {
+        if (declaration.isReplSnippetDeclaration != null) return
         // Local enums / objects / companion objects are handled with different diagnostic codes.
         // Exception is companion of local inner class.
         val isCompanion = declaration.isCompanion
@@ -40,7 +42,8 @@ object FirNestedClassChecker : FirRegularClassChecker(MppCheckerKind.Common) {
             return
         }
 
-        val containerIsLocal = containingDeclaration.effectiveVisibility == EffectiveVisibility.Local
+        val containerIsLocal = containingDeclaration.effectiveVisibility == EffectiveVisibility.Local &&
+                containingDeclaration.isReplSnippetDeclaration != true
 
         if (!declaration.isInner && (containingDeclaration.isInner || containerIsLocal || context.isInsideAnonymousObject)) {
             if (declaration.isLocal && isCompanion) {

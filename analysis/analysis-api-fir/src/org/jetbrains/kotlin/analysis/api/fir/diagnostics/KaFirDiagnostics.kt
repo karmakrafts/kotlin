@@ -43,7 +43,6 @@ import org.jetbrains.kotlin.psi.KtArrayAccessExpression
 import org.jetbrains.kotlin.psi.KtBackingField
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtBinaryExpressionWithTypeRHS
-import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassLikeDeclaration
@@ -562,6 +561,14 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         override val diagnosticClass get() = NullableSupertype::class
     }
 
+    interface NullableSupertypeThroughTypealiasError : KaFirDiagnostic<KtElement> {
+        override val diagnosticClass get() = NullableSupertypeThroughTypealiasError::class
+    }
+
+    interface NullableSupertypeThroughTypealiasWarning : KaFirDiagnostic<KtElement> {
+        override val diagnosticClass get() = NullableSupertypeThroughTypealiasWarning::class
+    }
+
     interface ManyClassesInSupertypeList : KaFirDiagnostic<KtElement> {
         override val diagnosticClass get() = ManyClassesInSupertypeList::class
     }
@@ -788,11 +795,11 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         override val diagnosticClass get() = CycleInAnnotationParameterWarning::class
     }
 
-    interface AnnotationClassConstructorCall : KaFirDiagnostic<KtCallExpression> {
+    interface AnnotationClassConstructorCall : KaFirDiagnostic<KtElement> {
         override val diagnosticClass get() = AnnotationClassConstructorCall::class
     }
 
-    interface EnumClassConstructorCall : KaFirDiagnostic<KtCallExpression> {
+    interface EnumClassConstructorCall : KaFirDiagnostic<KtElement> {
         override val diagnosticClass get() = EnumClassConstructorCall::class
     }
 
@@ -894,6 +901,14 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         val actualTarget: String
         val useSiteTarget: String
         val allowedTargets: List<KotlinTarget>
+    }
+
+    interface AnnotationWithUseSiteTargetOnExpressionError : KaFirDiagnostic<KtAnnotationEntry> {
+        override val diagnosticClass get() = AnnotationWithUseSiteTargetOnExpressionError::class
+    }
+
+    interface AnnotationWithUseSiteTargetOnExpressionWarning : KaFirDiagnostic<KtAnnotationEntry> {
+        override val diagnosticClass get() = AnnotationWithUseSiteTargetOnExpressionWarning::class
     }
 
     interface InapplicableTargetOnProperty : KaFirDiagnostic<KtAnnotationEntry> {
@@ -1002,6 +1017,10 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
 
     interface AnnotationsOnBlockLevelExpressionOnTheSameLine : KaFirDiagnostic<PsiElement> {
         override val diagnosticClass get() = AnnotationsOnBlockLevelExpressionOnTheSameLine::class
+    }
+
+    interface IgnorabilityAnnotationsWithCheckerDisabled : KaFirDiagnostic<KtAnnotationEntry> {
+        override val diagnosticClass get() = IgnorabilityAnnotationsWithCheckerDisabled::class
     }
 
     interface JsModuleProhibitedOnVar : KaFirDiagnostic<KtElement> {
@@ -1650,6 +1669,16 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         val symbol: KaClassLikeSymbol
     }
 
+    interface CompareToTypeMismatch : KaFirDiagnostic<KtExpression> {
+        override val diagnosticClass get() = CompareToTypeMismatch::class
+        val actualType: KaType
+    }
+
+    interface HasNextFunctionTypeMismatch : KaFirDiagnostic<KtExpression> {
+        override val diagnosticClass get() = HasNextFunctionTypeMismatch::class
+        val actualType: KaType
+    }
+
     interface OverloadResolutionAmbiguity : KaFirDiagnostic<PsiElement> {
         override val diagnosticClass get() = OverloadResolutionAmbiguity::class
         val candidates: List<KaSymbol>
@@ -1965,6 +1994,7 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
 
     interface CyclicGenericUpperBound : KaFirDiagnostic<PsiElement> {
         override val diagnosticClass get() = CyclicGenericUpperBound::class
+        val typeParameters: List<KaTypeParameterSymbol>
     }
 
     interface FiniteBoundsViolation : KaFirDiagnostic<PsiElement> {
@@ -2905,6 +2935,14 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         override val diagnosticClass get() = LocalExtensionProperty::class
     }
 
+    interface UnnamedVarProperty : KaFirDiagnostic<PsiElement> {
+        override val diagnosticClass get() = UnnamedVarProperty::class
+    }
+
+    interface UnnamedDelegatedProperty : KaFirDiagnostic<PsiElement> {
+        override val diagnosticClass get() = UnnamedDelegatedProperty::class
+    }
+
     interface ExpectedDeclarationWithBody : KaFirDiagnostic<KtDeclaration> {
         override val diagnosticClass get() = ExpectedDeclarationWithBody::class
     }
@@ -3007,6 +3045,10 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         val compatibility: Map<ExpectActualCompatibility<FirBasedSymbol<*>>, List<KaSymbol>>
     }
 
+    interface ExpectRefinementAnnotationWrongTarget : KaFirDiagnostic<KtNamedDeclaration> {
+        override val diagnosticClass get() = ExpectRefinementAnnotationWrongTarget::class
+    }
+
     interface AmbiguousExpects : KaFirDiagnostic<KtNamedDeclaration> {
         override val diagnosticClass get() = AmbiguousExpects::class
         val declaration: KaSymbol
@@ -3021,6 +3063,10 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
 
     interface ActualMissing : KaFirDiagnostic<KtNamedDeclaration> {
         override val diagnosticClass get() = ActualMissing::class
+    }
+
+    interface ExpectRefinementAnnotationMissing : KaFirDiagnostic<KtNamedDeclaration> {
+        override val diagnosticClass get() = ExpectRefinementAnnotationMissing::class
     }
 
     interface ExpectActualClassifiersAreInBetaWarning : KaFirDiagnostic<KtClassLikeDeclaration> {
@@ -3187,6 +3233,10 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
 
     interface TypecheckerHasRunIntoRecursiveProblem : KaFirDiagnostic<KtExpression> {
         override val diagnosticClass get() = TypecheckerHasRunIntoRecursiveProblem::class
+    }
+
+    interface ReturnValueNotUsed : KaFirDiagnostic<KtElement> {
+        override val diagnosticClass get() = ReturnValueNotUsed::class
     }
 
     interface UnsafeCall : KaFirDiagnostic<PsiElement> {
@@ -4201,6 +4251,10 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         val correspondingKotlinTargets: List<String>
     }
 
+    interface AnnotationTargetsOnlyInJava : KaFirDiagnostic<KtAnnotationEntry> {
+        override val diagnosticClass get() = AnnotationTargetsOnlyInJava::class
+    }
+
     interface LocalJvmRecord : KaFirDiagnostic<PsiElement> {
         override val diagnosticClass get() = LocalJvmRecord::class
     }
@@ -4265,17 +4319,12 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
         val packageName: String
     }
 
-    interface JvmDefaultInDeclaration : KaFirDiagnostic<KtElement> {
-        override val diagnosticClass get() = JvmDefaultInDeclaration::class
-        val annotation: String
+    interface JvmDefaultWithoutCompatibilityNotInEnableMode : KaFirDiagnostic<KtElement> {
+        override val diagnosticClass get() = JvmDefaultWithoutCompatibilityNotInEnableMode::class
     }
 
-    interface JvmDefaultWithCompatibilityInDeclaration : KaFirDiagnostic<KtElement> {
-        override val diagnosticClass get() = JvmDefaultWithCompatibilityInDeclaration::class
-    }
-
-    interface JvmDefaultWithCompatibilityNotOnInterface : KaFirDiagnostic<KtElement> {
-        override val diagnosticClass get() = JvmDefaultWithCompatibilityNotOnInterface::class
+    interface JvmDefaultWithCompatibilityNotInNoCompatibilityMode : KaFirDiagnostic<KtElement> {
+        override val diagnosticClass get() = JvmDefaultWithCompatibilityNotInNoCompatibilityMode::class
     }
 
     interface ExternalDeclarationCannotBeAbstract : KaFirDiagnostic<KtDeclaration> {
@@ -4377,6 +4426,16 @@ sealed interface KaFirDiagnostic<PSI : PsiElement> : KaDiagnosticWithPsi<PSI> {
     interface InapplicableJvmFieldWarning : KaFirDiagnostic<KtAnnotationEntry> {
         override val diagnosticClass get() = InapplicableJvmFieldWarning::class
         val message: String
+    }
+
+    interface IdentitySensitiveOperationsWithValueType : KaFirDiagnostic<KtElement> {
+        override val diagnosticClass get() = IdentitySensitiveOperationsWithValueType::class
+        val type: KaType
+    }
+
+    interface SynchronizedBlockOnJavaValueBasedClass : KaFirDiagnostic<KtElement> {
+        override val diagnosticClass get() = SynchronizedBlockOnJavaValueBasedClass::class
+        val type: KaType
     }
 
     interface SynchronizedBlockOnValueClassOrPrimitiveError : KaFirDiagnostic<PsiElement> {

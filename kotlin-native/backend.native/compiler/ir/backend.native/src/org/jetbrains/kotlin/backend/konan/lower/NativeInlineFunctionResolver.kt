@@ -13,6 +13,8 @@ import org.jetbrains.kotlin.backend.konan.NativeGenerationState
 import org.jetbrains.kotlin.backend.konan.ir.konanLibrary
 import org.jetbrains.kotlin.backend.konan.reportCompilationError
 import org.jetbrains.kotlin.ir.builders.Scope
+import org.jetbrains.kotlin.ir.declarations.IrDeclaration
+import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
@@ -20,10 +22,11 @@ import org.jetbrains.kotlin.ir.inline.*
 import org.jetbrains.kotlin.ir.irAttribute
 import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
 import org.jetbrains.kotlin.ir.types.IrType
+import org.jetbrains.kotlin.ir.util.file
 import org.jetbrains.kotlin.ir.util.getPackageFragment
 import org.jetbrains.kotlin.library.isHeader
 
-private var IrFunction.wasLowered: Boolean? by irAttribute(followAttributeOwner = true)
+private var IrFunction.wasLowered: Boolean? by irAttribute(copyByDefault = true)
 
 internal class NativeInlineFunctionResolver(
         val generationState: NativeGenerationState,
@@ -50,8 +53,6 @@ internal class NativeInlineFunctionResolver(
     private fun lower(function: IrFunction) {
         val body = function.body ?: return
 
-        InteropLowering(generationState).lower(body, function)
-
         UpgradeCallableReferences(context).lower(function)
 
         NativeAssertionWrapperLowering(context).lower(function)
@@ -73,13 +74,14 @@ internal class NativeInlineFunctionResolver(
 
     inner class NativeCallInlinerStrategy : CallInlinerStrategy {
         private lateinit var builder: NativeRuntimeReflectionIrBuilder
-        override fun at(scope: Scope, expression: IrExpression) {
+        override fun at(container: IrDeclaration, expression: IrExpression) {
             val symbols = this@NativeInlineFunctionResolver.context.symbols
-            builder = context.createIrBuilder(scope.scopeOwnerSymbol, expression.startOffset, expression.endOffset)
+            builder = context.createIrBuilder(container.symbol, expression.startOffset, expression.endOffset)
                     .toNativeRuntimeReflectionBuilder(symbols) { message ->
-                        this@NativeInlineFunctionResolver.context.reportCompilationError(message, getCompilerMessageLocation())
+                        this@NativeInlineFunctionResolver.context.reportCompilationError(message, expression.getCompilerMessageLocation(container.file))
                     }
         }
+
         override fun postProcessTypeOf(expression: IrCall, nonSubstitutedTypeArgument: IrType): IrExpression {
             return builder.irKType(nonSubstitutedTypeArgument)
         }

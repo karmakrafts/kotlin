@@ -8,16 +8,20 @@ package org.jetbrains.kotlin.gradle
 import org.gradle.api.logging.LogLevel
 import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.cli.common.arguments.K2NativeCompilerArguments
-import org.jetbrains.kotlin.fir.declarations.builder.buildScript
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 import org.jetbrains.kotlin.gradle.testbase.*
 import org.jetbrains.kotlin.gradle.util.parseCompilerArguments
 import org.jetbrains.kotlin.gradle.util.parseCompilerArgumentsFromBuildOutput
+import org.jetbrains.kotlin.gradle.utils.named
 import org.junit.jupiter.api.DisplayName
 import kotlin.io.path.appendText
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
 internal class CompilerOptionsIT : KGPBaseTest() {
+    private val firstNonDeprecatedKotlinVersion = KotlinVersion.firstNonDeprecated
+    private val latestStableKotlinVersion = KotlinVersion.DEFAULT
 
     // In Gradle 7.3-8.0 'kotlin-dsl' plugin tries to set up freeCompilerArgs in doFirst task action
     // Related issue: https://github.com/gradle/gradle/issues/22091
@@ -48,8 +52,8 @@ internal class CompilerOptionsIT : KGPBaseTest() {
                     afterEvaluate {
                         tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
                             // aligned with embedded Kotlin compiler: https://docs.gradle.org/current/userguide/compatibility.html#kotlin
-                            compilerOptions.apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_7)
-                            compilerOptions.languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_7)
+                            compilerOptions.apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.${firstNonDeprecatedKotlinVersion.name})
+                            compilerOptions.languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.${firstNonDeprecatedKotlinVersion.name})
                         }
                     }
                     """.trimIndent()
@@ -462,11 +466,7 @@ internal class CompilerOptionsIT : KGPBaseTest() {
             projectName = "new-mpp-lib-and-app/sample-lib",
             gradleVersion = gradleVersion,
         ) {
-            if (gradleVersion < GradleVersion.version("7.1")) {
-                buildGradle.append("archivesBaseName = \"myNativeLib\"")
-            } else {
-                buildGradle.append("base.archivesName.set(\"myNativeLib\")")
-            }
+            buildGradle.append("base.archivesName.set(\"myNativeLib\")")
 
             build(":compileNativeMainKotlinMetadata") {
                 assertTasksExecuted(":compileNativeMainKotlinMetadata")
@@ -489,29 +489,25 @@ internal class CompilerOptionsIT : KGPBaseTest() {
     @GradleTest
     @DisplayName("Syncs languageSettings changes to the related compiler options")
     @MppGradlePluginTests
-    @BrokenOnMacosTest
     fun syncLanguageSettingsToCompilerOptions(gradleVersion: GradleVersion) {
+        val firstNonDeprecatedVersion = firstNonDeprecatedKotlinVersion.version
+        val latestStableVersion = latestStableKotlinVersion.version
         project("mpp-default-hierarchy", gradleVersion) {
-            buildGradle.appendText(
-                //language=groovy
-                """
-                |
-                |kotlin.sourceSets.configureEach {
-                |    languageSettings.apiVersion = "1.7"
-                |    languageSettings.languageVersion = "1.8"
-                |}
-                |
-                |tasks.register("printCompilerOptions") {
-                |    dependsOn(kotlinTaskToCheck)
-                |    def tasksContainer = project.tasks
-                |    doLast {
-                |        def kotlinTask = tasks.getByName(kotlinTaskToCheck) as org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<?>
-                |        logger.warn("###AV:${'$'}{kotlinTask.compilerOptions.apiVersion.getOrNull()}")
-                |        logger.warn("###LV:${'$'}{kotlinTask.compilerOptions.languageVersion.getOrNull()}")
-                |    }
-                |}
-                """.trimMargin()
-            )
+            buildScriptInjection {
+                kotlinMultiplatform.sourceSets.configureEach { sourceSet ->
+                    sourceSet.languageSettings.apiVersion = firstNonDeprecatedVersion
+                    sourceSet.languageSettings.languageVersion = latestStableVersion
+                }
+                project.tasks.register("printCompilerOptions") { task ->
+                    val taskName = project.property("kotlinTaskToCheck") as String
+                    task.dependsOn(taskName)
+                    val compilerOptionsProvider = project.tasks.named<KotlinCompilationTask<*>>(taskName).map { it.compilerOptions }
+                    task.doLast {
+                        it.logger.warn("###AV:${compilerOptionsProvider.get().apiVersion.getOrNull()}")
+                        it.logger.warn("###LV:${compilerOptionsProvider.get().languageVersion.getOrNull()}")
+                    }
+                }
+            }
 
             listOf(
                 "compileCommonMainKotlinMetadata",
@@ -526,40 +522,38 @@ internal class CompilerOptionsIT : KGPBaseTest() {
                 "compileKotlinIosArm64"
             ).forEach { task ->
                 build("printCompilerOptions", "-PkotlinTaskToCheck=$task") {
-                    assertOutputContains("###AV:KOTLIN_1_7")
-                    assertOutputContains("###LV:KOTLIN_1_8")
+                    assertOutputContains("###AV:${firstNonDeprecatedKotlinVersion.name}")
+                    assertOutputContains("###LV:${latestStableKotlinVersion.name}")
                 }
             }
         }
     }
 
+    @Suppress("DEPRECATION")
     @GradleTest
     @DisplayName("Syncs compiler option changes to the related language settings")
     @MppGradlePluginTests
-    @BrokenOnMacosTest
     fun syncCompilerOptionsToLanguageSettings(gradleVersion: GradleVersion) {
+        val firstNonDeprecatedVersion = firstNonDeprecatedKotlinVersion
+        val latestStableVersion = latestStableKotlinVersion
         project("mpp-default-hierarchy", gradleVersion) {
-            buildGradle.appendText(
-                //language=groovy
-                """
-                |
-                |tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask.class).all {
-                |    compilerOptions {
-                |        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_7
-                |        languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_8
-                |    }
-                |}
-                |
-                |tasks.register("printLanguageSettingsOptions") {
-                |    doLast {
-                |        def languageSettings = kotlin.sourceSets.getByName(kotlinSourceSet).languageSettings
-                |        logger.warn("")
-                |        logger.warn("###AV:${'$'}{languageSettings.apiVersion}")
-                |        logger.warn("###LV:${'$'}{languageSettings.languageVersion}")
-                |    }
-                |}
-                """.trimMargin()
-            )
+            buildScriptInjection {
+                project.tasks.withType(KotlinCompilationTask::class.java).all { task ->
+                    task.compilerOptions.apiVersion.set(firstNonDeprecatedVersion)
+                    task.compilerOptions.languageVersion.set(latestStableVersion)
+                }
+                project.tasks.register("printLanguageSettingsOptions") { task ->
+                    val languageSettingsProvider = project.provider {
+                        val sourceSetName = project.property("kotlinSourceSet") as String
+                        kotlinMultiplatform.sourceSets.getByName(sourceSetName).languageSettings
+                    }
+                    task.doLast {
+                        it.logger.warn("")
+                        it.logger.warn("###AV:${languageSettingsProvider.get().apiVersion}")
+                        it.logger.warn("###LV:${languageSettingsProvider.get().languageVersion}")
+                    }
+                }
+            }
 
             listOf(
                 "commonMain",
@@ -574,8 +568,8 @@ internal class CompilerOptionsIT : KGPBaseTest() {
                 "iosArm64Main",
             ).forEach { sourceSet ->
                 build("printLanguageSettingsOptions", "-PkotlinSourceSet=${sourceSet}") {
-                    assertOutputContains("###AV:1.7")
-                    assertOutputContains("###LV:1.8")
+                    assertOutputContains("###AV:${firstNonDeprecatedKotlinVersion.version}")
+                    assertOutputContains("###LV:${latestStableKotlinVersion.version}")
                 }
             }
         }

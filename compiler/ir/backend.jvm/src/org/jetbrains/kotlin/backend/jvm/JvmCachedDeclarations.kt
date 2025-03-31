@@ -25,20 +25,22 @@ import org.jetbrains.kotlin.ir.types.typeWith
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
 import org.jetbrains.kotlin.load.java.JvmAbi
+import org.jetbrains.kotlin.name.JvmStandardClassIds.JVM_DEFAULT_WITHOUT_COMPATIBILITY_FQ_NAME
+import org.jetbrains.kotlin.name.JvmStandardClassIds.JVM_DEFAULT_WITH_COMPATIBILITY_FQ_NAME
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.deprecation.DeprecationResolver
 import org.jetbrains.kotlin.utils.addToStdlib.getOrSetIfNull
 
-private var IrEnumEntry.declaringField: IrField? by irAttribute(followAttributeOwner = false)
-private var IrProperty.staticBackingFields: IrField? by irAttribute(followAttributeOwner = false)
-private var IrSimpleFunction.staticCompanionDeclarations: Pair<IrSimpleFunction, IrSimpleFunction>? by irAttribute(followAttributeOwner = false)
+private var IrEnumEntry.declaringField: IrField? by irAttribute(copyByDefault = false)
+private var IrProperty.staticBackingFields: IrField? by irAttribute(copyByDefault = false)
+private var IrSimpleFunction.staticCompanionDeclarations: Pair<IrSimpleFunction, IrSimpleFunction>? by irAttribute(copyByDefault = false)
 
-private var IrSimpleFunction.defaultImplsMethod: IrSimpleFunction? by irAttribute(followAttributeOwner = false)
-private var IrClass.defaultImplsClass: IrClass? by irAttribute(followAttributeOwner = false)
-private var IrSimpleFunction.classFakeOverrideReplacement: ClassFakeOverrideReplacement? by irAttribute(followAttributeOwner = false)
-var IrSimpleFunction.originalFunctionForDefaultImpl: IrSimpleFunction? by irAttribute(followAttributeOwner = false)
+private var IrSimpleFunction.defaultImplsMethod: IrSimpleFunction? by irAttribute(copyByDefault = false)
+private var IrClass.defaultImplsClass: IrClass? by irAttribute(copyByDefault = false)
+private var IrSimpleFunction.classFakeOverrideReplacement: ClassFakeOverrideReplacement? by irAttribute(copyByDefault = false)
+var IrSimpleFunction.originalFunctionForDefaultImpl: IrSimpleFunction? by irAttribute(copyByDefault = false)
 
-private var IrClass.repeatedAnnotationSyntheticContainer: IrClass? by irAttribute(followAttributeOwner = false)
+private var IrClass.repeatedAnnotationSyntheticContainer: IrClass? by irAttribute(copyByDefault = false)
 
 class JvmCachedDeclarations(
     private val context: JvmBackendContext,
@@ -122,7 +124,7 @@ class JvmCachedDeclarations(
                     copyAnnotationsFrom(jvmStaticFunction)
                     copyCorrespondingPropertyFrom(jvmStaticFunction)
                     copyValueAndTypeParametersFrom(jvmStaticFunction)
-                    dispatchReceiverParameter = null
+                    parameters = nonDispatchParameters
                     metadata = jvmStaticFunction.metadata
                 }
                 staticExternal to companion.makeProxy(staticExternal, isStatic = false)
@@ -285,8 +287,8 @@ class JvmCachedDeclarations(
             } else if (implementation.isDefinitelyNotDefaultImplsMethod(context.config.jvmDefaultMode, implementation)) {
                 val klass = newFunction.parentAsClass
                 when (context.config.jvmDefaultMode) {
-                    JvmDefaultMode.NO_COMPATIBILITY -> return null
-                    JvmDefaultMode.ENABLE if klass.hasJvmDefaultNoCompatibilityAnnotation() -> return null
+                    JvmDefaultMode.NO_COMPATIBILITY if !klass.hasAnnotation(JVM_DEFAULT_WITH_COMPATIBILITY_FQ_NAME) -> return null
+                    JvmDefaultMode.ENABLE if klass.hasAnnotation(JVM_DEFAULT_WITHOUT_COMPATIBILITY_FQ_NAME) -> return null
                     else -> superFunction
                 }
             } else {
@@ -356,8 +358,8 @@ class JvmCachedDeclarations(
         }
 }
 
-private var IrClass.fieldForObjectInstance: IrField? by irAttribute(followAttributeOwner = false)
-private var IrClass.interfaceCompanionFieldForObjectInstance: IrField? by irAttribute(followAttributeOwner = false)
+private var IrClass.fieldForObjectInstance: IrField? by irAttribute(copyByDefault = false)
+private var IrClass.interfaceCompanionFieldForObjectInstance: IrField? by irAttribute(copyByDefault = false)
 
 /*
     This class keeps track of singleton fields for instances of object classes.

@@ -5,9 +5,10 @@
 
 package org.jetbrains.kotlin.kotlinp
 
-import kotlin.metadata.*
 import kotlin.contracts.ExperimentalContracts
+import kotlin.metadata.*
 
+@OptIn(ExperimentalAnnotationsInMetadata::class)
 abstract class Kotlinp(protected val settings: Settings) {
     fun renderAnnotation(annotation: KmAnnotation, printer: Printer): Unit = with(printer) {
         append(annotation.className)
@@ -64,13 +65,14 @@ abstract class Kotlinp(protected val settings: Settings) {
         }
     }
 
-    protected fun Printer.appendAnnotations(hasAnnotations: Boolean?, annotations: List<KmAnnotation>, onePerLine: Boolean = true) {
-        if (hasAnnotations != false) {
-            annotations.forEach { annotation ->
-                append("@")
-                renderAnnotation(annotation, this)
-                if (onePerLine) appendLine() else append(" ")
+    protected fun Printer.appendAnnotations(annotations: List<KmAnnotation>, onePerLine: Boolean = true, useSiteTarget: String? = null) {
+        annotations.forEach { annotation ->
+            append("@")
+            if (useSiteTarget != null) {
+                append(useSiteTarget).append(":")
             }
+            renderAnnotation(annotation, this)
+            if (onePerLine) appendLine() else append(" ")
         }
     }
 
@@ -79,7 +81,7 @@ abstract class Kotlinp(protected val settings: Settings) {
         appendOrigin(clazz)
         appendVersionRequirements(clazz.versionRequirements)
         appendSignatures(clazz)
-        appendAnnotations(clazz.hasAnnotations, getAnnotations(clazz))
+        appendAnnotations(clazz.annotations)
         appendContextReceiverTypes(clazz.contextReceiverTypes)
         append(VISIBILITY_MAP[clazz.visibility])
         append(MODALITY_MAP[clazz.modality])
@@ -107,7 +109,12 @@ abstract class Kotlinp(protected val settings: Settings) {
                 appendLine()
                 appendCommentedLine("nested class: $it")
             }
-            appendEnumEntries(clazz)
+            clazz.kmEnumEntries.forEach { enumEntry ->
+                appendLine()
+                appendSignatures(enumEntry)
+                appendAnnotations(enumEntry.annotations)
+                appendLine(enumEntry.name, ",")
+            }
             clazz.sealedSubclasses.sortIfNeeded { it }.forEach {
                 appendLine()
                 appendCommentedLine("sealed subclass: $it")
@@ -139,7 +146,7 @@ abstract class Kotlinp(protected val settings: Settings) {
         appendLine()
         appendVersionRequirements(constructor.versionRequirements)
         appendSignatures(constructor)
-        appendAnnotations(constructor.hasAnnotations, getAnnotations(constructor))
+        appendAnnotations(constructor.annotations)
         renderConstructorModifiers(constructor, printer)
         append("constructor")
         appendValueParameters(constructor.valueParameters)
@@ -160,7 +167,8 @@ abstract class Kotlinp(protected val settings: Settings) {
         appendOrigin(function)
         appendVersionRequirements(function.versionRequirements)
         appendSignatures(function)
-        appendAnnotations(function.hasAnnotations, getAnnotations(function))
+        appendAnnotations(function.annotations)
+        appendAnnotations(function.extensionReceiverParameterAnnotations, useSiteTarget = "receiver")
         appendContextReceiverTypes(function.contextReceiverTypes)
         renderFunctionModifiers(function, printer)
         append("fun ")
@@ -294,7 +302,10 @@ abstract class Kotlinp(protected val settings: Settings) {
         appendVersionRequirements(property.versionRequirements)
         appendSignatures(property)
         appendCustomAttributes(property)
-        appendAnnotations(property.hasAnnotations, getAnnotations(property))
+        appendAnnotations(property.annotations)
+        appendAnnotations(property.backingFieldAnnotations, useSiteTarget = "field")
+        appendAnnotations(property.delegateFieldAnnotations, useSiteTarget = "delegate")
+        appendAnnotations(property.extensionReceiverParameterAnnotations, useSiteTarget = "receiver")
         appendContextReceiverTypes(property.contextReceiverTypes)
         renderPropertyModifiers(property, printer)
         append(if (property.isVar) "var " else "val ")
@@ -308,12 +319,12 @@ abstract class Kotlinp(protected val settings: Settings) {
         appendLine()
         withIndent {
             appendGetterSignatures(property)
-            appendAnnotations(property.getter.hasAnnotations, getGetterAnnotations(property))
+            appendAnnotations(property.getter.annotations)
             renderPropertyAccessorModifiers(property.getter, printer)
             appendLine("get")
             property.setter?.let { setter ->
                 appendSetterSignatures(property)
-                appendAnnotations(setter.hasAnnotations, getSetterAnnotations(property))
+                appendAnnotations(setter.annotations)
                 renderPropertyAccessorModifiers(setter, printer)
                 append("set")
                 property.setterParameter?.let {
@@ -351,7 +362,7 @@ abstract class Kotlinp(protected val settings: Settings) {
         appendLine()
         appendVersionRequirements(typeAlias.versionRequirements)
         appendSignatures(typeAlias)
-        appendAnnotations(typeAlias.hasAnnotations, typeAlias.annotations)
+        appendAnnotations(typeAlias.annotations)
         append(VISIBILITY_MAP[typeAlias.visibility], "typealias ", typeAlias.name)
         appendTypeParameters(typeAlias.typeParameters)
         append(" = ").appendType(typeAlias.underlyingType)
@@ -361,7 +372,7 @@ abstract class Kotlinp(protected val settings: Settings) {
 
     fun renderTypeParameter(typeParameter: KmTypeParameter, printer: Printer): Unit = with(printer) {
         appendFlags(typeParameter.isReified to "reified")
-        appendAnnotations(hasAnnotations = null, getAnnotations(typeParameter), onePerLine = false)
+        appendAnnotations(getAnnotations(typeParameter), onePerLine = false)
         if (typeParameter.variance != KmVariance.INVARIANT) {
             append(typeParameter.variance.name.lowercase()).append(" ")
         }
@@ -388,7 +399,7 @@ abstract class Kotlinp(protected val settings: Settings) {
         val platformTypeUpperBound = type.flexibleTypeUpperBound?.let { renderFlexibleTypeUpperBound(it) }
 
         printer += printString {
-            appendAnnotations(hasAnnotations = null, getAnnotations(type), onePerLine = false)
+            appendAnnotations(getAnnotations(type), onePerLine = false)
             appendFlags(
                 isRaw(type) to "/* raw */",
                 type.isSuspend to "suspend"
@@ -442,7 +453,7 @@ abstract class Kotlinp(protected val settings: Settings) {
     }
 
     fun renderValueParameter(valueParameter: KmValueParameter, printer: Printer): Unit = with(printer) {
-        appendAnnotations(valueParameter.hasAnnotations, getAnnotations(valueParameter), onePerLine = false)
+        appendAnnotations(valueParameter.annotations, onePerLine = false)
         appendFlags(
             valueParameter.isCrossinline to "crossinline",
             valueParameter.isNoinline to "noinline"
@@ -454,7 +465,11 @@ abstract class Kotlinp(protected val settings: Settings) {
         } else {
             append(valueParameter.name, ": ").appendType(valueParameter.type)
         }
-        if (valueParameter.declaresDefaultValue) {
+        val annotationParameterDefaultValue = valueParameter.annotationParameterDefaultValue
+        if (annotationParameterDefaultValue != null) {
+            append(" = ")
+            renderAnnotationArgument(annotationParameterDefaultValue, printer)
+        } else if (valueParameter.declaresDefaultValue) {
             append(" /* = ... */")
         }
     }
@@ -529,15 +544,8 @@ abstract class Kotlinp(protected val settings: Settings) {
         )
     }
 
-    protected abstract fun getAnnotations(clazz: KmClass): List<KmAnnotation>
-    protected abstract fun getAnnotations(constructor: KmConstructor): List<KmAnnotation>
-    protected abstract fun getAnnotations(function: KmFunction): List<KmAnnotation>
-    protected abstract fun getAnnotations(property: KmProperty): List<KmAnnotation>
-    protected abstract fun getGetterAnnotations(property: KmProperty): List<KmAnnotation>
-    protected abstract fun getSetterAnnotations(property: KmProperty): List<KmAnnotation>
     protected abstract fun getAnnotations(typeParameter: KmTypeParameter): List<KmAnnotation>
     protected abstract fun getAnnotations(type: KmType): List<KmAnnotation>
-    protected abstract fun getAnnotations(valueParameter: KmValueParameter): List<KmAnnotation>
 
     protected open fun sortConstructors(constructors: List<KmConstructor>): List<KmConstructor> = constructors
     protected open fun sortFunctions(functions: List<KmFunction>): List<KmFunction> = functions
@@ -550,11 +558,10 @@ abstract class Kotlinp(protected val settings: Settings) {
     protected open fun Printer.appendGetterSignatures(property: KmProperty) = Unit
     protected open fun Printer.appendSetterSignatures(property: KmProperty) = Unit
     protected open fun Printer.appendSignatures(typeAlias: KmTypeAlias) = Unit
+    protected open fun Printer.appendSignatures(enumEntry: KmEnumEntry) = Unit
 
     protected open fun Printer.appendOrigin(clazz: KmClass) = Unit
     protected open fun Printer.appendOrigin(function: KmFunction) = Unit
-
-    protected abstract fun Printer.appendEnumEntries(clazz: KmClass)
 
     protected open fun Printer.appendCustomAttributes(clazz: KmClass) = Unit
     protected open fun Printer.appendCustomAttributes(pkg: KmPackage) = Unit

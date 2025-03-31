@@ -20,7 +20,7 @@ dependencies {
 
     testImplementation(projectTests(":generators:test-generator"))
     testImplementation(project(":compiler:ir.serialization.native"))
-    testImplementation(project(":compiler:fir:native"))
+    testImplementation(project(":compiler:fir:fir-native"))
     testImplementation(project(":core:compiler.common.native"))
     testImplementation(project(":kotlin-util-klib-abi"))
     testImplementation(project(":native:swift:swift-export-standalone"))
@@ -46,7 +46,7 @@ testsJar {}
 // Tasks that run different sorts of tests. Most frequent use case: running specific tests at TeamCity.
 val infrastructureTest = nativeTest("infrastructureTest", "infrastructure")
 val codegenBoxTest = nativeTest("codegenBoxTest", "codegen & frontend-classic")
-val codegenBoxK2Test = nativeTest("codegenBoxK2Test", "codegen & frontend-fir")
+val codegenBoxK2Test = nativeTest("codegenBoxK2Test", "codegen & !frontend-classic")
 val stdlibTest = nativeTest("stdlibTest", "stdlib")
 val kotlinTestLibraryTest = nativeTest("kotlinTestLibraryTest", "kotlin-test")
 val partialLinkageTest = nativeTest("partialLinkageTest", "partial-linkage")

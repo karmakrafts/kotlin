@@ -1,3 +1,4 @@
+// LANGUAGE: -IrInlinerBeforeKlibSerialization
 // LANGUAGE: +ForbidExposureOfPrivateTypesInNonPrivateInlineFunctionsInKlibs +ContextReceivers
 // DIAGNOSTICS: -NOTHING_TO_INLINE -CONTEXT_RECEIVERS_DEPRECATED -CONTEXT_CLASS_OR_CONSTRUCTOR -CAST_NEVER_SUCCEEDS
 // FIR_IDENTICAL

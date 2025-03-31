@@ -100,6 +100,7 @@ include ":benchmarks",
         ":kotlin-daemon-tests",
         ":kotlin-preloader",
         ":kotlin-runner",
+        ":compiler:arguments",
         ":compiler:container",
         ":compiler:resolution.common",
         ":compiler:resolution.common.jvm",
@@ -156,6 +157,7 @@ include ":benchmarks",
         ":js:js.serializer",
         ":js:js.parser",
         ":js:js.config",
+        ":js:js.frontend.common",
         ":js:js.frontend",
         ":js:js.translator",
         ":js:js.tests",
@@ -391,8 +393,9 @@ include ":compiler:fir",
         ":compiler:fir:plugin-utils",
         ":compiler:fir:fir-serialization",
         ":compiler:fir:fir-deserialization",
-        ":compiler:fir:java",
-        ":compiler:fir:native",
+        ":compiler:fir:fir-jvm",
+        ":compiler:fir:fir-js",
+        ":compiler:fir:fir-native",
         ":compiler:fir:modularized-tests",
         ":compiler:fir:dump",
         ":compiler:fir:checkers",
@@ -442,6 +445,9 @@ include ":kotlinx-serialization-compiler-plugin",
         ":kotlin-serialization",
         ":kotlin-serialization-unshaded"
 
+include ":kotlin-dataframe-compiler-plugin",
+        ":kotlin-dataframe"
+
 if (!buildProperties.inJpsBuildIdeaSync) {
     include ":prepare:ide-plugin-dependencies:android-extensions-compiler-plugin-for-ide",
             ":prepare:ide-plugin-dependencies:allopen-compiler-plugin-for-ide",
@@ -460,6 +466,7 @@ if (!buildProperties.inJpsBuildIdeaSync) {
             ":prepare:ide-plugin-dependencies:kotlin-jps-plugin-tests-for-ide",
             ":prepare:ide-plugin-dependencies:kotlin-jps-plugin-testdata-for-ide",
             ":prepare:ide-plugin-dependencies:kotlinx-serialization-compiler-plugin-for-ide",
+            ":prepare:ide-plugin-dependencies:kotlin-dataframe-compiler-plugin-for-ide",
             ":prepare:ide-plugin-dependencies:noarg-compiler-plugin-for-ide",
             ":prepare:ide-plugin-dependencies:sam-with-receiver-compiler-plugin-for-ide",
             ":prepare:ide-plugin-dependencies:assignment-compiler-plugin-for-ide",
@@ -687,6 +694,7 @@ include ":generators:analysis-api-generator",
         ":analysis:analysis-internal-utils",
         ":analysis:analysis-test-framework",
         ":analysis:kt-references",
+        ":analysis:stubs",
         ":analysis:symbol-light-classes",
         ":analysis:light-classes-base",
         ":analysis:analysis-api-standalone",
@@ -949,6 +957,9 @@ project(':kotlin-atomicfu-compiler-plugin').projectDir = file("$rootDir/plugins/
 project(':kotlin-atomicfu-compiler-plugin-embeddable').projectDir = file("$rootDir/plugins/atomicfu/atomicfu-compiler-embeddable")
 project(':kotlinx-atomicfu-runtime').projectDir = file("$rootDir/plugins/atomicfu/atomicfu-runtime")
 project(':atomicfu').projectDir = file("$rootDir/libraries/tools/atomicfu")
+
+project(':kotlin-dataframe-compiler-plugin').projectDir = "$rootDir/plugins/kotlin-dataframe" as File
+project(':kotlin-dataframe').projectDir = file("$rootDir/libraries/tools/kotlin-dataframe")
 
 if (!buildProperties.inJpsBuildIdeaSync) {
     project(':plugins:compose-compiler-plugin').projectDir = file("$rootDir/plugins/compose")

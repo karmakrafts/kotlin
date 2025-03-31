@@ -4,8 +4,9 @@
 
 public class A
     internal inline fun inlineMethod(): String
-        local fun <anonymous>()
+        /* LOCAL declaration @0 */ local fun <anonymous>()
             /* ACCESSOR use-site */ access$<set-o>$tAKt(<set-?> = "O")
+        /* INVOKE @0 */ local fun <anonymous>()
         /* ACCESSOR use-site */ access$<get-o>$tAKt()
 private lateinit var o: String?
     /* TARGET declaration */ private fun <get-o>(): String
@@ -14,3 +15,14 @@ private lateinit var o: String?
     /* TARGET use-site */ <get-o>()
 /* ACCESSOR declaration */ public fun access$<set-o>$tAKt(<set-?>: String)
     /* TARGET use-site */ <set-o>(<set-?> = <set-?>)
+
+
+/* MODULE name=<main> */
+
+/* FILE package=<root> fileName=main.kt */
+
+public fun box(): String
+    /* LOCAL declaration @0 */ local fun <anonymous>()
+        /* ACCESSOR use-site */ access$<set-o>$tAKt(<set-?> = "O")
+    /* INVOKE @0 */ local fun <anonymous>()
+    /* ACCESSOR use-site */ access$<get-o>$tAKt()

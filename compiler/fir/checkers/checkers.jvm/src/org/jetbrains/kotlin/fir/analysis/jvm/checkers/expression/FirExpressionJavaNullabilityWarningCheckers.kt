@@ -41,7 +41,7 @@ object FirQualifiedAccessJavaNullabilityWarningChecker : FirQualifiedAccessExpre
             )
         }
 
-        val receiverType = symbol.receiverParameter?.typeRef?.coneType
+        val receiverType = symbol.resolvedReceiverType
         expression.extensionReceiver?.checkExpressionForEnhancedTypeMismatch(
             expectedType = receiverType?.let(substitutor::substituteOrSelf),
             reporter,
@@ -49,9 +49,9 @@ object FirQualifiedAccessJavaNullabilityWarningChecker : FirQualifiedAccessExpre
             FirJvmErrors.RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS
         )
 
-        for ((contextArgument, contextParameter) in expression.contextArguments.zip(symbol.resolvedContextParameters)) {
+        for ((contextArgument, contextParameter) in expression.contextArguments.zip(symbol.contextParameterSymbols)) {
             contextArgument.checkExpressionForEnhancedTypeMismatch(
-                expectedType = substitutor.substituteOrSelf(contextParameter.returnTypeRef.coneType),
+                expectedType = substitutor.substituteOrSelf(contextParameter.resolvedReturnType),
                 reporter,
                 context,
                 FirJvmErrors.NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS

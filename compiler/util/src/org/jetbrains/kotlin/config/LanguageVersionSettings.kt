@@ -6,16 +6,24 @@
 package org.jetbrains.kotlin.config
 
 import org.jetbrains.kotlin.config.LanguageFeature.Kind.*
+import org.jetbrains.kotlin.config.LanguageFeatureBehaviorAfterSinceVersion.CanStillBeDisabledForNow
+import org.jetbrains.kotlin.config.LanguageFeatureBehaviorAfterSinceVersion.CannotBeDisabled
 import org.jetbrains.kotlin.config.LanguageVersion.*
 import org.jetbrains.kotlin.utils.DescriptionAware
 import java.util.*
+
+sealed class LanguageFeatureBehaviorAfterSinceVersion {
+    data object CannotBeDisabled : LanguageFeatureBehaviorAfterSinceVersion()
+    data class CanStillBeDisabledForNow(val relevantTicketId: String) : LanguageFeatureBehaviorAfterSinceVersion()
+}
 
 enum class LanguageFeature(
     val sinceVersion: LanguageVersion?,
     val sinceApiVersion: ApiVersion = ApiVersion.KOTLIN_1_0,
     val hintUrl: String? = null,
     internal val isEnabledWithWarning: Boolean = false,
-    val kind: Kind = OTHER // NB: default value OTHER doesn't force pre-releaseness (see KDoc)
+    val kind: Kind = OTHER, // NB: default value OTHER doesn't force pre-releaseness (see KDoc)
+    val behaviorAfterSinceVersion: LanguageFeatureBehaviorAfterSinceVersion = CannotBeDisabled,
 ) {
     // Note: names of these entries are also used in diagnostic tests and in user-visible messages (see presentableText below)
 
@@ -209,7 +217,7 @@ enum class LanguageFeature(
      *  - preference of a type use annotation to annotation of another type: KT-24392
      *      (if @NotNull has TYPE_USE and METHOD target, then `@NotNull Integer []` -> `Array<Int>..Array<out Int>?` instead of `Array<Int>..Array<out Int>`)
      */
-    TypeEnhancementImprovementsInStrictMode(KOTLIN_1_7),
+    TypeEnhancementImprovementsInStrictMode(KOTLIN_1_7, behaviorAfterSinceVersion = CanStillBeDisabledForNow("KT-76100")),
     OptInRelease(KOTLIN_1_7),
     ProhibitNonExhaustiveWhenOnAlgebraicTypes(KOTLIN_1_7, kind = BUG_FIX),
     UseBuilderInferenceWithoutAnnotation(KOTLIN_1_7),
@@ -362,7 +370,6 @@ enum class LanguageFeature(
     // 2.2
 
     BreakContinueInInlineLambdas(KOTLIN_2_2), // KT-1436
-    UnstableSmartcastOnDelegatedProperties(KOTLIN_2_2, kind = BUG_FIX), // KT-57417
     ForbidUsingExpressionTypesWithInaccessibleContent(KOTLIN_2_2, kind = BUG_FIX), // KT-66691
     ReportExposedTypeForMoreCasesOfTypeParameterBounds(KOTLIN_2_2, kind = BUG_FIX), // KT-69653
     ForbidReifiedTypeParametersOnTypeAliases(KOTLIN_2_2, kind = BUG_FIX), // KT-70163
@@ -382,6 +389,8 @@ enum class LanguageFeature(
     ForbidEnumEntryNamedEntries(KOTLIN_2_2, kind = BUG_FIX), // KT-72829, KT-58920
     WhenGuards(KOTLIN_2_2, kind = OTHER), // KT-13626
     MultiDollarInterpolation(KOTLIN_2_2, kind = OTHER), // KT-2425
+    JvmDefaultEnableByDefault(KOTLIN_2_2, kind = OTHER), // KT-71768
+    ForbidExposureOfPrivateTypesInNonPrivateInlineFunctionsInKlibs(sinceVersion = KOTLIN_2_2, kind = BUG_FIX), // KT-70916
 
     // 2.3
 
@@ -394,6 +403,9 @@ enum class LanguageFeature(
     AllowEagerSupertypeAccessibilityChecks(KOTLIN_2_3, kind = OTHER), // KT-73611
     DontMakeExplicitJavaTypeArgumentsFlexible(KOTLIN_2_3, kind = OTHER), // KT-71718
     ResolveTopLevelLambdasAsSyntheticCallArgument(KOTLIN_2_3, kind = OTHER), // KT-67869
+    UnstableSmartcastOnDelegatedProperties(KOTLIN_2_3, kind = BUG_FIX), // KTLC-273
+    ForbidAnnotationsWithUseSiteTargetOnExpressions(KOTLIN_2_3, kind = BUG_FIX), // KT-75242
+    ProhibitNullableTypeThroughTypealias(KOTLIN_2_3, kind = BUG_FIX), // KTLC-279
 
     // End of 2.* language features --------------------------------------------------
 
@@ -429,10 +441,9 @@ enum class LanguageFeature(
     // this feature will eventually switch this warning to an error
     ProhibitScriptTopLevelInnerClasses(sinceVersion = null, kind = OTHER),
 
-    ForbidExposureOfPrivateTypesInNonPrivateInlineFunctionsInKlibs(sinceVersion = null, kind = BUG_FIX), // KT-70916
-
     // Experimental features
 
+    ExpectRefinement(sinceVersion = null),
     JsEnableExtensionFunctionInExternals(null, kind = OTHER),
     PackagePrivateFileClassesWithAllPrivateMembers(null), // Disabled until the breaking change is approved by the committee, see KT-10884.
     MultiPlatformProjects(sinceVersion = null),
@@ -463,14 +474,18 @@ enum class LanguageFeature(
     // K1 support only. We keep it, as it's currently unclear what to do with this feature in K2
     DisableCheckingChangedProgressionsResolve(sinceVersion = null, kind = OTHER), // KT-49276
 
-    ContextSensitiveEnumResolutionInWhen(sinceVersion = null, kind = TEST_ONLY), // KT-52774
     DontCreateSyntheticPropertiesWithoutBaseJavaGetter(sinceVersion = null, kind = OTHER), // KT-64358
-    JavaTypeParameterDefaultRepresentationWithDNN(sinceVersion = null, kind = OTHER), // KT-59138
+    JavaTypeParameterDefaultRepresentationWithDNN(sinceVersion = null, kind = TEST_ONLY), // KT-59138
     ProperFieldAccessGenerationForFieldAccessShadowedByKotlinProperty(sinceVersion = null, kind = OTHER), // KT-56386
     IrInlinerBeforeKlibSerialization(sinceVersion = null, kind = UNSTABLE_FEATURE), // KT-69765
     NestedTypeAliases(sinceVersion = null, kind = UNSTABLE_FEATURE), // KT-45285
     ForbidUsingSupertypesWithInaccessibleContentInTypeArguments(sinceVersion = null, kind = BUG_FIX), // KT-66691, KT-66742
-    ContextSensitiveResolutionUsingExpectedType(sinceVersion = null, kind = TEST_ONLY), // KT-16768
+    UnnamedLocalVariables(sinceVersion = null, kind = UNSTABLE_FEATURE), // KT-74809
+    ContextSensitiveResolutionUsingExpectedType(sinceVersion = null, kind = OTHER), // KT-16768
+    AnnotationsInMetadata(sinceVersion = null, kind = OTHER), // KT-57919
+    DisableWarningsForValueBasedJavaClasses(sinceVersion = null, kind = OTHER), // KT-70722
+    DisableWarningsForIdentitySensitiveOperationsOnValueClassesAndPrimitives(sinceVersion = null, kind = OTHER), // KT-70722
+    IrRichCallableReferencesInKlibs(sinceVersion = null, kind = OTHER), // KT-72734, KT-74384, KT-74392
     ;
 
     init {
@@ -613,15 +628,15 @@ enum class LanguageVersion(val major: Int, val minor: Int) : DescriptionAware, L
             str.split(".", "-").let { if (it.size >= 2) fromVersionString("${it[0]}.${it[1]}") else null }
 
         // Version status
-        //            1.0..1.6        1.7..1.9           2.0..2.2    2.3
+        //            1.0..1.7        1.8..1.9           2.0..2.2    2.3
         // Language:  UNSUPPORTED --> DEPRECATED ------> STABLE ---> EXPERIMENTAL
         // API:       UNSUPPORTED --> DEPRECATED ------> STABLE ---> EXPERIMENTAL
 
         @JvmField
-        val FIRST_API_SUPPORTED = KOTLIN_1_7
+        val FIRST_API_SUPPORTED = KOTLIN_1_8
 
         @JvmField
-        val FIRST_SUPPORTED = KOTLIN_1_7
+        val FIRST_SUPPORTED = KOTLIN_1_8
 
         @JvmField
         val FIRST_NON_DEPRECATED = KOTLIN_2_0
@@ -670,6 +685,10 @@ interface LanguageVersionSettings {
                     it == LanguageFeature.State.ENABLED_WITH_WARNING
         }
 
+    fun getManuallyEnabledLanguageFeatures(): List<LanguageFeature>
+
+    fun getManuallyDisabledLanguageFeatures(): List<LanguageFeature>
+
     fun isPreRelease(): Boolean
 
     fun <T> getFlag(flag: AnalysisFlag<T>): T
@@ -699,13 +718,27 @@ class LanguageVersionSettingsImpl @JvmOverloads constructor(
     override fun getFeatureSupport(feature: LanguageFeature): LanguageFeature.State {
         specificFeatures[feature]?.let { return it }
 
-        val since = feature.sinceVersion
-        if (since != null && languageVersion >= since && apiVersion >= feature.sinceApiVersion) {
+        if (isEnabledByDefault(feature)) {
             return if (feature.isEnabledWithWarning) LanguageFeature.State.ENABLED_WITH_WARNING else LanguageFeature.State.ENABLED
         }
 
         return LanguageFeature.State.DISABLED
     }
+
+    override fun getManuallyEnabledLanguageFeatures(): List<LanguageFeature> =
+        specificFeatures.filter { isEnabledOnlyByFlag(it.key, it.value) }.keys.toList()
+
+    override fun getManuallyDisabledLanguageFeatures(): List<LanguageFeature> =
+        specificFeatures.filter { isDisabledOnlyByFlag(it.key, it.value) }.keys.toList()
+
+    private fun isEnabledOnlyByFlag(feature: LanguageFeature, state: LanguageFeature.State): Boolean =
+        !isEnabledByDefault(feature) && (state == LanguageFeature.State.ENABLED || state == LanguageFeature.State.ENABLED_WITH_WARNING)
+
+    private fun isDisabledOnlyByFlag(feature: LanguageFeature, state: LanguageFeature.State): Boolean =
+        isEnabledByDefault(feature) && state == LanguageFeature.State.DISABLED
+
+    private fun isEnabledByDefault(feature: LanguageFeature): Boolean =
+        feature.sinceVersion != null && languageVersion >= feature.sinceVersion && apiVersion >= feature.sinceApiVersion
 
     override fun toString() = buildString {
         append("Language = $languageVersion, API = $apiVersion")

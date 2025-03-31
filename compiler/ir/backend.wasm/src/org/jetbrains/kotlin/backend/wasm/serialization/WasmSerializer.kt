@@ -171,6 +171,10 @@ class WasmSerializer(outputStream: OutputStream) {
             }
         }
 
+    private fun serializeClassSuperType(classSuperType: Pair<IdSignature, IdSignature>) {
+        serializePair(classSuperType, ::serializeIdSignature, ::serializeIdSignature)
+    }
+
     private fun serializeWasmGlobal(global: WasmGlobal) =
         serializeNamedModuleField(global, listOf(global.isMutable, global.importPair == null)) {
             serializeWasmType(global.type)
@@ -254,6 +258,7 @@ class WasmSerializer(outputStream: OutputStream) {
             WasmHeapType.Simple.Func -> setTag(HeapTypeTags.FUNC)
             WasmHeapType.Simple.NoExtern -> setTag(HeapTypeTags.NO_EXTERN)
             WasmHeapType.Simple.None -> setTag(HeapTypeTags.NONE)
+            WasmHeapType.Simple.NoFunc -> setTag(HeapTypeTags.NO_FUNC)
             WasmHeapType.Simple.Struct -> setTag(HeapTypeTags.STRUCT)
             is WasmHeapType.Type -> withTag(HeapTypeTags.HEAP_TYPE) { serializeWasmSymbolReadOnly(type.type) { serializeWasmTypeDeclaration(it) } }
         }
@@ -272,12 +277,6 @@ class WasmSerializer(outputStream: OutputStream) {
                 WasmOp.PSEUDO_COMMENT_PREVIOUS_INSTR -> 0xFFFF - 0
                 WasmOp.PSEUDO_COMMENT_GROUP_START -> 0xFFFF - 1
                 WasmOp.PSEUDO_COMMENT_GROUP_END -> 0xFFFF - 2
-                WasmOp.MACRO_IF -> 0xFFFF - 3
-                WasmOp.MACRO_ELSE -> 0xFFFF - 4
-                WasmOp.MACRO_END_IF -> 0xFFFF - 5
-                WasmOp.MACRO_TABLE -> 0xFFFF - 6
-                WasmOp.MACRO_TABLE_INDEX -> 0xFFFF - 7
-                WasmOp.MACRO_TABLE_END -> 0xFFFF - 8
                 else -> error("Unknown pseudo-opcode: $instr")
             }
         }
@@ -290,7 +289,7 @@ class WasmSerializer(outputStream: OutputStream) {
 
     private fun serializeWasmImmediate(i: WasmImmediate): Unit =
         when (i) {
-            is WasmImmediate.BlockType.Function -> withTag(ImmediateTags.BLOCK_TYPE_FUNCTION) { serializeWasmFunctionType(i.type) }
+            is WasmImmediate.BlockType.Function -> withTag(ImmediateTags.BLOCK_TYPE_FUNCTION) { serializeWasmSymbolReadOnly(i.type, ::serializeWasmFunctionType) }
             is WasmImmediate.BlockType.Value -> withTagNullable(ImmediateTags.BLOCK_TYPE_VALUE, i.type) { serializeWasmType(i.type!!) }
             is WasmImmediate.Catch -> withTag(ImmediateTags.CATCH) { serializeCatchImmediate(i) }
             is WasmImmediate.ConstF32 -> withTag(ImmediateTags.CONST_F32) { b.writeUInt32(i.rawBits) }
@@ -440,7 +439,7 @@ class WasmSerializer(outputStream: OutputStream) {
             is IdSignature.LocalSignature -> withTag(IdSignatureTags.LOCAL) { serializeLocalSignature(idSignature) }
             is IdSignature.LoweredDeclarationSignature -> withTag(IdSignatureTags.LOWERED_DECLARATION) { serializeLoweredDeclarationSignature(idSignature) }
             is IdSignature.ScopeLocalDeclaration -> withTag(IdSignatureTags.SCOPE_LOCAL_DECLARATION) { serializeScopeLocalDeclaration(idSignature) }
-            is IdSignature.SpecialFakeOverrideSignature -> withTag(IdSignatureTags.SPECIAL_FAKE_OVERRIDE) { serializeSpecialFakeOverrideSignature(idSignature) }
+            is IdSignature.SpecialFakeOverrideSignature -> error("SpecialFakeOverrideSignature is not supposed to be serialized")
             is IdSignature.FileSignature -> withTag(IdSignatureTags.FILE) { serializeString(idSignature.fileName) }
         }
 
@@ -472,20 +471,18 @@ class WasmSerializer(outputStream: OutputStream) {
 
     private fun serializeFileLocalSignature(fileLocal: IdSignature.FileLocalSignature) {
         with(fileLocal) {
-            withFlags(description == null) {
+            withFlags {
                 serializeIdSignature(container)
                 b.writeUInt64(id.toULong())
-                description?.let { serializeString(it) }
             }
         }
     }
 
     private fun serializeLocalSignature(local: IdSignature.LocalSignature) {
         with(local) {
-            withFlags(hashSig == null, description == null) {
+            withFlags(hashSig == null) {
                 serializeString(localFqn)
                 hashSig?.let { b.writeUInt64(it.toULong()) }
-                description?.let { serializeString(it) }
             }
         }
     }
@@ -500,17 +497,9 @@ class WasmSerializer(outputStream: OutputStream) {
 
     private fun serializeScopeLocalDeclaration(scopeLocal: IdSignature.ScopeLocalDeclaration) {
         with(scopeLocal) {
-            withFlags(description == null) {
+            withFlags {
                 b.writeUInt32(id.toUInt())
-                description?.let { serializeString(it) }
             }
-        }
-    }
-
-    private fun serializeSpecialFakeOverrideSignature(specialFakeOverride: IdSignature.SpecialFakeOverrideSignature) {
-        with(specialFakeOverride) {
-            serializeIdSignature(memberSignature)
-            serializeList(overriddenSignatures, ::serializeIdSignature)
         }
     }
 
@@ -627,21 +616,12 @@ class WasmSerializer(outputStream: OutputStream) {
             serializeReferencableAndDefinable(functionTypes, ::serializeIdSignature, ::serializeWasmFunctionType)
             serializeReferencableAndDefinable(gcTypes, ::serializeIdSignature, ::serializeWasmTypeDeclaration)
             serializeReferencableAndDefinable(vTableGcTypes, ::serializeIdSignature, ::serializeWasmTypeDeclaration)
-            serializeReferencableElements(classITableGcType, ::serializeIdSignature, ::serializeWasmTypeDeclaration)
-            serializeReferencableElements(classITableInterfaceSlot, ::serializeIdSignature, ::serializeInt)
-            serializeReferencableElements(classITableInterfaceTableSize, ::serializeIdSignature, ::serializeInt)
-            serializeReferencableElements(classITableInterfaceHasImplementors, ::serializeIdSignature, ::serializeInt)
-            serializeMap(typeInfo, ::serializeIdSignature, ::serializeConstantDataElement)
-            serializeReferencableElements(classIds, ::serializeIdSignature, ::serializeInt)
-            serializeReferencableElements(interfaceIds, ::serializeIdSignature, ::serializeInt)
             serializeReferencableElements(stringLiteralAddress, ::serializeString, ::serializeInt)
             serializeReferencableElements(stringLiteralPoolId, ::serializeString, ::serializeInt)
             serializeReferencableElements(constantArrayDataSegmentId, { serializePair(it, { serializeList(it, ::serializeLong) }, ::serializeWasmType)}, ::serializeInt)
-            serializeList(interfaceUnions) { serializeList(it, ::serializeIdSignature) }
             serializeMap(jsFuns, ::serializeIdSignature, ::serializeJsCodeSnippet)
             serializeMap(jsModuleImports, ::serializeIdSignature, ::serializeString)
             serializeList(exports, ::serializeWasmExport)
-            serializeNullable(scratchMemAddr) { serializeWasmSymbolReadOnly(it, ::serializeInt) }
             serializeNullable(stringPoolSize) { serializeWasmSymbolReadOnly(it, ::serializeInt) }
             serializeNullable(throwableTagIndex) { serializeWasmSymbolReadOnly(it, ::serializeInt) }
             serializeNullable(jsExceptionTagIndex) { serializeWasmSymbolReadOnly(it, ::serializeInt) }
@@ -652,7 +632,31 @@ class WasmSerializer(outputStream: OutputStream) {
             serializeSet(jsModuleAndQualifierReferences, ::serializeJsModuleAndQualifierReference)
             serializeList(classAssociatedObjectsInstanceGetters, ::serializeClassAssociatedObjects)
             serializeNullable(builtinIdSignatures, ::serializeBuiltinIdSignatures)
+            serializeNullable(specialITableTypes, ::serializeInterfaceTableTypes)
+            serializeNullable(rttiElements, ::serializeRttiElements)
         }
+
+    private fun serializeRttiElements(rttiElements: RttiElements) {
+        serializeList(rttiElements.globals) { rttiGlobal ->
+            serializeWasmGlobal(rttiGlobal.global)
+            serializeIdSignature(rttiGlobal.classSignature)
+            serializeNullable(rttiGlobal.superClassSignature, ::serializeIdSignature)
+        }
+
+        serializeReferencableElements(
+            rttiElements.globalReferences,
+            ::serializeIdSignature,
+            ::serializeWasmGlobal
+        )
+
+        serializeWasmSymbolReadOnly(rttiElements.rttiType, ::serializeWasmStructDeclaration)
+    }
+
+    private fun serializeInterfaceTableTypes(specialITableTypes: SpecialITableTypes) {
+        serializeWasmSymbolReadOnly(specialITableTypes.wasmAnyArrayType, ::serializeWasmArrayDeclaration)
+        serializeWasmSymbolReadOnly(specialITableTypes.wasmFuncArrayType, ::serializeWasmArrayDeclaration)
+        serializeWasmSymbolReadOnly(specialITableTypes.specialSlotITableType, ::serializeWasmTypeDeclaration)
+    }
 
     private fun serializeBuiltinIdSignatures(builtinIdSignatures: BuiltinIdSignatures) {
         serializeNullable(builtinIdSignatures.throwable, ::serializeIdSignature)
@@ -670,12 +674,12 @@ class WasmSerializer(outputStream: OutputStream) {
     }
 
     private fun serializeClassAssociatedObjects(classAssociatedObjects: ClassAssociatedObjects) {
-        serializeIdSignature(classAssociatedObjects.klass)
+        serializeLong(classAssociatedObjects.klass)
         serializeList(classAssociatedObjects.objects, ::serializeAssociatedObject)
     }
 
     private fun serializeAssociatedObject(associatedObject: AssociatedObject) = withFlags(associatedObject.isExternal) {
-        serializeIdSignature(associatedObject.obj)
+        serializeLong(associatedObject.obj)
         serializeIdSignature(associatedObject.getterFunc)
     }
 

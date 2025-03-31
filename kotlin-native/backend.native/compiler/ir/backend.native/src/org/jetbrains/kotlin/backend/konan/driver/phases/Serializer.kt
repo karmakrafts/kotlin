@@ -7,18 +7,17 @@ package org.jetbrains.kotlin.backend.konan.driver.phases
 
 import org.jetbrains.kotlin.backend.common.phaser.PhaseEngine
 import org.jetbrains.kotlin.backend.common.phaser.createSimpleNamedCompilerPhase
-import org.jetbrains.kotlin.backend.common.serialization.CompatibilityMode
 import org.jetbrains.kotlin.backend.common.serialization.IrSerializationSettings
 import org.jetbrains.kotlin.backend.common.serialization.metadata.KlibMetadataMonolithicSerializer
 import org.jetbrains.kotlin.backend.konan.driver.PhaseContext
 import org.jetbrains.kotlin.backend.konan.serialization.KonanIrModuleSerializer
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
-import org.jetbrains.kotlin.config.KlibConfigurationKeys
 import org.jetbrains.kotlin.config.languageVersionSettings
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporterFactory
 import org.jetbrains.kotlin.ir.KtDiagnosticReporterWithImplicitIrBasedContext
 import org.jetbrains.kotlin.konan.library.KonanLibrary
+import org.jetbrains.kotlin.util.klibMetadataVersionOrDefault
 
 internal data class SerializerInput(
         val moduleDescriptor: ModuleDescriptor,
@@ -39,11 +38,7 @@ internal val SerializerPhase = createSimpleNamedCompilerPhase<PhaseContext, Seri
         val ir = it.irModule
         KonanIrModuleSerializer(
             settings = IrSerializationSettings(
-                compatibilityMode = CompatibilityMode.CURRENT,
-                normalizeAbsolutePaths = config.configuration.getBoolean(KlibConfigurationKeys.KLIB_NORMALIZE_ABSOLUTE_PATH),
-                sourceBaseDirs = config.configuration.getList(KlibConfigurationKeys.KLIB_RELATIVE_PATH_BASES),
-                languageVersionSettings = config.languageVersionSettings,
-                bodiesOnlyForInlines = input.produceHeaderKlib,
+                configuration = config.configuration,
                 publicAbiOnly = input.produceHeaderKlib,
             ),
             KtDiagnosticReporterWithImplicitIrBasedContext(
@@ -56,7 +51,7 @@ internal val SerializerPhase = createSimpleNamedCompilerPhase<PhaseContext, Seri
 
     val serializer = KlibMetadataMonolithicSerializer(
             languageVersionSettings = config.configuration.languageVersionSettings,
-            metadataVersion = config.configuration.get(CommonConfigurationKeys.METADATA_VERSION)!!,
+            metadataVersion = config.configuration.klibMetadataVersionOrDefault(),
             project = config.project,
             exportKDoc = context.shouldExportKDoc(),
             skipExpects = !config.metadataKlib,

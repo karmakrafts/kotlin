@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.klib.PartialLinkageTestUtils.Dependencies
 import org.jetbrains.kotlin.klib.PartialLinkageTestUtils.Dependency
 import org.jetbrains.kotlin.klib.PartialLinkageTestUtils.MAIN_MODULE_NAME
 import org.jetbrains.kotlin.klib.PartialLinkageTestUtils.ModuleBuildDirs
+import org.jetbrains.kotlin.test.TargetBackend
 import org.jetbrains.kotlin.wasm.test.tools.WasmVM
 import org.junit.jupiter.api.AfterEach
 import java.io.ByteArrayOutputStream
@@ -48,6 +49,9 @@ abstract class AbstractWasmPartialLinkageTestCase(private val compilerType: Comp
         override val buildDir: File get() = this@AbstractWasmPartialLinkageTestCase.buildDir
         override val stdlibFile: File get() = File("libraries/stdlib/build/classes/kotlin/wasmJs/main").absoluteFile
         override val testModeConstructorParameters = mapOf("isWasm" to "true")
+        override val targetBackend get() = TargetBackend.WASM
+        override val isK2: Boolean
+            get() = compilerType.useFir
 
         override fun customizeModuleSources(moduleName: String, moduleSourceDir: File) {
             if (moduleName == MAIN_MODULE_NAME) {
@@ -61,8 +65,9 @@ abstract class AbstractWasmPartialLinkageTestCase(private val compilerType: Comp
             buildDirs: ModuleBuildDirs,
             dependencies: Dependencies,
             klibFile: File,
-            compilerEdition: KlibCompilerEdition
-        ) = this@AbstractWasmPartialLinkageTestCase.buildKlib(moduleName, buildDirs, dependencies, klibFile)
+            compilerEdition: KlibCompilerEdition,
+            compilerArguments: List<String>
+        ) = this@AbstractWasmPartialLinkageTestCase.buildKlib(moduleName, buildDirs, dependencies, klibFile, compilerArguments)
 
         override fun buildBinaryAndRun(mainModule: Dependency, otherDependencies: Dependencies) =
             this@AbstractWasmPartialLinkageTestCase.buildBinaryAndRun(mainModule, otherDependencies)
@@ -70,9 +75,6 @@ abstract class AbstractWasmPartialLinkageTestCase(private val compilerType: Comp
         override fun onNonEmptyBuildDirectory(directory: File) {
             directory.listFiles()?.forEach(File::deleteRecursively)
         }
-
-        override fun isIgnoredTest(projectInfo: ProjectInfo): Boolean =
-            super.isIgnoredTest(projectInfo) || projectInfo.name == "externalDeclarationsKJS"
 
         override fun onIgnoredTest() {
             /* Do nothing specific. JUnit 3 does not support programmatic tests muting. */
@@ -82,7 +84,7 @@ abstract class AbstractWasmPartialLinkageTestCase(private val compilerType: Comp
     // The entry point to generated test classes.
     fun runTest(@TestDataFile testPath: String) = PartialLinkageTestUtils.runTest(WasmTestConfiguration(testPath))
 
-    fun buildKlib(moduleName: String, buildDirs: ModuleBuildDirs, dependencies: Dependencies, klibFile: File) {
+    fun buildKlib(moduleName: String, buildDirs: ModuleBuildDirs, dependencies: Dependencies, klibFile: File, compilerArguments: List<String>) {
         val kotlinSourceFilePaths = mutableListOf<String>()
 
         buildDirs.sourceDir.walkTopDown().forEach { sourceFile ->
@@ -116,6 +118,7 @@ abstract class AbstractWasmPartialLinkageTestCase(private val compilerType: Comp
                 // Don't fail on language version warnings.
                 K2JSCompilerArguments::suppressVersionWarnings.cliArgument
             ).takeIf { compilerType.useFir },
+            compilerArguments,
             kotlinSourceFilePaths
         )
     }

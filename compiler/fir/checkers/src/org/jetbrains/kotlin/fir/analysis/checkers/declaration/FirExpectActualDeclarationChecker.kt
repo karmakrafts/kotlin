@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.fir.analysis.checkers.getModifierList
 import org.jetbrains.kotlin.fir.analysis.checkers.hasModifier
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.declarations.*
+import org.jetbrains.kotlin.fir.declarations.primaryConstructorIfAny
 import org.jetbrains.kotlin.fir.declarations.utils.*
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
@@ -156,6 +157,8 @@ object FirExpectActualDeclarationChecker : FirBasicDeclarationChecker(MppChecker
 
         val source = declaration.source
         if (!declaration.hasActualModifier() &&
+            // The presence of @ExpectRefinement annotation is checked by a separate FirExpectRefinementAnnotationChecker
+            !declaration.isExpect &&
             ExpectActualMatchingCompatibility.MatchedSuccessfully in matchingCompatibilityToMembersMap &&
             (actualContainingClass == null || requireActualModifier(symbol, actualContainingClass, context.session)) &&
             expectedSingleCandidate != null &&
@@ -362,6 +365,5 @@ object FirExpectActualDeclarationChecker : FirBasicDeclarationChecker(MppChecker
         platformSession: FirSession
     ): Boolean = (actualContainingClass.isInlineOrValue) &&
             symbol is FirPropertySymbol &&
-            symbol.receiverParameter == null &&
-            actualContainingClass.primaryConstructorSymbol(platformSession)?.valueParameterSymbols?.singleOrNull()?.name == symbol.name
+            actualContainingClass.primaryConstructorIfAny(platformSession)?.valueParameterSymbols?.singleOrNull() == symbol.correspondingValueParameterFromPrimaryConstructor
 }

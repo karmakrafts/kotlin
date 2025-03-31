@@ -32,8 +32,8 @@ import org.jetbrains.kotlin.load.java.JavaDescriptorVisibilities
 import org.jetbrains.kotlin.load.java.JvmAnnotationNames
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.resolve.jvm.annotations.JVM_SERIALIZABLE_LAMBDA_ANNOTATION_FQ_NAME
 import org.jetbrains.kotlin.types.Variance
-import org.jetbrains.kotlin.utils.addIfNotNull
 
 internal sealed class MetafactoryArgumentsResult {
     abstract val isSuccess: Boolean
@@ -72,13 +72,13 @@ internal class LambdaMetafactoryArguments(
     val fakeInstanceMethod: IrSimpleFunction,
     val implMethodReference: IrFunctionReference,
     val extraOverriddenMethods: List<IrSimpleFunction>,
-    val shouldBeSerializable: Boolean
+    val shouldBeSerializable: Boolean,
 ) : MetafactoryArgumentsResult.Success()
 
 
 internal class LambdaMetafactoryArgumentsBuilder(
     private val context: JvmBackendContext,
-    private val crossinlineLambdas: Set<IrSimpleFunction>
+    private val crossinlineLambdas: Set<IrSimpleFunction>,
 ) {
     private val isJavaSamConversionWithEqualsHashCode =
         context.config.languageVersionSettings.supportsFeature(LanguageFeature.JavaSamConversionEqualsHashCode)
@@ -90,7 +90,7 @@ internal class LambdaMetafactoryArgumentsBuilder(
         reference: IrFunctionReference,
         samType: IrType,
         plainLambda: Boolean,
-        forceSerializability: Boolean
+        forceSerializability: Boolean,
     ): MetafactoryArgumentsResult {
         val samClass = samType.getClass()
             ?: throw AssertionError("SAM type is not a class: ${samType.render()}")
@@ -167,18 +167,23 @@ internal class LambdaMetafactoryArgumentsBuilder(
             functionHazard = true
         }
 
+        // Previously instances of lambdas retained annotations:
         // Can't use JDK LambdaMetafactory for annotated lambdas.
         // JDK LambdaMetafactory doesn't copy annotations from implementation method to an instance method in a
         // corresponding synthetic class, which doesn't look like a binary compatible change.
-        // TODO relaxed mode?
-        if (reference.origin.isLambda && implFun.annotations.isNotEmpty()) {
+        // If 'indyAllowAnnotatedLambdas' is set to true, we can lift this restriction and use indy
+        if (!context.config.indyAllowAnnotatedLambdas && reference.origin.isLambda && implFun.annotations.isNotEmpty()) {
             abiHazard = true
+        }
+
+        if (implFun.annotations.hasAnnotation(JVM_SERIALIZABLE_LAMBDA_ANNOTATION_FQ_NAME)) {
+            // Lambdas annotated with @kotlin.jvm.JvmSerializableLambda are expected to generate their own class
+            semanticsHazard = true
         }
 
         // Don't use JDK LambdaMetafactory for big arity lambdas.
         if (plainLambda) {
-            var parametersCount = implFun.valueParameters.size
-            if (implFun.extensionReceiverParameter != null) ++parametersCount
+            var parametersCount = implFun.parameters.size
             if (parametersCount >= BuiltInFunctionArity.BIG_ARITY)
                 abiHazard = true
         }
@@ -250,7 +255,7 @@ internal class LambdaMetafactoryArgumentsBuilder(
         samMethod: IrSimpleFunction,
         samType: IrType,
         implFun: IrFunction,
-        shouldBeSerializable: Boolean
+        shouldBeSerializable: Boolean,
     ): LambdaMetafactoryArguments? {
         val nonFakeOverriddenFuns = samMethod.allOverridden().filterNot { it.isFakeOverride }
         val relevantOverriddenFuns = if (samMethod.isFakeOverride) nonFakeOverriddenFuns else nonFakeOverriddenFuns + samMethod
@@ -355,17 +360,15 @@ internal class LambdaMetafactoryArgumentsBuilder(
         implFun: IrFunction,
         fakeInstanceMethod: IrSimpleFunction,
         constraints: SignatureAdaptationConstraints,
-        reference: IrFunctionReference
+        reference: IrFunctionReference,
     ): Boolean {
-        val implParameters = collectValueParameters(
-            implFun,
-            withDispatchReceiver = reference.dispatchReceiver == null,
-            withExtensionReceiver = reference.extensionReceiver == null
-        )
-        val methodParameters = collectValueParameters(fakeInstanceMethod)
+        val implParameters = (implFun.parameters zip reference.arguments)
+            .mapNotNull { (implParameter, referenceArgument) -> if (referenceArgument == null) implParameter else null }
+
+        val methodParameters = fakeInstanceMethod.nonDispatchParameters
         validateMethodParameters(implParameters, methodParameters, implFun, fakeInstanceMethod)
         for ((implParameter, methodParameter) in implParameters.zip(methodParameters)) {
-            val constraint = constraints.valueParameters[methodParameter]
+            val constraint = constraints.parameters[methodParameter]
             if (!checkTypeCompliesWithConstraint(implParameter.type, constraint))
                 return false
         }
@@ -389,7 +392,8 @@ internal class LambdaMetafactoryArgumentsBuilder(
         when (origin) {
             IrDeclarationOrigin.LOCAL_FUNCTION_FOR_LAMBDA,
             JvmLoweredDeclarationOrigin.PROXY_FUN_FOR_METAFACTORY,
-            JvmLoweredDeclarationOrigin.SYNTHETIC_PROXY_FUN_FOR_METAFACTORY -> true
+            JvmLoweredDeclarationOrigin.SYNTHETIC_PROXY_FUN_FOR_METAFACTORY,
+                -> true
             IrDeclarationOrigin.LOCAL_FUNCTION -> isAnonymousFunction
             else -> false
         }
@@ -397,17 +401,17 @@ internal class LambdaMetafactoryArgumentsBuilder(
     private fun adaptLambdaSignature(
         implFun: IrSimpleFunction,
         fakeInstanceMethod: IrSimpleFunction,
-        constraints: SignatureAdaptationConstraints
+        constraints: SignatureAdaptationConstraints,
     ) {
         if (!implFun.isAdaptable()) {
             throw AssertionError("Function origin should be adaptable: ${implFun.dump()}")
         }
 
-        val implParameters = collectValueParameters(implFun)
-        val methodParameters = collectValueParameters(fakeInstanceMethod)
+        val implParameters = implFun.nonDispatchParameters
+        val methodParameters = fakeInstanceMethod.nonDispatchParameters
         validateMethodParameters(implParameters, methodParameters, implFun, fakeInstanceMethod)
         for ((implParameter, methodParameter) in implParameters.zip(methodParameters)) {
-            val parameterConstraint = constraints.valueParameters[methodParameter]
+            val parameterConstraint = constraints.parameters[methodParameter]
             if (parameterConstraint.requiresImplLambdaBoxing()) {
                 makeLambdaParameterNullable(implFun, implParameter)
             }
@@ -439,7 +443,7 @@ internal class LambdaMetafactoryArgumentsBuilder(
         implParameters: List<IrValueParameter>,
         methodParameters: List<IrValueParameter>,
         implFun: IrFunction,
-        fakeInstanceMethod: IrSimpleFunction
+        fakeInstanceMethod: IrSimpleFunction,
     ) {
         if (implParameters.size != methodParameters.size)
             throw AssertionError(
@@ -467,7 +471,7 @@ internal class LambdaMetafactoryArgumentsBuilder(
         }
 
     private fun adaptFakeInstanceMethodSignature(fakeInstanceMethod: IrSimpleFunction, constraints: SignatureAdaptationConstraints) {
-        for ((valueParameter, constraint) in constraints.valueParameters) {
+        for ((valueParameter, constraint) in constraints.parameters) {
             if (valueParameter.parent != fakeInstanceMethod)
                 throw AssertionError(
                     "Unexpected value parameter: ${valueParameter.render()}; fakeInstanceMethod:\n" +
@@ -496,25 +500,25 @@ internal class LambdaMetafactoryArgumentsBuilder(
         this == TypeAdaptationConstraint.FORCE_BOXING
 
     private class SignatureAdaptationConstraints(
-        val valueParameters: Map<IrValueParameter, TypeAdaptationConstraint>,
-        val returnType: TypeAdaptationConstraint?
+        val parameters: Map<IrValueParameter, TypeAdaptationConstraint>,
+        val returnType: TypeAdaptationConstraint?,
     ) {
         fun hasConflicts() =
             returnType == TypeAdaptationConstraint.CONFLICT ||
-                    TypeAdaptationConstraint.CONFLICT in valueParameters.values
+                    TypeAdaptationConstraint.CONFLICT in parameters.values
     }
 
     private fun computeSignatureAdaptationConstraints(
         adapteeFun: IrSimpleFunction,
-        expectedFun: IrSimpleFunction
+        expectedFun: IrSimpleFunction,
     ): SignatureAdaptationConstraints? {
         val returnTypeConstraint = computeReturnTypeAdaptationConstraint(adapteeFun, expectedFun)
         if (returnTypeConstraint == TypeAdaptationConstraint.CONFLICT)
             return null
 
         val valueParameterConstraints = HashMap<IrValueParameter, TypeAdaptationConstraint>()
-        val adapteeParameters = collectValueParameters(adapteeFun)
-        val expectedParameters = collectValueParameters(expectedFun)
+        val adapteeParameters = adapteeFun.nonDispatchParameters
+        val expectedParameters = expectedFun.nonDispatchParameters
         if (adapteeParameters.size != expectedParameters.size)
             throw AssertionError(
                 "Mismatching value parameters:\n" +
@@ -605,7 +609,7 @@ internal class LambdaMetafactoryArgumentsBuilder(
 
     private fun computeReturnTypeAdaptationConstraint(
         adapteeFun: IrSimpleFunction,
-        expectedFun: IrSimpleFunction
+        expectedFun: IrSimpleFunction,
     ): TypeAdaptationConstraint? {
         val adapteeReturnType = adapteeFun.returnType
         if (adapteeReturnType.isUnit()) {
@@ -623,7 +627,7 @@ internal class LambdaMetafactoryArgumentsBuilder(
 
     private fun joinSignatureAdaptationConstraints(
         sig1: SignatureAdaptationConstraints,
-        sig2: SignatureAdaptationConstraints
+        sig2: SignatureAdaptationConstraints,
     ): SignatureAdaptationConstraints? {
         val newReturnTypeConstraint = composeTypeAdaptationConstraints(sig1.returnType, sig2.returnType)
         if (newReturnTypeConstraint == TypeAdaptationConstraint.CONFLICT)
@@ -631,12 +635,12 @@ internal class LambdaMetafactoryArgumentsBuilder(
 
         val newValueParameterConstraints =
             when {
-                sig1.valueParameters.isEmpty() -> sig2.valueParameters
-                sig2.valueParameters.isEmpty() -> sig1.valueParameters
+                sig1.parameters.isEmpty() -> sig2.parameters
+                sig2.parameters.isEmpty() -> sig1.parameters
                 else -> {
                     val joined = HashMap<IrValueParameter, TypeAdaptationConstraint>()
-                    joined.putAll(sig1.valueParameters)
-                    for ((vp2, t2) in sig2.valueParameters.entries) {
+                    joined.putAll(sig1.parameters)
+                    for ((vp2, t2) in sig2.parameters.entries) {
                         val tx = composeTypeAdaptationConstraints(joined[vp2], t2) ?: continue
                         if (tx == TypeAdaptationConstraint.CONFLICT)
                             return null
@@ -664,24 +668,4 @@ internal class LambdaMetafactoryArgumentsBuilder(
 
     private fun IrDeclarationParent.isCrossinlineLambda(): Boolean =
         this is IrSimpleFunction && this in crossinlineLambdas
-
-    fun collectValueParameters(
-        irFun: IrFunction,
-        withDispatchReceiver: Boolean = false,
-        withExtensionReceiver: Boolean = true
-    ): List<IrValueParameter> {
-        if ((!withDispatchReceiver || irFun.dispatchReceiverParameter == null) &&
-            (!withExtensionReceiver || irFun.extensionReceiverParameter == null)
-        )
-            return irFun.valueParameters
-        return ArrayList<IrValueParameter>().apply {
-            if (withDispatchReceiver) {
-                addIfNotNull(irFun.dispatchReceiverParameter)
-            }
-            if (withExtensionReceiver) {
-                addIfNotNull(irFun.extensionReceiverParameter)
-            }
-            addAll(irFun.valueParameters)
-        }
-    }
 }

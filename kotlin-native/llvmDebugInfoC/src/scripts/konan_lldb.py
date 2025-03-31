@@ -54,6 +54,9 @@ def bench(start, msg):
 
 def evaluate(expr):
     result = lldb.debugger.GetSelectedTarget().EvaluateExpression(expr)
+    err = result.GetError()
+    if not err.Success():
+        raise EvaluateDebuggerException(expr, err)
     log(lambda : "evaluate: {} => {}".format(expr, result))
     return result
 
@@ -62,13 +65,17 @@ class DebuggerException(Exception):
     pass
 
 
-_OUTPUT_MAX_CHILDREN = re.compile(r"target.max-children-count \(int\) = (.*)\n")
+class EvaluateDebuggerException(DebuggerException):
+    def __init__(self, expression, error):
+        self.expression = expression
+        self.error = error
+
+    def __str__(self):
+        return "Error evaluating `{}`: {}".format(self.expression, self.error.description)
+
+
 def _max_children_count():
-    result = lldb.SBCommandReturnObject()
-    lldb.debugger.GetCommandInterpreter().HandleCommand("settings show target.max-children-count", result, False)
-    if not result.Succeeded():
-        raise DebuggerException()
-    v = _OUTPUT_MAX_CHILDREN.search(result.GetOutput()).group(1)
+    v = lldb.debugger.GetInternalVariableValue('target.max-children-count', lldb.debugger.GetInstanceName()).GetStringAtIndex(0)
     return int(v)
 
 

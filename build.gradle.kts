@@ -1,8 +1,6 @@
 import org.gradle.crypto.checksum.Checksum
 import org.gradle.plugins.ide.idea.model.IdeaModel
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
-import plugins.KotlinBuildPublishingPlugin
 
 buildscript {
     // a workaround for kotlin compiler classpath in kotlin project: sometimes gradle substitutes
@@ -128,7 +126,7 @@ if (!project.hasProperty("versions.kotlin-native")) {
     extra["versions.kotlin-native"] = if (kotlinBuildProperties.isKotlinNativeEnabled) {
         kotlinBuildProperties.defaultSnapshotVersion
     } else {
-        "2.2.0-dev-6046"
+        "2.2.0-dev-10310"
     }
 }
 
@@ -202,6 +200,7 @@ val commonCompilerModules = arrayOf(
     ":compiler:build-tools:kotlin-build-statistics",
     ":compiler:build-tools:kotlin-build-tools-api",
     ":js:js.config",
+    ":js:js.frontend.common",
     ":wasm:wasm.config",
 ).also { extra["commonCompilerModules"] = it }
 
@@ -214,8 +213,9 @@ val firCompilerCoreModules = arrayOf(
     ":compiler:fir:fir-deserialization",
     ":compiler:fir:plugin-utils",
     ":compiler:fir:tree",
-    ":compiler:fir:java",
-    ":compiler:fir:native",
+    ":compiler:fir:fir-jvm",
+    ":compiler:fir:fir-js",
+    ":compiler:fir:fir-native",
     ":compiler:fir:raw-fir:raw-fir.common",
     ":compiler:fir:raw-fir:psi2fir",
     ":compiler:fir:checkers",
@@ -308,6 +308,7 @@ val projectsUsedInIntelliJKotlinPlugin =
                 ":analysis:kt-references",
                 ":analysis:light-classes-base",
                 ":analysis:low-level-api-fir",
+                ":analysis:stubs",
                 ":analysis:symbol-light-classes",
             ) +
             arrayOf(
@@ -364,6 +365,7 @@ val projectsUsedInIntelliJKotlinPlugin =
                 ":kotlin-sam-with-receiver-compiler-plugin.k1",
                 ":kotlin-sam-with-receiver-compiler-plugin.k2",
 
+                ":kotlin-dataframe-compiler-plugin",
 
                 ":kotlin-compiler-runner-unshaded",
                 ":kotlin-preloader",
@@ -381,6 +383,7 @@ val projectsUsedInIntelliJKotlinPlugin =
                 ":native:objcexport-header-generator",
                 ":native:objcexport-header-generator-analysis-api",
                 ":native:objcexport-header-generator-k1",
+                ":native:analysis-api-based-export-common",
             ) +
             arrayOf(
                 ":native:swift:sir",
@@ -464,6 +467,7 @@ extra["compilerArtifactsForIde"] = listOfNotNull(
     ":prepare:ide-plugin-dependencies:assignment-compiler-plugin-for-ide",
     ":prepare:ide-plugin-dependencies:parcelize-compiler-plugin-for-ide",
     ":prepare:ide-plugin-dependencies:lombok-compiler-plugin-for-ide",
+    ":prepare:ide-plugin-dependencies:kotlin-dataframe-compiler-plugin-for-ide",
     ":prepare:ide-plugin-dependencies:kotlin-objcexport-header-generator-for-ide",
     ":prepare:ide-plugin-dependencies:kotlin-swift-export-for-ide",
     ":prepare:ide-plugin-dependencies:kotlin-compiler-tests-for-ide",
@@ -555,7 +559,8 @@ val gradlePluginProjects = listOf(
     ":kotlin-sam-with-receiver",
     ":kotlin-parcelize-compiler",
     ":kotlin-lombok",
-    ":kotlin-assignment"
+    ":kotlin-assignment",
+    ":kotlin-dataframe"
 )
 
 val ignoreTestFailures by extra(project.kotlinBuildProperties.ignoreTestFailures)
@@ -848,11 +853,10 @@ tasks {
         dependsOn(":native:native.tests:driver:check")
         dependsOn(":native:native.tests:stress:check")
         dependsOn(":native:native.tests:klib-compatibility:check")
-        dependsOn(":tools:binary-compatibility-validator:check")
         dependsOn(":native:objcexport-header-generator:check")
-        dependsOn(":native:swift:swift-export-standalone-integration-tests:simple:test")
-        dependsOn(":native:swift:swift-export-standalone-integration-tests:external:test")
-        dependsOn(":native:swift:swift-export-embeddable:testSwiftExportStandaloneWithEmbeddable")
+        dependsOn(":native:swift:swift-export-standalone:check")
+        dependsOn(":native:swift:swift-export-embeddable:testExternalITWithEmbeddable")
+        dependsOn(":native:swift:swift-export-embeddable:testSimpleITWithEmbeddable")
         dependsOn(":native:swift:swift-export-ide:test")
         dependsOn(":native:native.tests:litmus-tests:check")
         dependsOn(":native:swift:sir-light-classes:check")
@@ -929,6 +933,7 @@ tasks {
         dependsOn("jvmCompilerIntegrationTest")
         dependsOn("compilerPluginTest")
         dependsOn(":kotlin-daemon-tests:test")
+        dependsOn(":compiler:arguments:test")
     }
 
     register("miscTest") {
@@ -967,6 +972,7 @@ tasks {
         dependsOn(":kotlin-sam-with-receiver-compiler-plugin:test")
         dependsOn(":kotlin-power-assert-compiler-plugin:test")
         dependsOn(":plugins:plugins-interactions-testing:test")
+        dependsOn(":kotlin-dataframe-compiler-plugin:test")
     }
 
     register("toolsTest") {

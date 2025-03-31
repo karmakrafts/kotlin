@@ -20,7 +20,7 @@ dependencies {
     api(project(":compiler:fir:checkers:checkers.js"))
     api(project(":compiler:fir:checkers:checkers.native"))
     api(project(":compiler:fir:checkers:checkers.wasm"))
-    api(project(":compiler:fir:java"))
+    api(project(":compiler:fir:fir-jvm"))
     api(project(":compiler:backend.common.jvm"))
     api(project(":compiler:cli-common"))
     implementation(project(":analysis:decompiled:decompiler-to-file-stubs"))
@@ -54,6 +54,7 @@ dependencies {
     testImplementation(projectTests(":compiler:fir:analysis-tests:legacy-fir-tests"))
     testImplementation(projectTests(":analysis:analysis-test-framework"))
     testImplementation(projectTests(":analysis:analysis-api-impl-base"))
+    testImplementation(projectTests(":compiler:fir:raw-fir:psi2fir"))
     testImplementation(kotlinTest("junit"))
     testApi(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter.api)
@@ -111,6 +112,7 @@ allprojects {
         compilerOptions.optIn.addAll(
             listOf(
                 "org.jetbrains.kotlin.fir.symbols.SymbolInternals",
+                "org.jetbrains.kotlin.fir.declarations.DirectDeclarationsAccess",
                 "org.jetbrains.kotlin.analysis.low.level.api.fir.LLFirInternals",
                 "org.jetbrains.kotlin.analysis.api.KaImplementationDetail",
                 "org.jetbrains.kotlin.analysis.api.KaExperimentalApi",

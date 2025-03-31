@@ -14,6 +14,7 @@ import org.jetbrains.kotlin.cli.common.LegacyK2CliPipeline
 import org.jetbrains.kotlin.cli.common.checkKotlinPackageUsageForPsi
 import org.jetbrains.kotlin.cli.common.fir.reportToMessageCollector
 import org.jetbrains.kotlin.cli.common.messages.AnalyzerWithCompilerReport
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.jvm.compiler.PsiBasedProjectFileSearchScope
 import org.jetbrains.kotlin.cli.jvm.compiler.VfsBasedProjectEnvironment
 import org.jetbrains.kotlin.cli.jvm.compiler.legacy.pipeline.ModuleCompilerEnvironment
@@ -22,13 +23,13 @@ import org.jetbrains.kotlin.cli.jvm.compiler.legacy.pipeline.generateCodeFromIr
 import org.jetbrains.kotlin.cli.jvm.config.JvmClasspathRoot
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.config.JvmTarget
+import org.jetbrains.kotlin.config.jvmTarget
 import org.jetbrains.kotlin.config.languageVersionSettings
-import org.jetbrains.kotlin.config.useFirExtraCheckers
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporterFactory
-import org.jetbrains.kotlin.fir.FirImplementationDetail
-import org.jetbrains.kotlin.fir.FirModuleCapabilities
+import org.jetbrains.kotlin.fir.FirBinaryDependenciesModuleData
 import org.jetbrains.kotlin.fir.FirModuleData
-import org.jetbrains.kotlin.fir.FirModuleDataImpl
+import org.jetbrains.kotlin.fir.FirSourceModuleData
+import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.deserialization.ModuleDataProvider
 import org.jetbrains.kotlin.fir.deserialization.SingleModuleDataProvider
@@ -42,7 +43,6 @@ import org.jetbrains.kotlin.fir.session.firCachesFactoryForCliMode
 import org.jetbrains.kotlin.load.kotlin.PackagePartProvider
 import org.jetbrains.kotlin.modules.TargetId
 import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.platform.TargetPlatform
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 import org.jetbrains.kotlin.resolve.jvm.KotlinJavaPsiFacade
 import org.jetbrains.kotlin.scripting.compiler.plugin.ReplCompilerPluginRegistrar
@@ -50,7 +50,6 @@ import org.jetbrains.kotlin.scripting.compiler.plugin.dependencies.collectScript
 import org.jetbrains.kotlin.scripting.compiler.plugin.services.FirReplHistoryProviderImpl
 import org.jetbrains.kotlin.scripting.compiler.plugin.services.firReplHistoryProvider
 import org.jetbrains.kotlin.scripting.compiler.plugin.services.isReplSnippetSource
-import org.jetbrains.kotlin.scripting.compiler.plugin.services.replCompilationConfigurationProviderService
 import org.jetbrains.kotlin.scripting.definitions.ScriptConfigurationsProvider
 import java.io.File
 import java.nio.file.Path
@@ -58,6 +57,8 @@ import kotlin.script.experimental.api.*
 import kotlin.script.experimental.host.ScriptingHostConfiguration
 import kotlin.script.experimental.jvm.JvmDependency
 import kotlin.script.experimental.jvm.defaultJvmScriptingHostConfiguration
+import kotlin.script.experimental.jvm.jvm
+import kotlin.script.experimental.jvm.jvmTarget
 import kotlin.script.experimental.util.LinkedSnippet
 import kotlin.script.experimental.util.LinkedSnippetImpl
 import kotlin.script.experimental.util.add
@@ -74,6 +75,8 @@ class K2ReplCompiler(
         configuration: ScriptCompilationConfiguration,
     ): ResultWithDiagnostics<LinkedSnippet<CompiledSnippet>> {
         snippets.forEach { snippet ->
+            // Messages from earlier snippets should not leak into the next snippet
+            state.messageCollector.clear()
             val res = compileImpl(state, snippet, configuration)
             when (res) {
                 is ResultWithDiagnostics.Success -> {
@@ -132,9 +135,20 @@ class K2ReplCompiler(
 
             val moduleDataProvider = ReplModuleDataProvider(classpath.map(File::toPath))
 
-            FirJvmSessionFactory.createLibrarySession(
+            val sharedLibrarySession = FirJvmSessionFactory.createSharedLibrarySession(
                 mainModuleName = moduleName,
                 sessionProvider = sessionProvider,
+                projectEnvironment = projectEnvironment,
+                extensionRegistrars = extensionRegistrars,
+                scope = projectFileSearchScope,
+                packagePartProvider = packagePartProvider,
+                languageVersionSettings = languageVersionSettings,
+                predefinedJavaComponents = predefinedJavaComponents,
+            )
+
+            FirJvmSessionFactory.createLibrarySession(
+                sessionProvider = sessionProvider,
+                sharedLibrarySession,
                 moduleDataProvider = moduleDataProvider,
                 projectEnvironment = projectEnvironment,
                 extensionRegistrars = extensionRegistrars,
@@ -153,7 +167,8 @@ class K2ReplCompiler(
                 sessionProvider,
                 messageCollector,
                 compilerContext,
-                packagePartProvider
+                packagePartProvider,
+                sharedLibrarySession
             )
         }
     }
@@ -169,6 +184,7 @@ class K2ReplCompilationState(
     internal val messageCollector: ScriptDiagnosticsMessageCollector,
     internal val compilerContext: SharedScriptCompilationContext,
     internal val packagePartProvider: PackagePartProvider,
+    internal val sharedLibrarySession: FirSession,
 ) {
     var lastCompiledSnippet: LinkedSnippetImpl<CompiledSnippet>? = null
 }
@@ -177,14 +193,7 @@ class ReplModuleDataProvider(baseLibraryPaths: List<Path>) : ModuleDataProvider(
 
     val baseDependenciesModuleData = makeLibraryModuleData(Name.special("<REPL-base>"))
 
-    private fun makeLibraryModuleData(name: Name): FirModuleDataImpl = FirModuleDataImpl(
-        name,
-        dependencies = emptyList(),
-        dependsOnDependencies = emptyList(),
-        friendDependencies = emptyList(),
-        platform,
-        FirModuleCapabilities.Empty
-    )
+    private fun makeLibraryModuleData(name: Name): FirModuleData = FirBinaryDependenciesModuleData(name)
 
     val pathToModuleData: MutableMap<Path, FirModuleData> = mutableMapOf()
     val moduleDataHistory: MutableList<FirModuleData> = mutableListOf()
@@ -193,9 +202,6 @@ class ReplModuleDataProvider(baseLibraryPaths: List<Path>) : ModuleDataProvider(
         baseLibraryPaths.associateTo(pathToModuleData) { it to baseDependenciesModuleData }
         moduleDataHistory.add(baseDependenciesModuleData)
     }
-
-    override val platform: TargetPlatform
-        get() = JvmPlatforms.unspecifiedJvmPlatform
 
     override val allModuleData: Collection<FirModuleData>
         get() = moduleDataHistory
@@ -219,13 +225,12 @@ class ReplModuleDataProvider(baseLibraryPaths: List<Path>) : ModuleDataProvider(
     }
 
     fun addNewSnippetModuleData(name: Name): FirModuleData =
-        FirModuleDataImpl(
+        FirSourceModuleData(
             name,
             dependencies = moduleDataHistory.filter { it.dependencies.isEmpty() },
             dependsOnDependencies = emptyList(),
             friendDependencies = moduleDataHistory.filter { it.dependencies.isNotEmpty() },
-            platform,
-            FirModuleCapabilities.Empty
+            JvmPlatforms.defaultJvmPlatform,
         ).also { moduleDataHistory.add(it) }
 }
 
@@ -241,7 +246,9 @@ private fun compileImpl(
     }
     val project = state.projectEnvironment.project
     val messageCollector = state.messageCollector
-    val compilerConfiguration = state.compilerContext.environment.configuration
+    val compilerConfiguration = state.compilerContext.environment.configuration.copy().apply {
+        jvmTarget = selectJvmTarget(scriptCompilationConfiguration, messageCollector)
+    }
     val diagnosticsReporter = DiagnosticReporterFactory.createPendingReporter(messageCollector)
     val renderDiagnosticName = compilerConfiguration.getBoolean(CLIConfigurationKeys.RENDER_DIAGNOSTIC_INTERNAL_NAME)
     val compilerEnvironment = ModuleCompilerEnvironment(state.projectEnvironment, diagnosticsReporter)
@@ -303,8 +310,8 @@ private fun compileImpl(
     val extensionRegistrars = FirExtensionRegistrar.getInstances(project)
     if (libModuleData != null) {
         FirJvmSessionFactory.createLibrarySession(
-            mainModuleName = moduleData.name,
             sessionProvider = state.sessionProvider,
+            sharedLibrarySession = state.sharedLibrarySession,
             moduleDataProvider = SingleModuleDataProvider(libModuleData),
             projectEnvironment = state.projectEnvironment,
             extensionRegistrars = extensionRegistrars,
@@ -316,26 +323,19 @@ private fun compileImpl(
         KotlinJavaPsiFacade.getInstance(project).clearPackageCaches()
     }
 
-    val session = FirJvmSessionFactory.createModuleBasedSession(
+    val session = FirJvmSessionFactory.createSourceSession(
         moduleData,
         state.sessionProvider,
         AbstractProjectFileSearchScope.EMPTY,
         state.projectEnvironment,
         createIncrementalCompilationSymbolProviders = { null },
         extensionRegistrars,
-        compilerConfiguration.languageVersionSettings,
-        compilerConfiguration.useFirExtraCheckers,
-        jvmTarget = JvmTarget.DEFAULT, // TODO: from script config
-        lookupTracker = null,
-        enumWhenTracker = null,
-        importTracker = null,
+        compilerConfiguration,
+        // TODO: from script config
         state.predefinedJavaComponents,
         needRegisterJavaElementFinder = true,
         init = {},
     )
-    @OptIn(FirImplementationDetail::class)
-    session.replCompilationConfigurationProviderService.scriptConfiguration = state.scriptCompilationConfiguration
-
     val rawFir = session.buildFirFromKtFiles(allSourceFiles)
 
     val (scopeSession, fir) = session.runResolution(rawFir)
@@ -373,4 +373,27 @@ private fun compileImpl(
     ).onSuccess { compiledScript ->
         ResultWithDiagnostics.Success(compiledScript, messageCollector.diagnostics)
     }
+}
+
+// Find the appropriate jvm target for the compiler from the ScriptCompilationConfiguration.
+// Since this can be configured in two places, we check if both places agree on the same value (if configured twice).
+// If not, CompilerOptions takes precedence and a warning is reported. We treat CompilerOptions with a higher priority
+// as we assume they are more likely to be under the user's control.
+private fun selectJvmTarget(configuration: ScriptCompilationConfiguration, messageCollector: ScriptDiagnosticsMessageCollector): JvmTarget {
+    val jvmTargetFromBlock = configuration[ScriptCompilationConfiguration.jvm.jvmTarget]?.let { JvmTarget.fromString(it) }
+    val jvmTargetFromOptions = configuration[ScriptCompilationConfiguration.compilerOptions]
+        ?.zipWithNext()
+        ?.firstOrNull { it.first == "-jvm-target" }
+        ?.second
+        ?.let { JvmTarget.fromString(it) }
+
+    if (jvmTargetFromBlock != null && jvmTargetFromOptions != null && jvmTargetFromBlock != jvmTargetFromOptions) {
+        val message =
+            "JVM target in ScriptCompilationConfiguration is defined differently in `jvm.jvmTarget` (${jvmTargetFromBlock}) vs. in `compilerOptions` (${jvmTargetFromOptions}). Using $jvmTargetFromOptions."
+        messageCollector.report(
+            severity = CompilerMessageSeverity.STRONG_WARNING,
+            message = message
+        )
+    }
+    return jvmTargetFromOptions ?: jvmTargetFromBlock ?: JvmTarget.DEFAULT
 }

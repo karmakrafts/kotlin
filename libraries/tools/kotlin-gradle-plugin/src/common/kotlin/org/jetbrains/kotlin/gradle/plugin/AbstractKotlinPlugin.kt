@@ -7,14 +7,10 @@ package org.jetbrains.kotlin.gradle.plugin
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.attributes.Category
-import org.gradle.api.attributes.Usage
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
-import org.gradle.api.tasks.SourceSet
-import org.gradle.jvm.tasks.Jar
 import org.gradle.tooling.provider.model.ToolingModelBuilderRegistry
 import org.jetbrains.kotlin.gradle.dsl.KotlinSingleJavaTargetExtension
 import org.jetbrains.kotlin.gradle.dsl.kotlinExtension
@@ -28,10 +24,7 @@ import org.jetbrains.kotlin.gradle.targets.jvm.ConfigureJavaTestFixturesSideEffe
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 import org.jetbrains.kotlin.gradle.targets.jvm.configureKotlinConventions
 import org.jetbrains.kotlin.gradle.targets.jvm.kotlinSourceSetDslName
-import org.jetbrains.kotlin.gradle.tasks.InspectClassesForMultiModuleIC
 import org.jetbrains.kotlin.gradle.tasks.KotlinTasksProvider
-import org.jetbrains.kotlin.gradle.tasks.locateTask
-import org.jetbrains.kotlin.gradle.tasks.registerTask
 import org.jetbrains.kotlin.gradle.utils.*
 import org.jetbrains.kotlin.tooling.core.extrasKeyOf
 
@@ -41,7 +34,6 @@ const val COMPILER_CLASSPATH_CONFIGURATION_NAME = "kotlinCompilerClasspath"
 internal const val BUILD_TOOLS_API_CLASSPATH_CONFIGURATION_NAME = "kotlinBuildToolsApiClasspath"
 internal const val KLIB_COMMONIZER_CLASSPATH_CONFIGURATION_NAME = "kotlinKlibCommonizerClasspath"
 internal const val KOTLIN_NATIVE_BUNDLE_CONFIGURATION_NAME = "kotlinNativeBundleConfiguration"
-private const val JAVA_TEST_FIXTURES_PLUGIN_ID = "java-test-fixtures"
 
 internal abstract class AbstractKotlinPlugin(
     val tasksProvider: KotlinTasksProvider,
@@ -66,56 +58,10 @@ internal abstract class AbstractKotlinPlugin(
 
         rewriteMppDependenciesInPom(target)
 
-        configureClassInspectionForIC(project)
         registry.register(KotlinModelBuilder(kotlinPluginVersion, null))
 
         project.components.addAll(target.components)
 
-    }
-
-    protected open fun configureClassInspectionForIC(project: Project) {
-        // Check if task was already added by one of plugin implementations
-        if (project.tasks.names.contains(INSPECT_IC_CLASSES_TASK_NAME)) return
-
-        val classesTask = project.locateTask<Task>(JavaPlugin.CLASSES_TASK_NAME)
-        val jarTask = project.locateTask<Jar>(JavaPlugin.JAR_TASK_NAME)
-
-        if (classesTask == null || jarTask == null) {
-            project.logger.info(
-                "Could not configure class inspection task " +
-                        "(classes task = ${classesTask?.javaClass?.canonicalName}, " +
-                        "jar task = ${classesTask?.javaClass?.canonicalName}"
-            )
-            return
-        }
-
-        val inspectTask = project.registerTask<InspectClassesForMultiModuleIC>(INSPECT_IC_CLASSES_TASK_NAME) { inspectTask ->
-            inspectTask.archivePath.set(jarTask.map { it.archivePathCompatible.normalize().absolutePath })
-            inspectTask.archivePath.disallowChanges()
-
-            inspectTask.sourceSetName.set(SourceSet.MAIN_SOURCE_SET_NAME)
-            inspectTask.sourceSetName.disallowChanges()
-
-            inspectTask.classesListFile.set(
-                project.layout.file(
-                    (project.kotlinExtension as KotlinSingleJavaTargetExtension)
-                        .target
-                        .defaultArtifactClassesListFile
-                )
-            )
-            inspectTask.classesListFile.disallowChanges()
-
-            val sourceSetClassesDir = project
-                .javaSourceSetsIfAvailable
-                ?.findByName(SourceSet.MAIN_SOURCE_SET_NAME)
-                ?.output
-                ?.classesDirs
-                ?: project.objects.fileCollection()
-            inspectTask.sourceSetOutputClassesDir.from(sourceSetClassesDir).disallowChanges()
-
-            inspectTask.dependsOn(classesTask)
-        }
-        classesTask.configure { it.finalizedBy(inspectTask) }
     }
 
     private fun rewriteMppDependenciesInPom(target: AbstractKotlinTarget) {
@@ -134,7 +80,6 @@ internal abstract class AbstractKotlinPlugin(
     }
 
     companion object {
-        private const val INSPECT_IC_CLASSES_TASK_NAME = "inspectClassesForKotlinIC"
 
         fun configureTarget(
             target: KotlinWithJavaTarget<*, *>,
@@ -233,13 +178,13 @@ internal abstract class AbstractKotlinPlugin(
             if (kotlinTarget.platformType != KotlinPlatformType.common) {
                 project.configurations.getByName(kotlinTarget.apiElementsConfigurationName).run {
                     KotlinUsages.configureProducerApiUsage(this, kotlinTarget)
-                    attributes.setAttribute(Category.CATEGORY_ATTRIBUTE, project.categoryByName(Category.LIBRARY))
+                    attributes.attribute(Category.CATEGORY_ATTRIBUTE, project.categoryByName(Category.LIBRARY))
                     usesPlatformOf(kotlinTarget)
                 }
 
                 project.configurations.getByName(kotlinTarget.runtimeElementsConfigurationName).run {
                     KotlinUsages.configureProducerRuntimeUsage(this, kotlinTarget)
-                    attributes.setAttribute(Category.CATEGORY_ATTRIBUTE, project.categoryByName(Category.LIBRARY))
+                    attributes.attribute(Category.CATEGORY_ATTRIBUTE, project.categoryByName(Category.LIBRARY))
                     usesPlatformOf(kotlinTarget)
                 }
             }

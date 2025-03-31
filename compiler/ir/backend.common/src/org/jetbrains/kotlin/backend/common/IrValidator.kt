@@ -42,6 +42,7 @@ data class IrValidatorConfig(
     val checkAllKotlinFieldsArePrivate: Boolean = false,
     val checkVisibilities: Boolean = false,
     val checkVarargTypes: Boolean = false,
+    val checkFunctionBody: Boolean = true,
     val checkInlineFunctionUseSites: InlineFunctionUseSiteChecker? = null,
 )
 
@@ -168,12 +169,16 @@ private class IrFileValidator(
             breakContinueCheckers.add(IrNothingTypeExpressionChecker)
             returnCheckers.add(IrNothingTypeExpressionChecker)
             throwCheckers.add(IrNothingTypeExpressionChecker)
+            fieldAccessExpressionCheckers.add(IrDynamicTypeFieldAccessChecker)
         }
         if (config.checkProperties) {
             callCheckers.add(IrCallFunctionPropertiesChecker)
             functionCheckers.add(IrFunctionPropertiesChecker)
             functionReferenceCheckers.add(IrFunctionReferenceFunctionPropertiesChecker)
             propertyCheckers.add(IrPropertyAccessorsChecker)
+        }
+        if (config.checkFunctionBody) {
+            functionCheckers.add(IrFunctionBodyChecker)
         }
     }
 

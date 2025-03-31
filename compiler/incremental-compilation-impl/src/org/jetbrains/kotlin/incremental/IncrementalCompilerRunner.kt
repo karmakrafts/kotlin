@@ -1,17 +1,6 @@
 /*
- * Copyright 2010-2017 JetBrains s.r.o.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.incremental
@@ -48,8 +37,13 @@ import org.jetbrains.kotlin.incremental.util.reportException
 import org.jetbrains.kotlin.metadata.deserialization.MetadataVersion
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.progress.CompilationCanceledStatus
-import org.jetbrains.kotlin.util.BackendMeasurement
-import org.jetbrains.kotlin.util.*
+import org.jetbrains.kotlin.util.PerformanceManager
+import org.jetbrains.kotlin.util.PhaseType
+import org.jetbrains.kotlin.util.Time
+import org.jetbrains.kotlin.util.forEachPhaseMeasurement
+import org.jetbrains.kotlin.util.getLinesPerSecond
+import org.jetbrains.kotlin.util.removeSuffixIfPresent
+import org.jetbrains.kotlin.util.toJvmMetadataVersion
 import java.io.File
 import java.nio.file.Files
 
@@ -476,7 +470,7 @@ abstract class IncrementalCompilerRunner<
 
         // TODO: ideally we should read arguments not here but at earlier stages
         val metadataVersionFromLanguageVersion =
-            LanguageVersion.fromVersionString(args.languageVersion)?.toMetadataVersion() ?: MetadataVersion.INSTANCE
+            LanguageVersion.fromVersionString(args.languageVersion)?.toJvmMetadataVersion() ?: MetadataVersion.INSTANCE
 
         while (dirtySources.any() || runWithNoDirtyKotlinSources(caches)) {
             val complementaryFiles = caches.platformCache.getComplementaryFilesRecursive(dirtySources)
@@ -519,6 +513,14 @@ abstract class IncrementalCompilerRunner<
             dirtySources.addAll(compiledSources)
             allDirtySources.addAll(dirtySources)
             dirtyFilesProvider.cachedHistory.store(transaction, allDirtySources)
+
+            outputItemsCollector.outputs.firstOrNull { !it.outputFile.exists() }?.let { brokenOutput ->
+                reporter.warn { "Expected output item, but file doesn't exist: ${brokenOutput.outputFile}" }
+                reporter.reportCompileIteration(compilationMode is CompilationMode.Incremental, compiledSources, exitCode)
+                bufferingMessageCollector.forward(originalMessageCollector)
+                check(exitCode != ExitCode.OK) { "Expected compiler error, but got exitCode=$exitCode" }
+                break
+            }
 
             val generatedFiles = outputItemsCollector.outputs.map {
                 it.toGeneratedFile(metadataVersionFromLanguageVersion)
@@ -654,36 +656,46 @@ abstract class IncrementalCompilerRunner<
     }
 
     protected fun reportPerformanceData(defaultPerformanceManager: PerformanceManager) {
-        val lines = defaultPerformanceManager.lines.takeIf { it > 0 }
-        if (lines != null) {
-            reporter.addMetric(GradleBuildPerformanceMetric.SOURCE_LINES_NUMBER, lines.toLong())
+        val moduleStats = defaultPerformanceManager.unitStats
+        if (moduleStats.linesCount > 0) {
+            reporter.addMetric(GradleBuildPerformanceMetric.SOURCE_LINES_NUMBER, moduleStats.linesCount.toLong())
         }
-        defaultPerformanceManager.measurements.forEach {
-            when (it) {
-                is CompilerInitializationMeasurement -> reporter.addTimeMetricMs(GradleBuildTime.COMPILER_INITIALIZATION, it.milliseconds)
-                is CodeAnalysisMeasurement -> {
-                    reporter.addTimeMetricMs(GradleBuildTime.CODE_ANALYSIS, it.milliseconds)
-                    if (lines != null && it.milliseconds > 0) {
-                        reporter.addMetric(GradleBuildPerformanceMetric.ANALYSIS_LPS, lines * 1000 / it.milliseconds)
-                    }
-                }
-                is TranslationToIrMeasurement -> {
-                    reporter.addTimeMetricMs(GradleBuildTime.TRANSLATION_TO_IR, it.milliseconds)
-                }
-                is IrLoweringMeasurement -> {
-                    reporter.addTimeMetricMs(GradleBuildTime.IR_LOWERING, it.milliseconds)
-                }
-                is BackendMeasurement -> {
-                    reporter.addTimeMetricMs(GradleBuildTime.BACKEND, it.milliseconds)
-                }
+
+        fun reportLps(lpsMetrics: GradleBuildPerformanceMetric, time: Time) {
+            if (time != Time.ZERO) {
+                reporter.addMetric(lpsMetrics, moduleStats.getLinesPerSecond(time).toLong())
             }
         }
-        val loweringAndBackendTimeMs = defaultPerformanceManager.getLoweringAndBackendTimeMs()
-        if (loweringAndBackendTimeMs > 0) {
-            reporter.addTimeMetricMs(GradleBuildTime.CODE_GENERATION, loweringAndBackendTimeMs)
-            if (lines != null) {
-                reporter.addMetric(GradleBuildPerformanceMetric.CODE_GENERATION_LPS, lines * 1000 / loweringAndBackendTimeMs)
+
+        var codegenTime: Time = Time.ZERO
+
+        moduleStats.forEachPhaseMeasurement { phaseType, time ->
+            if (time == null) return@forEachPhaseMeasurement
+
+            val gradleBuildTime = when (phaseType) {
+                PhaseType.Initialization -> GradleBuildTime.COMPILER_INITIALIZATION
+                PhaseType.Analysis -> GradleBuildTime.CODE_ANALYSIS
+                PhaseType.TranslationToIr -> GradleBuildTime.TRANSLATION_TO_IR
+                PhaseType.IrLowering -> {
+                    codegenTime += time
+                    GradleBuildTime.IR_LOWERING
+                }
+                PhaseType.Backend -> {
+                    codegenTime += time
+                    GradleBuildTime.BACKEND
+                }
             }
+
+            reporter.addTimeMetricMs(gradleBuildTime, time.millis)
+
+            if (phaseType == PhaseType.Analysis) {
+                reportLps(GradleBuildPerformanceMetric.ANALYSIS_LPS, time)
+            }
+        }
+
+        if (codegenTime != Time.ZERO) {
+            reporter.addTimeMetricMs(GradleBuildTime.CODE_GENERATION, codegenTime.millis)
+            reportLps(GradleBuildPerformanceMetric.CODE_GENERATION_LPS, codegenTime)
         }
     }
 }

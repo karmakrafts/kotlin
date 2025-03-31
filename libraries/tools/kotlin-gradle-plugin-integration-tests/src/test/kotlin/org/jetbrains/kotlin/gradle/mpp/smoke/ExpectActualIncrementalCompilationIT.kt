@@ -7,7 +7,6 @@ package org.jetbrains.kotlin.gradle.mpp.smoke
 
 import org.gradle.api.logging.LogLevel
 import org.gradle.util.GradleVersion
-import org.jetbrains.kotlin.gradle.BrokenOnMacosTest
 import org.jetbrains.kotlin.gradle.testbase.*
 import org.jetbrains.kotlin.gradle.util.replaceWithVersion
 import org.jetbrains.kotlin.test.TestMetadata
@@ -25,13 +24,13 @@ open class ExpectActualIncrementalCompilationIT : KGPBaseTest() {
     override val defaultBuildOptions: BuildOptions
         get() = super.defaultBuildOptions.copyEnsuringK2().copy(
             // disable IC-breaking feature; it's tested separately in [org.jetbrains.kotlin.gradle.mpp.CommonCodeWithPlatformSymbolsITBase]
-            enableUnsafeIncrementalCompilationForMultiplatform = true
+            enableUnsafeIncrementalCompilationForMultiplatform = true,
+            logLevel = LogLevel.DEBUG,
         )
 
     @DisplayName("File with actual declaration needs recompiling")
     @GradleTest
     @TestMetadata("expect-actual-fun-or-class-ic")
-    @BrokenOnMacosTest
     fun testRecompilationOfActualFun(gradleVersion: GradleVersion) {
         nativeProject("expect-actual-fun-or-class-ic", gradleVersion) {
             build("assemble")
@@ -42,7 +41,7 @@ open class ExpectActualIncrementalCompilationIT : KGPBaseTest() {
                 kotlinSourcesDir(sourceSet).resolve("ActualFunFoo.kt").addPrivateVal()
             }
 
-            build("assemble", buildOptions = defaultBuildOptions.copy(logLevel = LogLevel.DEBUG)) {
+            build("assemble") {
                 assertTasksExecuted(":compileKotlinJvm", ":compileKotlinJs", ":compileKotlinNative")
                 assertIncrementalCompilation(
                     listOf(
@@ -58,7 +57,6 @@ open class ExpectActualIncrementalCompilationIT : KGPBaseTest() {
     @DisplayName("File with expect declaration needs recompiling indirectly")
     @GradleTest
     @TestMetadata("expect-actual-fun-or-class-ic")
-    @BrokenOnMacosTest
     fun testRecompilationOfExpectFun(gradleVersion: GradleVersion) {
         nativeProject("expect-actual-fun-or-class-ic", gradleVersion) {
             build("assemble")
@@ -66,7 +64,7 @@ open class ExpectActualIncrementalCompilationIT : KGPBaseTest() {
             val commonSourceKt = kotlinSourcesDir("commonMain").resolve("UsedInFileWithExpectFun.kt")
             commonSourceKt.replaceWithVersion("sourceCompatibleAbiChange")
 
-            build("assemble", buildOptions = defaultBuildOptions.copy(logLevel = LogLevel.DEBUG)) {
+            build("assemble") {
                 assertTasksExecuted(":compileKotlinJvm", ":compileKotlinJs", ":compileKotlinNative")
                 assertIncrementalCompilation(
                     listOf(
@@ -83,14 +81,13 @@ open class ExpectActualIncrementalCompilationIT : KGPBaseTest() {
     @DisplayName("File with expect class declaration needs recompiling")
     @GradleTest
     @TestMetadata("expect-actual-fun-or-class-ic")
-    @BrokenOnMacosTest
     fun testRecompilationOfExpectClass(gradleVersion: GradleVersion) {
         nativeProject("expect-actual-fun-or-class-ic", gradleVersion) {
             build("assemble")
 
             kotlinSourcesDir("commonMain").resolve("ExpectClassBar.kt").addPrivateVal()
 
-            build("assemble", buildOptions = defaultBuildOptions.copy(logLevel = LogLevel.DEBUG)) {
+            build("assemble") {
                 assertTasksExecuted(":compileKotlinJvm", ":compileKotlinJs", ":compileKotlinNative")
                 assertIncrementalCompilation(
                     listOf(
